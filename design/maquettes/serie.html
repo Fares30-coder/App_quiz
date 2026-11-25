@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quizzéo · Série</title>
+<!--
+  Quizzéo · maquette Série · 390×844 (iPhone 14/15/16, en dp)
+  Charte : design/charte.md. Ajouter #sombre à l'URL pour le mode sombre.
+
+  Flutter Material 3 (ThemeData), à reprendre :
+  - ColorScheme clair : primary #D63A1F / onPrimary #FFFFFF, primaryContainer #FFE1D8,
+    secondary #0E6E72, tertiary #FFC23D / onTertiary #1A1B3A, error #C42B3A,
+    surface #FFF7EE / onSurface #1A1B3A / onSurfaceVariant #4A4C6B,
+    surfaceContainerLowest #FFFFFF (cartes), surfaceContainer #F6EEE3, outline #8A8CA6.
+  - ColorScheme sombre : primary #FF7A5C / onPrimary #12132A, surface #12132A / onSurface #F5F1EA,
+    surfaceContainerLowest #1E2042, surfaceContainer #2A2C55, outline #6E7096.
+  - ThemeExtension QuizColors : success #17784A (sombre #5BD69A), successContainer #DDF3E6 (#0F3A2A),
+    timerWarning #9A6500, teintes de catégories (voir charte §2).
+  - Espacements : grille 4 dp, marges d'écran 20, écart entre cartes 12, entre sections 24.
+  - Rayons : 16 (boutons, cartes), 24 (carte défi, feuille du bas), 999 (pilules).
+  - Polices : Bricolage Grotesque 700/800 (titres, chiffres), Atkinson Hyperlegible 400/700 (texte).
+  - ThemeExtension EngagementColors (nouveau, charte §7 bis) : flammeExt #D63A1F (sombre #FF7A5C), flammeInt #FFC23D,
+    gel #1F5E8C (#8CC8F0) / gelContainer #DDEBF6 (#1E2042 + bordure gel), xp = secondary #0E6E72 (#4FC7C9) /
+    xpContainer #D8EEF0 (#133F45) / onXpContainer #0A3F42 (#F5F1EA), xpGain = tertiary #FFC23D,
+    comboBg #1A1B3A (#2A2C55 + bordure safran) / comboText #FFF7EE (#F5F1EA) / comboIcon #FFC23D, rapide #9A6500 (#FFC23D).
+  Deux états :
+  - « Série validée » (par défaut) : affiché une fois par jour, après les résultats du PREMIER quiz de la journée
+    (avant le retour à l'accueil). La série se valide avec 1 quiz terminé, quel que soit l'objectif du jour.
+  - « Série en danger » (?etat=danger) : affiché au plus une fois par jour, à l'ouverture de l'app après l'heure du
+    rappel, si le joueur n'a pas encore joué ET n'a aucun gel en réserve. S'il a un gel, rien à faire :
+    le gel s'applique automatiquement à minuit et l'accueil l'indique.
+  Données fictives : semaine du 23 au 29 nov., aujourd'hui mercredi.
+
+  Gel de série : protège UNE journée sans jeu (la série ne monte pas, mais ne retombe pas à 0).
+  Obtention : pub récompensée FACULTATIVE (RewardedAd AdMob). Maximum en réserve à décider par Fares (proposé : 2).
+  Joueurs « Sans pub » : pas de pub récompensée -> proposition à valider (ex. 1 gel offert par semaine).
+  Ton : pas de culpabilisation. « Non merci » est un vrai bouton, aussi visible que l'offre, et ferme l'écran
+  sans autre écran de rattrapage. Aucune relance ensuite le même jour.
+
+  Notes d'implémentation Flutter :
+  - Validée : flamme 104 dp (flutter_svg ou Rive/Lottie maison, pas d'asset tiers). Séquence ≈ 1,2 s :
+    flamme scale 0.6 -> 1.1 -> 1.0 (700 ms, Curves.elasticOut) avec petite oscillation ; le nombre 6 -> 7 glisse
+    vers le haut (AnimatedSwitcher + SlideTransition, 300 ms) ; la pastille d'aujourd'hui se remplit et la coche
+    apparaît en « pop » (250 ms). HapticFeedback.mediumImpact() au changement de chiffre ; son court « flamme »
+    (≈ 500 ms) si les sons sont activés. Réduire les animations : état final directement, pas de son imposé.
+  - Danger : flamme en contour pointillé (pas de flamme qui « meurt », pas de rouge alarmant). Pas de son ni de vibration.
+  - Pub récompensée : charger la RewardedAd à l'avance ; si elle n'est pas prête ou si aucune pub n'est servie,
+    remplacer le bouton par « Pas de pub disponible pour le moment » (désactivé) et garder « Jouer un quiz ».
+    Le gel n'est crédité que dans onUserEarnedReward. Respecte le consentement UMP (pub non personnalisée possible).
+    Jamais pendant un quiz.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+ --fond:#FFF7EE;--carte:#FFFFFF;--carte2:#F6EEE3;--encre:#1A1B3A;--encre2:#4A4C6B;--ligne:#E6DED2;--contour:#8A8CA6;
+ --corail:#D63A1F;--sur-corail:#FFFFFF;--corail-txt:#B8301A;--corail-cont:#FFE1D8;--sur-corail-cont:#5A1406;
+ --canard:#0E6E72;--sur-canard:#FFFFFF;--canard-cont:#D8EEF0;--safran:#FFC23D;--sur-safran:#1A1B3A;--ambre:#9A6500;
+ --ok:#17784A;--sur-ok:#FFFFFF;--ok-txt:#0F5C37;--ok-cont:#DDF3E6;--ko:#C42B3A;--sur-ko:#FFFFFF;--ko-txt:#9E1C2A;--ko-cont:#FCE3E5;
+ --bouton-defi:#FFFFFF;--sur-bouton-defi:#1A1B3A;
+ --c-his:#FBE3D3;--i-his:#A3401A;--c-geo:#D8EEF0;--i-geo:#0E6E72;--c-sci:#E3E4FB;--i-sci:#3E4BB8;--c-art:#FBE0EC;--i-art:#B02A6B;
+ --c-spo:#E1F2D5;--i-spo:#2F7A1F;--c-act:#FFF0C7;--i-act:#8A5A00;--c-div:#ECE7DF;--i-div:#6B5B45;--c-mix:#FFE1D8;--i-mix:#B8301A;
+ --titre:'Bricolage Grotesque',system-ui,sans-serif;--texte:'Atkinson Hyperlegible',system-ui,sans-serif;
+}
+.sombre{
+ --fond:#12132A;--carte:#1E2042;--carte2:#2A2C55;--encre:#F5F1EA;--encre2:#B4B6D0;--ligne:#34365E;--contour:#6E7096;
+ --corail:#FF7A5C;--sur-corail:#12132A;--corail-txt:#FF7A5C;--corail-cont:#5A1E12;--sur-corail-cont:#FFD9CF;
+ --canard:#4FC7C9;--sur-canard:#12132A;--canard-cont:#133F45;--safran:#FFC23D;--sur-safran:#12132A;--ambre:#FFC23D;
+ --ok:#5BD69A;--sur-ok:#12132A;--ok-txt:#5BD69A;--ok-cont:#0F3A2A;--ko:#FF8A95;--sur-ko:#12132A;--ko-txt:#FF8A95;--ko-cont:#45161F;
+ --bouton-defi:#12132A;--sur-bouton-defi:#F5F1EA;
+ --c-his:#1E2042;--i-his:#FF9A6B;--c-geo:#1E2042;--i-geo:#4FC7C9;--c-sci:#1E2042;--i-sci:#9AA4FF;--c-art:#1E2042;--i-art:#FF8AC0;
+ --c-spo:#1E2042;--i-spo:#8FD66B;--c-act:#1E2042;--i-act:#FFC23D;--c-div:#1E2042;--i-div:#D2C2A8;--c-mix:#1E2042;--i-mix:#FF7A5C;
+}
+html,body{background:#D9D4CC;min-height:100%}
+body{display:flex;justify-content:center;align-items:flex-start;padding:24px 0;font-family:var(--texte);color:var(--encre)}
+body.cadre-nu{padding:0;background:transparent}
+.ecran{width:390px;height:844px;background:var(--fond);position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:44px;box-shadow:0 20px 60px rgba(26,27,58,.25)}
+body.cadre-nu .ecran{border-radius:0;box-shadow:none}
+.statut{height:47px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 34px;font:700 16px/1 var(--texte);color:var(--encre)}
+.statut svg{height:12px}
+.barre-home{height:34px;flex:none;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px}
+.barre-home::after{content:"";width:134px;height:5px;border-radius:3px;background:var(--encre)}
+.defile{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.defile::-webkit-scrollbar{display:none}
+.marge{padding:0 20px}
+.ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.h-titre{font:800 28px/1.2 var(--titre);letter-spacing:-.02em}
+.surtitre{font:700 13px/1.2 var(--texte);letter-spacing:.08em;text-transform:uppercase}
+.legende{font:400 14px/1.45 var(--texte);color:var(--encre2)}
+.logo{font:800 26px/1 var(--titre);letter-spacing:-.03em;color:var(--encre)}
+.logo b{color:var(--corail);font-weight:800}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;width:100%;border-radius:16px;border:0;font:700 17px/1.2 var(--texte);cursor:pointer;text-decoration:none}
+.btn-plein{background:var(--corail);color:var(--sur-corail)}
+.btn-contour{background:transparent;color:var(--encre);border:2px solid var(--contour)}
+.btn-texte{background:transparent;color:var(--corail-txt);min-height:48px}
+.icone-btn{width:48px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;color:var(--encre)}
+.pilule{text-decoration:none;display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:999px;font:700 15px/1 var(--texte)}
+/* pub */
+.pub{flex:none;height:60px;background:var(--carte2);border-top:1px solid var(--ligne);display:flex;align-items:center;justify-content:center;position:relative}
+.pub .zone{width:320px;height:50px;border:1.5px dashed var(--contour);border-radius:6px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--encre2);font:400 13px/1.2 var(--texte)}
+.pub .tag{position:absolute;left:8px;top:4px;font:700 13px/1 var(--texte);color:var(--encre2);background:var(--carte);border:1px solid var(--contour);padding:2px 5px;border-radius:4px}
+/* nav */
+.nav{flex:none;height:64px;display:flex;background:var(--carte);border-top:1px solid var(--ligne)}
+.nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--encre2);font:700 13px/1 var(--texte);text-decoration:none}
+.nav a .ind{width:64px;height:32px;border-radius:999px;display:flex;align-items:center;justify-content:center}
+.nav a.actif{color:var(--encre)}
+.nav a.actif .ind{background:var(--corail-cont);color:var(--sur-corail-cont)}
+.nav-bas{background:var(--carte)}
+.nav-bas .barre-home{background:var(--carte)}
+/* réponses */
+.reponses{display:flex;flex-direction:column;gap:12px}
+.rep{display:flex;align-items:center;gap:14px;min-height:60px;padding:12px 16px 12px 12px;border-radius:16px;border:2px solid var(--contour);background:var(--carte);font:700 17px/1.3 var(--texte);color:var(--encre);text-align:left;width:100%}
+.rep .lettre{width:32px;height:32px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--carte2);font:800 15px/1 var(--titre);color:var(--encre)}
+.rep .txt{flex:1}
+.rep .etat{font:700 13px/1.2 var(--texte);flex:none}
+.rep.ok{background:var(--ok-cont);border-color:var(--ok);color:var(--encre)}
+.rep.ok .lettre{background:var(--ok);color:var(--sur-ok)}
+.rep.ok .etat{color:var(--ok-txt)}
+.rep.ko{background:var(--ko-cont);border-color:var(--ko)}
+.rep.ko .lettre{background:var(--ko);color:var(--sur-ko)}
+.rep.ko .etat{color:var(--ko-txt)}
+.rep.eteinte{opacity:.55}
+.rep .lettre .ic{width:20px;height:20px;stroke-width:3}
+/* entête quiz */
+.entete-quiz{display:flex;align-items:center;gap:8px;padding:4px 12px 0 8px}
+.entete-quiz .compteur{flex:1;text-align:center;font:700 16px/1 var(--texte)}
+.entete-quiz .compteur b{font:800 20px/1 var(--titre)}
+.timer{width:56px;height:56px;position:relative;flex:none}
+.timer svg{width:56px;height:56px;transform:rotate(-90deg)}
+.timer .val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 20px/1 var(--titre)}
+.segments{display:flex;gap:4px;padding:12px 20px 0}
+.segments i{flex:1;height:6px;border-radius:3px;background:var(--ligne)}
+.segments i.s-ok{background:var(--ok)}
+.segments i.s-ko{background:var(--ko)}
+.segments i.s-cur{background:var(--encre)}
+.cat-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 8px;border-radius:999px;font:700 14px/1 var(--texte);color:var(--encre)}
+.cat-chip .ic{width:18px;height:18px}
+.niveau{font:400 14px/1 var(--texte);color:var(--encre2)}
+.question{font:700 24px/1.3 var(--titre);letter-spacing:-.01em;margin-top:14px}
+@media (prefers-reduced-motion:no-preference){.timer.pulse .val{animation:none}}
+
+
+/* --- composants engagement (charte §7 bis) --- */
+:root{
+ --flamme-ext:#D63A1F;--flamme-int:#FFC23D;
+ --gel:#1F5E8C;--gel-cont:#DDEBF6;--sur-gel-cont:#1A1B3A;--sur-gel:#FFFFFF;
+ --xp:#0E6E72;--xp-cont:#D8EEF0;--sur-xp-cont:#0A3F42;--sur-xp:#FFFFFF;--xp-gain:#FFC23D;
+ --combo-bg:#1A1B3A;--combo-txt:#FFF7EE;--combo-ic:#FFC23D;--rapide:#9A6500;
+}
+.sombre{
+ --flamme-ext:#FF7A5C;--flamme-int:#FFC23D;
+ --gel:#8CC8F0;--gel-cont:#1E2042;--sur-gel-cont:#F5F1EA;--sur-gel:#12132A;
+ --xp:#4FC7C9;--xp-cont:#133F45;--sur-xp-cont:#F5F1EA;--sur-xp:#12132A;--xp-gain:#FFC23D;
+ --combo-bg:#2A2C55;--combo-txt:#F5F1EA;--combo-ic:#FFC23D;--rapide:#FFC23D;
+}
+.serie-chip{background:var(--safran);color:var(--sur-safran);min-height:44px;padding:0 14px 0 10px;font:800 20px/1 var(--titre)}
+.serie-chip .ic{width:24px;height:24px}
+.gel-chip{background:var(--gel-cont);color:var(--sur-gel-cont);min-height:44px;padding:0 12px 0 10px;font:800 18px/1 var(--titre)}
+.gel-chip .ic{color:var(--gel);width:20px;height:20px}
+.sombre .gel-chip,.sombre .gel-carte{border:1.5px solid var(--gel)}
+.xp-badge{display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:0 12px;border-radius:999px;background:var(--xp-cont);color:var(--sur-xp-cont);font:800 16px/1 var(--titre);white-space:nowrap}
+.xp-badge .ic{width:16px;height:16px;stroke-width:2.4}
+.combo{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px 0 8px;border-radius:999px;background:var(--combo-bg);color:var(--combo-txt);font:800 15px/1 var(--titre)}
+.sombre .combo{border:1.5px solid var(--combo-ic)}
+.combo .ic{color:var(--combo-ic);width:18px;height:18px}
+.rapide{display:inline-flex;align-items:center;gap:6px;font:400 14px/1.2 var(--texte);color:var(--encre2)}
+.rapide .ic{width:18px;height:18px;color:var(--rapide)}
+.jauge{display:flex;gap:6px}
+.jauge i{flex:1;height:10px;border-radius:999px;background:var(--ligne)}
+.jauge i.plein{background:var(--corail)}
+.jauge.atteint i{background:var(--ok)}
+.niv-pastille{width:40px;height:40px;border-radius:999px;background:var(--xp);color:var(--sur-xp);display:flex;align-items:center;justify-content:center;font:800 18px/1 var(--titre);flex:none}
+.niv-barre{height:10px;border-radius:999px;background:var(--ligne);overflow:hidden;display:flex}
+.niv-barre .avant{background:var(--xp)}
+.niv-barre .gain{background:var(--xp-gain)}
+.semaine{list-style:none;display:flex;justify-content:space-between}
+.semaine li{display:flex;flex-direction:column;align-items:center;gap:6px;width:38px}
+.semaine .j{font:700 13px/1 var(--texte);color:var(--encre2)}
+.semaine .j b{color:var(--corail-txt)}
+.semaine .pt{width:32px;height:32px;border-radius:999px;display:flex;align-items:center;justify-content:center;border:2px solid var(--contour)}
+.semaine .pt.fait{background:var(--safran);color:var(--sur-safran);border-color:var(--safran)}
+.semaine .pt.fait .ic{width:18px;height:18px;stroke-width:3}
+.semaine .pt.auj{border:3px dashed var(--corail)}
+.semaine .pt.fait.auj{border:3px solid var(--corail)}
+.semaine .pt.gele{background:var(--gel-cont);color:var(--gel);border-color:var(--gel)}
+.semaine .pt.gele .ic{width:18px;height:18px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* --- spécifique à l'écran --- */
+.haut{display:flex;align-items:center;justify-content:flex-end;padding:0 8px;height:56px;flex:none}
+.centre{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 20px}
+.grande-flamme{width:104px;height:104px;animation:allume .7s cubic-bezier(.34,1.56,.64,1) both;transform-origin:50% 90%}
+@keyframes allume{from{transform:scale(.6);opacity:.3}to{transform:scale(1);opacity:1}}
+.nb{font:800 72px/1 var(--titre);letter-spacing:-.03em;margin-top:4px}
+.nb-leg{font:700 20px/1.2 var(--titre);color:var(--encre2)}
+.centre h1{font:800 28px/1.2 var(--titre);margin-top:12px}
+.centre .legende{font-size:16px;margin-top:6px;max-width:320px}
+.carte{background:var(--carte);border:2px solid var(--ligne);border-radius:16px;padding:14px 16px;margin:16px 20px 0}
+.carte h2{font:700 17px/1.3 var(--texte);margin-bottom:12px}
+.info{display:flex;align-items:center;gap:10px;margin-top:14px;font:400 14px/1.4 var(--texte)}
+.info .ic{color:var(--gel)}
+.info .jauge{width:60px}
+.bas{margin-top:auto;padding:16px 20px 0;display:flex;flex-direction:column;gap:10px}
+.gel-offre{margin:16px 20px 0;padding:16px;border-radius:16px;background:var(--gel-cont);color:var(--sur-gel-cont)}
+.gel-offre .tete{display:flex;gap:12px;align-items:flex-start}
+.gel-offre .rond{width:40px;height:40px;border-radius:999px;background:var(--carte);color:var(--gel);display:flex;align-items:center;justify-content:center;flex:none}
+.gel-offre h2{font:700 17px/1.3 var(--texte)}
+.gel-offre p{font:400 15px/1.45 var(--texte);margin-top:2px}
+.gel-offre .btn{margin-top:12px;min-height:52px;background:var(--carte);color:var(--encre);border:2px solid var(--gel)}
+.gel-offre .note{font:400 13px/1.4 var(--texte);margin-top:8px;text-align:center}
+:root:not(.etat-danger) .v-danger{display:none!important}
+.etat-danger .v-ok{display:none!important}
+.centre.v-danger .grande-flamme{animation:none}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-coche" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+<symbol id="i-partager" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+<symbol id="i-trophee" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M9 17h6"/></symbol>
+<symbol id="i-maison" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></symbol>
+<symbol id="i-profil" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></symbol>
+<symbol id="i-horloge" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-flamme" viewBox="0 0 24 24"><path d="M12 2.5c.8 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.3 1-3.8 2.2-4.9.1 2 .9 3.1 2 3.4-.4-3.4.1-6.6 1.3-9.5z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-his" viewBox="0 0 24 24"><path d="M4 9l8-5 8 5zM6 9v9M10 9v9M14 9v9M18 9v9M3 21h18"/></symbol>
+<symbol id="i-geo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3.2 3.2 3.2 14.8 0 18M12 3c-3.2 3.2-3.2 14.8 0 18"/></symbol>
+<symbol id="i-sci" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.2 9.2A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.8L14 9V3M7.2 15h9.6"/></symbol>
+<symbol id="i-art" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2s-1-1.6-1-2.6 1-1.4 2-1.4h2.2A3.8 3.8 0 0 0 21 11.2C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="15" cy="7" r="1.2"/></symbol>
+<symbol id="i-spo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5l4 2.9-1.5 4.6h-5L8 10.4zM12 3v4.5M16 10.4l4.3-1.6M14.5 15l2.7 3.8M9.5 15l-2.7 3.8M8 10.4L3.7 8.8"/></symbol>
+<symbol id="i-act" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2zM17 9h3v8a2 2 0 0 1-2 2M7 9h7M7 13h7M7 16h4"/></symbol>
+<symbol id="i-div" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.3" fill="currentColor"/><circle cx="15" cy="15" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></symbol>
+<symbol id="i-mix" viewBox="0 0 24 24"><path d="M3 7h3c5.5 0 5.5 10 11 10h4M3 17h3c2 0 3.2-1.3 4.2-3M13.8 10c1-1.7 2.2-3 4.2-3h3M18 4l3 3-3 3M18 14l3 3-3 3"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-retour" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+<symbol id="i-sanspub" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M4 4l16 16"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="12" rx="2"/><path d="M8 21h8M12 17v4M4 5l16 12"/></symbol>
+<symbol id="i-ouvert" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.7"/></symbol>
+<symbol id="i-coeur" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></symbol>
+<symbol id="i-restaurer" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></symbol>
+<symbol id="i-ampoule" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+<symbol id="i-amis" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5.2 6.5-5.2s5.7 1.8 6.5 5.2M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.9c1.8.7 3 2.4 3.5 5.1"/></symbol>
+<symbol id="i-flamme2" viewBox="0 0 48 48"><path style="fill:var(--flamme-ext)" d="M24 3c1.7 7.4 11.5 11.6 11.5 22.6a11.5 11.5 0 0 1-23 0c0-4.8 2.1-8 4.6-10.3.2 4.2 1.9 6.5 4.2 7.1-.8-7.1.2-13.8 2.7-19.4z"/><path style="fill:var(--flamme-int)" d="M24.3 24.5c.7 3 5.2 4.7 5.2 9.6a5.5 5.5 0 0 1-11 0c0-2.6 1.3-4 2.4-4.8.2 1.7.9 2.6 1.7 2.9-.2-2.8.5-5.4 1.7-7.7z"/></symbol>
+<symbol id="i-flamme-vide" viewBox="0 0 48 48"><path fill="none" style="stroke:var(--flamme-ext)" stroke-width="2.6" stroke-linejoin="round" d="M24 3c1.7 7.4 11.5 11.6 11.5 22.6a11.5 11.5 0 0 1-23 0c0-4.8 2.1-8 4.6-10.3.2 4.2 1.9 6.5 4.2 7.1-.8-7.1.2-13.8 2.7-19.4z"/></symbol>
+<symbol id="i-gel" viewBox="0 0 24 24"><path d="M12 2.5v19M3.8 7.25l16.4 9.5M20.2 7.25L3.8 16.75M9.3 4L12 6.6 14.7 4M9.3 20L12 17.4 14.7 20M4.4 10.8l3.6-1-1-3.6M19.6 13.2l-3.6 1 1 3.6M17 6.2l-1 3.6 3.6 1M7 17.8l1-3.6-3.6-1"/></symbol>
+<symbol id="i-eclair" viewBox="0 0 24 24"><path d="M13.5 2L4.5 13.5h6.5L10 22l9.5-12H13z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-chrono" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.5 1.5M9.5 2.5h5M12 2.5V6M18.5 6.5l1.5-1.5"/></symbol>
+<symbol id="i-cible" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></symbol>
+<symbol id="i-cloche" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.6 2.2H4.4zM10 20.6a2.1 2.1 0 0 0 4 0"/></symbol>
+<symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.2l5 2.8-5 2.8z" fill="currentColor"/></symbol>
+<symbol id="i-xp" viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6l-5.4 2.9 1.2-6-4.5-4.2 6.1-.7z"/></symbol>
+</defs></svg>
+<main class="ecran" aria-label="Série">
+<div class="statut" aria-hidden="true"><span>9:41</span><svg viewBox="0 0 70 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><path d="M31 3.2a9 9 0 0 1 12 0l-1.4 1.5a7 7 0 0 0-9.2 0zM33.4 5.8a5.5 5.5 0 0 1 7.2 0L39.1 7.3a3.4 3.4 0 0 0-4.2 0zM37 11.5l-1.6-2a2.3 2.3 0 0 1 3.2 0z"/><rect x="48" y="0.5" width="19" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="50" y="2.5" width="13" height="7" rx="1.5"/><rect x="68" y="4" width="1.6" height="4" rx=".8"/></svg></div>
+<header class="haut"><button class="icone-btn" aria-label="Fermer"><svg class="ic" aria-hidden="true"><use href="#i-fermer"/></svg></button></header>
+<section class="centre v-ok" aria-live="polite">
+  <svg class="grande-flamme" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-flamme2"/></svg>
+  <p class="nb" aria-hidden="true">7</p>
+  <p class="nb-leg" aria-hidden="true">jours de série</p>
+  <h1>Série validée&nbsp;!</h1>
+  <p class="legende">7 jours d'affilée. Reviens demain pour passer à 8.</p>
+</section>
+<section class="carte v-ok" aria-labelledby="t-sem">
+  <h2 id="t-sem">Cette semaine</h2>
+  <ol class="semaine" aria-label="Semaine du 23 au 29 novembre"><li><span class="j">L</span><span class="pt fait"><svg class="ic" aria-hidden="true"><use href="#i-coche"/></svg></span></li><li><span class="j">M</span><span class="pt fait"><svg class="ic" aria-hidden="true"><use href="#i-coche"/></svg></span></li><li><span class="j"><b>M</b></span><span class="pt fait auj" aria-label="Mercredi, aujourd'hui : joué"><svg class="ic" aria-hidden="true"><use href="#i-coche"/></svg></span></li><li><span class="j">J</span><span class="pt"></span></li><li><span class="j">V</span><span class="pt"></span></li><li><span class="j">S</span><span class="pt"></span></li><li><span class="j">D</span><span class="pt"></span></li></ol>
+  <p class="info"><svg class="ic" aria-hidden="true"><use href="#i-gel"/></svg><span><b>1 gel en réserve</b> pour un jour sans jeu.</span></p>
+  <p class="info"><span class="jauge" aria-hidden="true"><i class="plein"></i><i></i></span><span>Objectif du jour : 1/2 quiz</span></p>
+</section>
+<div class="bas v-ok">
+  <a class="btn btn-plein" href="accueil.html">Continuer</a>
+  <a class="btn btn-texte" href="#"><svg class="ic" aria-hidden="true"><use href="#i-partager"/></svg>Partager ma série</a>
+  <div class="barre-home"></div>
+</div>
+
+<section class="centre v-danger">
+  <svg class="grande-flamme" viewBox="0 0 48 48" aria-hidden="true" style="width:80px;height:80px"><use href="#i-flamme-vide"/></svg>
+  <h1>Ta série de 7 jours t'attend</h1>
+  <p class="legende">Joue un quiz aujourd'hui pour la garder. 5 minutes suffisent.</p>
+</section>
+<section class="carte v-danger" aria-label="Cette semaine">
+  <ol class="semaine" aria-label="Semaine du 23 au 29 novembre"><li><span class="j">L</span><span class="pt fait"><svg class="ic" aria-hidden="true"><use href="#i-coche"/></svg></span></li><li><span class="j">M</span><span class="pt fait"><svg class="ic" aria-hidden="true"><use href="#i-coche"/></svg></span></li><li><span class="j"><b>M</b></span><span class="pt auj" aria-label="Mercredi, aujourd'hui : pas encore joué"></span></li><li><span class="j">J</span><span class="pt"></span></li><li><span class="j">V</span><span class="pt"></span></li><li><span class="j">S</span><span class="pt"></span></li><li><span class="j">D</span><span class="pt"></span></li></ol>
+</section>
+<section class="gel-offre v-danger gel-carte" aria-labelledby="t-gel">
+  <div class="tete">
+    <span class="rond"><svg class="ic" aria-hidden="true"><use href="#i-gel"/></svg></span>
+    <div><h2 id="t-gel">Pas le temps aujourd'hui&nbsp;?</h2><p>Un gel protège ta série pendant une journée sans jeu. Tu n'en as pas en réserve.</p></div>
+  </div>
+  <a class="btn" href="#"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg>Regarder une pub pour un gel</a>
+  <p class="note">Facultatif. Le gel est ajouté à la fin de la vidéo.</p>
+</section>
+<div class="bas v-danger">
+  <a class="btn btn-plein" href="question.html">Jouer un quiz</a>
+  <a class="btn btn-texte" href="accueil.html" style="color:var(--encre)">Non merci</a>
+  <div class="barre-home"></div>
+</div>
+</main>
+<script>/* #sombre = mode sombre ; ?cadre=nu = sans cadre (utilisé par index.html) */
+if(location.hash.indexOf('sombre')>-1)document.documentElement.classList.add('sombre');
+if(location.search.indexOf('cadre=nu')>-1)document.body.classList.add('cadre-nu');
+window.addEventListener('hashchange',function(){document.documentElement.classList.toggle('sombre',location.hash.indexOf('sombre')>-1)});</script>
+<script>/* ?etat=xxx = variante de l'écran (utilisé par index.html) */
+(function(){var m=location.search.match(/etat=([a-z]+)/);if(m)document.documentElement.classList.add('etat-'+m[1]);})();</script>
+</body>
+</html>

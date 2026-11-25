@@ -1,0 +1,104 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
+
+import '../engagement/dates.dart';
+import '../engagement/progress_controller.dart';
+import '../engagement/xp.dart';
+import '../theme/app_theme.dart';
+import '../widgets/engagement_widgets.dart';
+import 'goal_screen.dart';
+import 'no_ads_screen.dart';
+
+/// Profil (pas de maquette dédiée) : niveau, réglages de l'objectif, sans pub.
+class ProfileScreen extends ConsumerWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = ref.watch(progressControllerProvider);
+    final level = levelFor(p.totalXp);
+    final reminder = p.reminderMinutes;
+
+    void open(Widget screen, {bool fullscreen = false}) =>
+        Navigator.of(context).push(MaterialPageRoute<void>(
+          fullscreenDialog: fullscreen,
+          builder: (_) => screen,
+        ));
+
+    return SafeArea(
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+        children: [
+          const SizedBox(height: AppSpacing.s),
+          Text('Profil', style: context.text.headlineMedium),
+          const SizedBox(height: AppSpacing.l),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.l),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      LevelBadge(level: level.level),
+                      const SizedBox(width: AppSpacing.m),
+                      Expanded(
+                        child: Text('Niveau ${level.level}',
+                            style: context.text.titleMedium),
+                      ),
+                      Text('${p.totalXp} XP au total',
+                          style: context.text.bodyMedium),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  LevelBar(value: level.fraction),
+                  const SizedBox(height: 6),
+                  Text('${level.xpInLevel} / ${level.xpForNext} XP',
+                      style: context.text.bodyMedium),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.l),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                ListTile(
+                  minTileHeight: 56,
+                  leading: const Icon(Icons.track_changes),
+                  title: const Text('Objectif et rappel'),
+                  subtitle: Text(
+                    '${p.dailyGoal} quiz par jour · '
+                    '${reminder == null ? 'pas de rappel' : 'rappel à ${formatHour(reminder)}'}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => open(const GoalScreen()),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  minTileHeight: 56,
+                  leading: const Icon(Icons.block),
+                  title: const Text('Supprimer les pubs'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => open(const NoAdsScreen(), fullscreen: true),
+                ),
+                const Divider(height: 1),
+                // TODO(etape-3): ConsentForm.showPrivacyOptionsForm (UMP).
+                const ListTile(
+                  minTileHeight: 56,
+                  enabled: false,
+                  leading: Icon(Icons.privacy_tip_outlined),
+                  title: Text('Gérer mes choix pub'),
+                  subtitle: Text('Disponible avec l\'arrivée des pubs'),
+                ),
+                // TODO(sons): réglage « Sons » (activés par défaut).
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

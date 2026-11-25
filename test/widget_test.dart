@@ -1,0 +1,137 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:quizzeo/data/progress_repository.dart';
+import 'package:quizzeo/data/question_repository.dart';
+import 'package:quizzeo/models/question.dart';
+import 'package:quizzeo/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Charge les vraies polices (sinon la police de test, plus large, fausse les mesures).
+Future<void> loadFonts() async {
+  const fonts = {
+    'BricolageGrotesque': ['700', '800'],
+    'AtkinsonHyperlegible': ['400', '700'],
+  };
+  for (final entry in fonts.entries) {
+    final loader = FontLoader(entry.key);
+    for (final w in entry.value) {
+      loader.addFont(rootBundle.load('assets/fonts/${entry.key}-$w.ttf'));
+    }
+    await loader.load();
+  }
+}
+
+final questions = [
+  for (final e
+      in jsonDecode(File('assets/questions.json').readAsStringSync()) as List)
+    Question.fromJson(e as Map<String, dynamic>),
+];
+
+Future<void> pumpApp(
+  WidgetTester tester,
+  Map<String, Object> prefs, {
+  double height = 1100,
+}) async {
+  // Format téléphone des maquettes (390×844), assez haut pour tout l'écran objectif.
+  tester.view.physicalSize = Size(390, height);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  SharedPreferences.setMockInitialValues(prefs);
+  final instance = await SharedPreferences.getInstance();
+  await tester.pumpWidget(ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(instance),
+      questionRepositoryProvider
+          .overrideWithValue(QuestionRepository(questions: questions)),
+    ],
+    child: const QuizzeoApp(),
+  ));
+  await tester.pump();
+}
+
+void main() {
+  setUpAll(loadFonts);
+
+  testWidgets('premier lancement : écran de consentement', (tester) async {
+    await pumpApp(tester, {});
+    expect(find.text('Avant de jouer'), findsOneWidget);
+    expect(find.text('Continuer'), findsOneWidget);
+  });
+
+  testWidgets('premier lancement : objectif 2 quiz et 20 h 30 par défaut',
+      (tester) async {
+    await pumpApp(tester, {});
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ton objectif du jour'), findsOneWidget);
+    expect(find.text('20 h 30'), findsOneWidget);
+    await tester.tap(find.text('C\'est parti'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Jouer le défi'), findsOneWidget);
+  });
+
+  testWidgets('accueil après le premier lancement', (tester) async {
+    await pumpApp(tester, {'progress_v1': '{"onboardingDone":true}'});
+    expect(find.text('Jouer le défi'), findsOneWidget);
+    expect(find.text('Objectif du jour'), findsOneWidget);
+    expect(find.text('Niveau 1'), findsOneWidget);
+  });
+
+  journeyTests(1);
+  journeyTests(1.3);
+}
+
+Future<void> playChallenge(WidgetTester tester) async {
+  await tester.ensureVisible(find.text('Jouer le défi'));
+  await tester.tap(find.text('Jouer le défi'));
+  // Le chargement de assets/questions.json est une vraie I/O asynchrone.
+  for (var i = 0; i < 20 && find.text('A').evaluate().isEmpty; i++) {
+    await tester
+        .runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  await tester.pump(const Duration(milliseconds: 400));
+  for (var i = 0; i < 10; i++) {
+    await tester.tap(find.text('A').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.textContaining(RegExp(r'^(Bien vu|Raté)')),
+      findsOneWidget,
+    );
+    final next = i == 9 ? 'Voir le résultat' : 'Question suivante';
+    await tester.ensureVisible(find.text(next));
+    await tester.tap(find.text(next));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+}
+
+void journeyTests(double textScale) {
+  testWidgets('parcours défi -> résultats -> série (texte x$textScale)',
+      (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = textScale;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(tester, {'progress_v1': '{"onboardingDone":true}'},
+        height: 844);
+    await playChallenge(tester);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('XP gagnés'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Continuer'), 200);
+    await tester.tap(find.text('Continuer'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Série validée !'), findsOneWidget);
+    await tester.tap(find.text('Continuer'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.scrollUntilVisible(find.textContaining('Ton score'), -200);
+    expect(find.textContaining('Ton score'), findsOneWidget);
+  });
+}

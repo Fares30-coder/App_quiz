@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quizzéo · Captures stores</title>
+<!--
+  Captures App Store / Google Play, générées à partir des maquettes réelles (iframe des écrans de design/maquettes/).
+  Paramètres d'URL : ?n=1|2|3 (capture) & os=ios|android
+  - ios     : zone logique 440×956, rendu à l'échelle 3 = 1320×2868 (iPhone 6,9")
+  - android : zone logique 360×640, rendu à l'échelle 3 = 1080×1920 (9:16)
+  Rendu PNG : voir design/canva.md (section « Repli HTML »). Sans paramètre : planche avec les 6 captures.
+  Charte : couleurs et polices de design/charte.md. Aucun chiffre réel inventé (pas d'avis, pas de nombre de joueurs).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#D9D4CC;font-family:'Atkinson Hyperlegible',system-ui,sans-serif}
+body.seul{background:transparent}
+.planche{display:flex;flex-wrap:wrap;gap:24px;padding:24px;align-items:flex-start}
+.cap{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;flex:none}
+.cap.ios{width:440px;height:956px}
+.cap.android{width:360px;height:640px}
+.t{font:800 40px/1.08 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.025em;text-align:center;padding:0 28px}
+.s{font:400 19px/1.35 'Atkinson Hyperlegible',system-ui,sans-serif;text-align:center;margin-top:12px;padding:0 32px}
+.ios .entete{padding-top:64px;height:252px}
+.android .entete{padding-top:34px;height:176px}
+.android .t{font-size:31px;padding:0 22px}
+.android .s{font-size:16px;margin-top:8px}
+.tel{position:relative;flex:none;border-radius:52px;background:#1A1B3A;padding:12px;box-shadow:0 24px 60px rgba(26,27,58,.28)}
+.tel .ecran{width:390px;height:844px;border-radius:40px;overflow:hidden;transform-origin:0 0;background:#FFF7EE}
+.tel iframe{width:390px;height:844px;border:0;display:block}
+/* phone 390×844 mis à l'échelle */
+.ios .tel{width:calc(390px*.84 + 24px);height:calc(844px*.84 + 24px)}
+.ios .tel .ecran{transform:scale(.84)}
+.android .tel{width:calc(390px*.70 + 20px);height:calc(844px*.70 + 20px);padding:10px;border-radius:44px}
+.android .tel .ecran{transform:scale(.70)}
+/* thèmes */
+.v1{background:#D63A1F;color:#FFFFFF}            /* blanc sur corail : 4,7:1 */
+.v2{background:#FFF7EE;color:#1A1B3A}            /* encre sur crème : 15,7:1 */
+.v2 em{font-style:normal;color:#B8301A}           /* corail foncé sur crème : 5,7:1 */
+.v3{background:#1A1B3A;color:#FFF7EE}            /* crème sur encre */
+.v3 em{font-style:normal;color:#FFC23D}           /* safran sur encre : 10,3:1 */
+.v3 .tel{background:#34365E}
+.logo{position:absolute;font:800 22px/1 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.03em}
+</style>
+</head>
+<body>
+<div class="planche" id="planche"></div>
+<script>
+var C={
+ 1:{cls:'v1',ecran:'question.html',t:'10 questions,<br>30 secondes chacune',s:'Tu vaux combien en culture G ?'},
+ 2:{cls:'v2',ecran:'accueil.html',t:'Un défi par jour.<br>Garde ta <em>série</em> !',s:'Le même quiz pour tout le monde, chaque jour.'},
+ 3:{cls:'v3',ecran:'resultats.html',t:'Partage ton score.<br><em>Défie tes potes.</em>',s:'Ton résultat en image, prêt pour TikTok et Stories.'}
+};
+function cap(n,os){
+  var c=C[n],d=document.createElement('div');
+  d.className='cap '+os+' '+c.cls;
+  d.setAttribute('data-cap',n+'-'+os);
+  d.innerHTML='<div class="entete"><h1 class="t">'+c.t+'</h1><p class="s">'+c.s+'</p></div>'+
+   '<div class="tel"><div class="ecran"><iframe title="'+c.ecran+'" src="../maquettes/'+c.ecran+'?cadre=nu" scrolling="no"></iframe></div></div>';
+  return d;
+}
+var p=new URLSearchParams(location.search),z=document.getElementById('planche');
+if(p.get('n')){document.body.classList.add('seul');z.style.padding='0';z.appendChild(cap(p.get('n'),p.get('os')||'ios'));}
+else{['ios','android'].forEach(function(os){[1,2,3].forEach(function(n){z.appendChild(cap(n,os));});});}
+</script>
+</body>
+</html>
