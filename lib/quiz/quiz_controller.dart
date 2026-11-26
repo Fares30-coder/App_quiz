@@ -29,9 +29,11 @@ class QuizState {
     this.answerFailed = false,
     this.loadingNext = false,
     this.nextFailed = false,
+    this.outOfSync = false,
     this.secondsLeft = questionSeconds,
     this.answers = const [],
     this.outcome,
+    this.serverXp,
   }) : _total = total;
 
   final QuizMode mode;
@@ -70,6 +72,11 @@ class QuizState {
   /// Question suivante impossible à obtenir (réseau) : à redemander avec
   /// [QuizController.retryNext].
   final bool nextFailed;
+
+  /// Le serveur a renvoyé une autre question que la suivante attendue
+  /// (quiz repris ailleurs, par exemple sur un autre appareil) : réessayer
+  /// ne sert à rien, il faut quitter puis relancer le quiz.
+  final bool outOfSync;
   final int secondsLeft;
 
   /// Réponses déjà corrigées, dans l'ordre.
@@ -77,6 +84,11 @@ class QuizState {
 
   /// Renseigné quand le quiz est terminé.
   final QuizOutcome? outcome;
+
+  /// Quiz servi terminé : XP accordés par le serveur (`submit_quiz`), une
+  /// fois connus. Peuvent différer du calcul local (bonus rapidité refusé
+  /// sur un réseau lent, plafond du jour).
+  final int? serverXp;
 
   Question get current => questions[index];
   bool get isServed => quizId != null;
@@ -123,9 +135,11 @@ class QuizState {
     bool? answerFailed,
     bool? loadingNext,
     bool? nextFailed,
+    bool? outOfSync,
     int? secondsLeft,
     List<AnswerResult>? answers,
     QuizOutcome? outcome,
+    int? serverXp,
   }) =>
       QuizState(
         mode: mode,
@@ -140,9 +154,11 @@ class QuizState {
         answerFailed: answerFailed ?? this.answerFailed,
         loadingNext: loadingNext ?? this.loadingNext,
         nextFailed: nextFailed ?? this.nextFailed,
+        outOfSync: outOfSync ?? this.outOfSync,
         secondsLeft: secondsLeft ?? this.secondsLeft,
         answers: answers ?? this.answers,
         outcome: outcome ?? this.outcome,
+        serverXp: serverXp ?? this.serverXp,
       );
 }
 
@@ -152,6 +168,10 @@ class QuizController extends Notifier<QuizState> {
 
   /// Temps de la réponse en attente de correction (réessai).
   Duration _pendingElapsed = Duration.zero;
+
+  /// Temps déjà écoulé sur la question en cours à sa réception (question
+  /// reprise : servie plus tôt par le serveur).
+  Duration _elapsedBefore = Duration.zero;
 
   SoundEffects get _sounds => ref.read(soundEffectsProvider);
 
@@ -172,6 +192,10 @@ class QuizController extends Notifier<QuizState> {
   /// serveur (premières questions, déjà corrigées dans [questions]). Elles
   /// comptent telles quelles ; le quiz reprend à la première question sans
   /// réponse (ou reste sur la dernière, corrigée, si tout est répondu).
+  ///
+  /// [secondsLeft] : chrono restant de la question en cours selon le serveur
+  /// (défi repris : la question garde son heure d'envoi d'origine) ; par
+  /// défaut 30 s.
   void start(
     List<Question> questions, {
     required QuizMode mode,
@@ -180,6 +204,7 @@ class QuizController extends Notifier<QuizState> {
     String? userId,
     List<ServedAnswer> answered = const [],
     int? total,
+    int? secondsLeft,
   }) {
     final done = answered.length.clamp(0, questions.length);
     final results = [
@@ -201,10 +226,13 @@ class QuizController extends Notifier<QuizState> {
       index: allAnswered ? done - 1 : done,
       selected: allAnswered ? answered[done - 1].choice : null,
       timedOut: allAnswered && answered[done - 1].choice == null,
-      secondsLeft: allAnswered ? 0 : questionSeconds,
+      secondsLeft: allAnswered ? 0 : _clampSeconds(secondsLeft),
     );
     if (!allAnswered) _startQuestion();
   }
+
+  static int _clampSeconds(int? seconds) =>
+      (seconds ?? questionSeconds).clamp(0, questionSeconds);
 
   /// Enregistre la réponse [choice] (position affichée). Renvoie true si
   /// elle est juste. Quiz local : corrigé tout de suite ; quiz servi :
@@ -216,7 +244,7 @@ class QuizController extends Notifier<QuizState> {
     }
     _stop();
     state = state.copyWith(selected: () => choice);
-    return _correct(choice, _stopwatch.elapsed);
+    return _correct(choice, _elapsedBefore + _stopwatch.elapsed);
   }
 
   void _timeOut() {
@@ -333,10 +361,13 @@ class QuizController extends Notifier<QuizState> {
           .nextQuestion(quizId: quizId);
       if (!stillCurrent()) return;
       // Position 1 à 10 : la question suivante est la position index + 2.
+      // Sinon le quiz a avancé ailleurs : réessayer ne changerait rien.
       if (served.position != index + 2) {
-        throw StateError('question inattendue');
+        state = state.copyWith(loadingNext: false, outOfSync: true);
+        return;
       }
-      _goToNext([...state.questions, served.question]);
+      _goToNext([...state.questions, served.question],
+          secondsLeft: served.secondsLeft);
     } catch (_) {
       if (stillCurrent()) {
         state = state.copyWith(loadingNext: false, nextFailed: true);
@@ -344,8 +375,10 @@ class QuizController extends Notifier<QuizState> {
     }
   }
 
-  /// Affiche la question suivante (déjà dans [questions]) et lance son chrono.
-  void _goToNext(List<Question> questions) {
+  /// Affiche la question suivante (déjà dans [questions]) et lance son
+  /// chrono ([secondsLeft] : temps restant selon le serveur, 30 s par
+  /// défaut).
+  void _goToNext(List<Question> questions, {int? secondsLeft}) {
     state = state.copyWith(
       questions: questions,
       index: state.index + 1,
@@ -353,7 +386,7 @@ class QuizController extends Notifier<QuizState> {
       timedOut: false,
       loadingNext: false,
       nextFailed: false,
-      secondsLeft: questionSeconds,
+      secondsLeft: _clampSeconds(secondsLeft),
     );
     _startQuestion();
   }
@@ -380,22 +413,37 @@ class QuizController extends Notifier<QuizState> {
   }
 
   /// Validation serveur en arrière-plan (quiz servi seulement, jamais
-  /// bloquant) : le calcul local ci-dessus reste celui affiché. Un quiz
-  /// local (hors ligne, pas assez de questions) ne compte pas au classement.
+  /// bloquant) : le calcul local ci-dessus s'affiche d'abord, puis les XP
+  /// accordés par le serveur ([QuizState.serverXp]) dès qu'ils arrivent.
+  /// Un quiz local (hors ligne, pas assez de questions) ne compte pas au
+  /// classement.
   void _submit() {
     final sync = ref.read(progressSyncProvider);
     final quizId = state.quizId;
     final userId = state.userId;
     if (sync == null || quizId == null || userId == null) return;
-    unawaited(sync.submitQuiz(QuizSubmission(
+    unawaited(sync
+        .submitQuiz(QuizSubmission(
       id: quizId,
       userId: userId,
       playedAt: ref.read(clockProvider)(),
-    )));
+    ))
+        .then((xp) {
+      if (xp != null && state.quizId == quizId && state.isFinished) {
+        state = state.copyWith(serverXp: xp);
+      }
+    }));
   }
 
   void _startQuestion() {
     _stop();
+    _elapsedBefore = Duration(
+        seconds: questionSeconds - state.secondsLeft.clamp(0, questionSeconds));
+    if (state.secondsLeft <= 0) {
+      // Question reprise après la fin de son chrono (serveur).
+      _timeOut();
+      return;
+    }
     _stopwatch
       ..reset()
       ..start();

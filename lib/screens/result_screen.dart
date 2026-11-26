@@ -161,7 +161,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         Semantics(
                           liveRegion: true,
                           label:
-                              '$score sur $total, plus ${outcome.xp.total} XP'
+                              '$score sur $total, plus ${s.serverXp ?? outcome.xp.total} XP'
                               '${outcome.goalReached ? ', objectif du jour atteint' : ''}',
                           child: ExcludeSemantics(
                             child: _ScoreRing(
@@ -200,7 +200,10 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.l),
-                        _XpCard(outcome: outcome, animate: animate),
+                        _XpCard(
+                            outcome: outcome,
+                            animate: animate,
+                            serverXp: s.serverXp),
                         const SizedBox(height: AppSpacing.m),
                         _GoalCard(outcome: outcome),
                         const SizedBox(height: AppSpacing.m),
@@ -332,10 +335,17 @@ class _AnswerDots extends StatelessWidget {
 }
 
 class _XpCard extends StatelessWidget {
-  const _XpCard({required this.outcome, required this.animate});
+  const _XpCard({
+    required this.outcome,
+    required this.animate,
+    this.serverXp,
+  });
 
   final QuizOutcome outcome;
   final bool animate;
+
+  /// XP accordés par le serveur (quiz servi), une fois connus.
+  final int? serverXp;
 
   @override
   Widget build(BuildContext context) {
@@ -374,7 +384,7 @@ class _XpCard extends StatelessWidget {
               children: [
                 Expanded(
                     child: Text('XP gagnés', style: context.text.titleMedium)),
-                Text('+${xp.total} XP',
+                Text('+${serverXp ?? xp.total} XP',
                     style: TextStyle(
                       fontFamily: AppFonts.titre,
                       fontWeight: FontWeight.w800,
@@ -398,6 +408,16 @@ class _XpCard extends StatelessWidget {
                     Text('+$value',
                         style: context.text.titleSmall?.copyWith(fontSize: 15)),
                   ],
+                ),
+              ),
+            if (serverXp != null && serverXp != xp.total)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Text(
+                  'Validé par le serveur : +$serverXp XP (rapidité jugée '
+                  'sur le temps de réception, plafond du jour).',
+                  style: context.text.bodySmall
+                      ?.copyWith(color: context.colors.onSurfaceVariant),
                 ),
               ),
             const SizedBox(height: AppSpacing.m),

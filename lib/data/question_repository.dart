@@ -94,6 +94,7 @@ class QuestionRepository {
             userId: uid,
             answered: served.answered,
             total: served.total,
+            secondsLeft: served.secondsLeft,
           );
         } catch (e) {
           final played = mode == QuizMode.dailyChallenge

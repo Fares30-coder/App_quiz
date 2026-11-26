@@ -20,6 +20,9 @@ String quizModeParam(QuizMode mode) => switch (mode) {
 /// Défi du jour déjà commencé : même session reprise ([resumed]), avec les
 /// réponses déjà enregistrées ([answered], dans l'ordre) ; ces questions
 /// arrivent déjà corrigées.
+///
+/// [secondsLeft] : chrono restant de la question en cours, calculé par le
+/// serveur depuis son heure d'envoi (moins de 30 s à la reprise du défi).
 class ServedQuiz {
   const ServedQuiz({
     required this.id,
@@ -27,6 +30,7 @@ class ServedQuiz {
     int? total,
     this.answered = const [],
     this.resumed = false,
+    this.secondsLeft,
   }) : total = total ?? questions.length;
 
   final String id;
@@ -34,6 +38,7 @@ class ServedQuiz {
   final int total;
   final List<ServedAnswer> answered;
   final bool resumed;
+  final int? secondsLeft;
 
   factory ServedQuiz.fromJson(Map<String, dynamic> json) {
     final questions = <Question>[];
@@ -57,22 +62,31 @@ class ServedQuiz {
       total: (json['total'] as num?)?.toInt(),
       answered: answered,
       resumed: json['resumed'] as bool? ?? false,
+      secondsLeft: (json['seconds_left'] as num?)?.toInt(),
     );
   }
 }
 
 /// Question suivante d'un quiz servi (RPC `next_question`), sans bonne
-/// réponse ni explication. [position] : 1 à 10.
+/// réponse ni explication. [position] : 1 à 10. [secondsLeft] : chrono
+/// restant calculé par le serveur (moins de 30 s si la question était déjà
+/// servie, par exemple après un réessai).
 class ServedQuestion {
-  const ServedQuestion({required this.position, required this.question});
+  const ServedQuestion({
+    required this.position,
+    required this.question,
+    this.secondsLeft,
+  });
 
   final int position;
   final Question question;
+  final int? secondsLeft;
 
   factory ServedQuestion.fromJson(Map<String, dynamic> json) => ServedQuestion(
         position: (json['position'] as num).toInt(),
         question:
             Question.fromServerJson(json['question'] as Map<String, dynamic>),
+        secondsLeft: (json['seconds_left'] as num?)?.toInt(),
       );
 }
 
@@ -161,8 +175,13 @@ class QuizStart {
     this.userId,
     this.unranked,
     this.answered = const [],
+    this.secondsLeft,
     int? total,
   }) : total = total ?? questions.length;
+
+  /// Quiz servi : chrono restant de la question en cours (serveur) ; `null`
+  /// = 30 s.
+  final int? secondsLeft;
 
   /// Quiz local : toutes les questions. Quiz servi : questions déjà servies
   /// (réponses de la reprise puis question en cours).

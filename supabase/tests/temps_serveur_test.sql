@@ -8,7 +8,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(37);
+select plan(50);
 
 -- Données de test (propriétaire) -------------------------------------------
 
@@ -43,19 +43,63 @@ grant execute on function tests.good(jsonb) to authenticated;
 create function tests.served_ago(p_quiz jsonb, p_position integer, p_ago interval)
 returns void
 language sql
+security definer
 set search_path = ''
 as $$
   update public.quiz_session_questions
      set served_at = now() - p_ago
    where quiz_id = (p_quiz ->> 'quiz_id')::uuid and position = p_position;
 $$;
+grant execute on function tests.served_ago(jsonb, integer, interval) to authenticated;
 
--- T1 : quiz complet ; T2 : reprise du défi du jour ; T3 : autre joueur.
+-- Recule le départ du quiz (durée totale plausible avant soumission).
+create function tests.started_ago(p_quiz jsonb, p_ago interval)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.quiz_sessions
+     set started_at = now() - p_ago
+   where id = (p_quiz ->> 'quiz_id')::uuid;
+$$;
+grant execute on function tests.started_ago(jsonb, interval) to authenticated;
+
+-- Quiz mix complet, toutes réponses justes : question 1 envoyée il y a
+-- `p_ago` (time_ms déclaré 9 000), les autres immédiates. Renvoie
+-- submit_quiz() sans profil ni identifiant.
+create function tests.play_q1_after(p_ago interval)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  s jsonb := public.start_quiz('mix');
+  v jsonb;
+begin
+  perform tests.served_ago(s, 1, p_ago);
+  perform public.answer_question((s ->> 'quiz_id')::uuid,
+    s -> 'questions' -> 0 ->> 'id', tests.good(s -> 'questions' -> 0), 9000);
+  for i in 2 .. 10 loop
+    v := public.next_question((s ->> 'quiz_id')::uuid);
+    perform public.answer_question((s ->> 'quiz_id')::uuid,
+      v -> 'question' ->> 'id', tests.good(v -> 'question'), 500);
+  end loop;
+  perform tests.started_ago(s, interval '2 minutes');
+  return public.submit_quiz((s ->> 'quiz_id')::uuid) - 'profile' - 'quiz_id';
+end;
+$$;
+grant execute on function tests.play_q1_after(interval) to authenticated;
+
+-- T1 : quiz complet ; T2 : reprise du défi du jour ; T3 : autre joueur ;
+-- T4 : bornes du bonus rapidité ; T5 : quiz mix pendant un défi en cours.
 insert into auth.users (id, aud, role)
 values
   ('00000000-0000-0000-0000-0000000003a1', 'authenticated', 'authenticated'),
   ('00000000-0000-0000-0000-0000000003b1', 'authenticated', 'authenticated'),
-  ('00000000-0000-0000-0000-0000000003c1', 'authenticated', 'authenticated');
+  ('00000000-0000-0000-0000-0000000003c1', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000003d1', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000003e1', 'authenticated', 'authenticated');
 
 -- Droits ---------------------------------------------------------------------
 
@@ -107,6 +151,12 @@ select is(
   'start_quiz : total 10, question en cours 1'
 );
 
+select is(
+  (current_setting('t.s')::jsonb ->> 'seconds_left')::int,
+  30,
+  'start_quiz : 30 s restantes sur la question 1'
+);
+
 reset role;
 
 select is(
@@ -145,7 +195,7 @@ end $$;
 
 select is(
   current_setting('t.n2')::jsonb - 'quiz_id' - 'question',
-  '{"total": 10, "position": 2}'::jsonb,
+  '{"total": 10, "position": 2, "seconds_left": 30}'::jsonb,
   'next_question : question 2 sur 10'
 );
 
@@ -161,10 +211,21 @@ reset role;
 select tests.served_ago(current_setting('t.s')::jsonb, 2, interval '40 seconds');
 set local role authenticated;
 
+do $$ begin
+  perform set_config('t.n2b', public.next_question(
+    (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid)::text, true);
+end $$;
+
 select is(
-  public.next_question((current_setting('t.s')::jsonb ->> 'quiz_id')::uuid),
-  current_setting('t.n2')::jsonb,
+  current_setting('t.n2b')::jsonb - 'seconds_left',
+  current_setting('t.n2')::jsonb - 'seconds_left',
   'next_question rappelé : même question'
+);
+
+select is(
+  (current_setting('t.n2b')::jsonb ->> 'seconds_left')::int,
+  0,
+  'next_question rappelé 40 s après l''envoi : 0 s restante (temps serveur)'
 );
 
 reset role;
@@ -257,6 +318,13 @@ select tests.served_ago(current_setting('t.s')::jsonb, 5, interval '5 seconds');
 set local role authenticated;
 
 select is(
+  (public.next_question((current_setting('t.s')::jsonb ->> 'quiz_id')::uuid)
+    ->> 'seconds_left')::int,
+  25,
+  'next_question rappelé 5 s après l''envoi : 25 s restantes'
+);
+
+select is(
   public.answer_question(
     (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
     current_setting('t.n5')::jsonb -> 'question' ->> 'id',
@@ -325,11 +393,14 @@ select throws_ok(
 
 -- Quiz expiré ------------------------------------------------------------------
 
+-- Question 2 servie (en cours) puis quiz expiré.
 do $$ begin
   perform set_config('t.e', public.start_quiz('mix')::text, true);
   perform public.answer_question(
     (current_setting('t.e')::jsonb ->> 'quiz_id')::uuid,
     current_setting('t.e')::jsonb -> 'questions' -> 0 ->> 'id', 0, 500);
+  perform set_config('t.e2', public.next_question(
+    (current_setting('t.e')::jsonb ->> 'quiz_id')::uuid)::text, true);
 end $$;
 
 reset role;
@@ -343,6 +414,23 @@ select throws_ok(
   '22023', null,
   'next_question sur un quiz expiré refusé'
 );
+
+select throws_ok(
+  format($$select public.answer_question(%L, %L, 0, 500)$$,
+         current_setting('t.e')::jsonb ->> 'quiz_id',
+         current_setting('t.e2')::jsonb -> 'question' ->> 'id'),
+  '22023', 'quiz expiré',
+  'réponse à la question en cours d''un quiz expiré refusée'
+);
+
+reset role;
+select is(
+  (select count(answered_at)::int from public.quiz_session_questions
+   where quiz_id = (current_setting('t.e')::jsonb ->> 'quiz_id')::uuid),
+  1,
+  'quiz expiré : réponse à la question en cours non enregistrée'
+);
+set local role authenticated;
 
 select throws_ok(
   $$select public.next_question(null)$$,
@@ -407,6 +495,12 @@ select is(
   'reprise : next_question renvoie aussi la question en cours'
 );
 
+select is(
+  (current_setting('t.r')::jsonb ->> 'seconds_left')::int,
+  0,
+  'reprise 10 min plus tard : 0 s restante (chrono serveur, pas 30 s)'
+);
+
 reset role;
 select is(
   (select served_at from public.quiz_session_questions
@@ -448,6 +542,90 @@ select is(
   '10/null',
   'reprise d''un défi entièrement répondu : 10 corrections, aucune question en cours'
 );
+
+-- Bornes du bonus rapidité (temps serveur ≤ 10 s + 2 s) ----------------------------
+
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000003d1","role":"authenticated"}';
+
+-- 10 bonnes réponses, toutes rapides : 100 + 50 + 8×5 (combo) + 20 + 30 = 240.
+select is(
+  tests.play_q1_after(interval '12 seconds') ->> 'xp_gained',
+  '240',
+  'temps serveur 12 000 ms (time_ms 9 000) : bonus rapidité accordé'
+);
+
+-- Sans le bonus de la question 1 : 235.
+select is(
+  tests.play_q1_after(interval '12.001 seconds') ->> 'xp_gained',
+  '235',
+  'temps serveur 12 001 ms (time_ms 9 000) : bonus rapidité refusé'
+);
+
+reset role;
+select is(
+  (select array_agg(sq.elapsed_ms order by qs.started_at, qs.id)
+     from public.quiz_sessions qs
+     join public.quiz_session_questions sq on sq.quiz_id = qs.id and sq.position = 1
+    where qs.user_id = '00000000-0000-0000-0000-0000000003d1'),
+  '{12000,12001}'::integer[],
+  'temps serveur enregistrés : 12 000 et 12 001 ms'
+);
+set local role authenticated;
+
+-- Quiz mix commencé pendant un défi du jour en cours ---------------------------------
+
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000003e1","role":"authenticated"}';
+
+do $$ begin
+  perform set_config('t.pd', public.start_quiz('daily')::text, true);
+  perform public.answer_question(
+    (current_setting('t.pd')::jsonb ->> 'quiz_id')::uuid,
+    current_setting('t.pd')::jsonb -> 'questions' -> 0 ->> 'id', 0, 500);
+  perform set_config('t.pm', public.start_quiz('mix')::text, true);
+end $$;
+
+select throws_ok(
+  format($$select public.next_question(%L)$$, current_setting('t.pm')::jsonb ->> 'quiz_id'),
+  '22023', null,
+  'mix parallèle : next_question refusé tant que sa question 1 est sans réponse (la réponse du défi ne compte pas)'
+);
+
+do $$ begin
+  perform set_config('t.pd2', public.next_question(
+    (current_setting('t.pd')::jsonb ->> 'quiz_id')::uuid)::text, true);
+  perform public.answer_question(
+    (current_setting('t.pm')::jsonb ->> 'quiz_id')::uuid,
+    current_setting('t.pm')::jsonb -> 'questions' -> 0 ->> 'id', 0, 500);
+  perform set_config('t.pm2', public.next_question(
+    (current_setting('t.pm')::jsonb ->> 'quiz_id')::uuid)::text, true);
+end $$;
+
+reset role;
+select is(
+  (current_setting('t.pm2')::jsonb ->> 'quiz_id') || '/'
+    || (current_setting('t.pm2')::jsonb -> 'question' ->> 'id'),
+  (current_setting('t.pm')::jsonb ->> 'quiz_id') || '/'
+    || (public.served_question_json((current_setting('t.pm')::jsonb ->> 'quiz_id')::uuid, 2) ->> 'id'),
+  'mix parallèle : next_question renvoie la question 2 du mix'
+);
+
+select is(
+  current_setting('t.pd2')::jsonb -> 'question',
+  public.served_question_json((current_setting('t.pd')::jsonb ->> 'quiz_id')::uuid, 2),
+  'mix parallèle : next_question du défi renvoie la question 2 du défi'
+);
+
+select is(
+  (select string_agg(qs.mode || ':' || sq.position || ':' || (sq.answered_at is not null),
+                     ',' order by qs.mode, sq.position)
+     from public.quiz_sessions qs
+     join public.quiz_session_questions sq on sq.quiz_id = qs.id
+    where qs.user_id = '00000000-0000-0000-0000-0000000003e1'
+      and sq.served_at is not null),
+  'daily:1:true,daily:2:false,mix:1:true,mix:2:false',
+  'mix parallèle : questions servies et réponses cloisonnées par quiz'
+);
+set local role authenticated;
 
 -- Sans uid, anon -------------------------------------------------------------------
 

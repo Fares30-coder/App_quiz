@@ -111,7 +111,10 @@ class QuizScreen extends ConsumerWidget {
       },
       child: Scaffold(
         body: SafeArea(
-          bottom: !state.answered && !state.answerFailed && !state.nextFailed,
+          bottom: !state.answered &&
+              !state.answerFailed &&
+              !state.nextFailed &&
+              !state.outOfSync,
           child: Column(
             children: [
               Padding(
@@ -200,7 +203,13 @@ class QuizScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (state.nextFailed)
+              if (state.outOfSync)
+                _RetrySheet(
+                  message: 'Ce quiz a avancé ailleurs (autre appareil ?). '
+                      'Quitte-le puis relance-le pour reprendre.',
+                  onQuit: () => _confirmQuit(context, ref),
+                )
+              else if (state.nextFailed)
                 _RetrySheet(
                   message: 'Connexion perdue : impossible de charger '
                       'la question suivante.',
@@ -486,12 +495,14 @@ class _FeedbackSheet extends StatelessWidget {
 class _RetrySheet extends StatelessWidget {
   const _RetrySheet({
     required this.message,
-    required this.onRetry,
+    this.onRetry,
     required this.onQuit,
   });
 
   final String message;
-  final VoidCallback onRetry;
+
+  /// `null` : réessayer ne servirait à rien, seul « Quitter » est proposé.
+  final VoidCallback? onRetry;
   final VoidCallback onQuit;
 
   @override
@@ -515,7 +526,8 @@ class _RetrySheet extends StatelessWidget {
               liveRegion: true,
               child: Row(
                 children: [
-                  Icon(Icons.wifi_off, color: c.error),
+                  Icon(onRetry == null ? Icons.sync_problem : Icons.wifi_off,
+                      color: c.error),
                   const SizedBox(width: AppSpacing.m),
                   Expanded(
                     child: Text(
@@ -527,8 +539,13 @@ class _RetrySheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.m),
-            FilledButton(onPressed: onRetry, child: const Text('Réessayer')),
-            TextButton(onPressed: onQuit, child: const Text('Quitter le quiz')),
+            if (onRetry != null) ...[
+              FilledButton(onPressed: onRetry, child: const Text('Réessayer')),
+              TextButton(
+                  onPressed: onQuit, child: const Text('Quitter le quiz')),
+            ] else
+              FilledButton(
+                  onPressed: onQuit, child: const Text('Quitter le quiz')),
             const SizedBox(height: AppSpacing.s),
           ],
         ),

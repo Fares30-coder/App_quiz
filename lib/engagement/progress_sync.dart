@@ -102,18 +102,25 @@ class ProgressSync {
     }
   }
 
+  /// XP validés par le serveur, par quiz envoyé (lus par [submitQuiz]).
+  final _xpGained = <String, int>{};
+
   /// Quiz terminé (mode Supabase) : mis en file puis envoyé en arrière-plan.
   /// La réponse du serveur remplace la progression locale (règle de fusion).
   /// Sans session ou hors ligne : réessai au prochain [sync].
   /// Un quiz joué sous un autre compte (ou sans compte) est ignoré.
-  Future<void> submitQuiz(QuizSubmission submission) async {
-    if (submission.userId != _ref.read(authUserIdProvider)) return;
+  ///
+  /// Renvoie les XP accordés par le serveur pour ce quiz (`xp_gained`), ou
+  /// `null` s'il n'a pas pu être validé tout de suite.
+  Future<int?> submitQuiz(QuizSubmission submission) async {
+    if (submission.userId != _ref.read(authUserIdProvider)) return null;
     await _queue.add(submission);
     try {
       await _flush();
     } catch (e) {
       _log('quiz non envoyé, réessai au prochain sync', e);
     }
+    return _xpGained.remove(submission.id);
   }
 
   /// Un seul envoi de la file à la fois (quiz terminé pendant un sync).
@@ -135,7 +142,9 @@ class ProgressSync {
       if (queue.isEmpty) break;
       final next = queue.first;
       try {
-        last = (await _source.submitQuiz(next)).profile;
+        final result = await _source.submitQuiz(next);
+        last = result.profile;
+        _xpGained[next.id] = result.xpGained;
       } catch (e) {
         if (!isRejectedQuiz(e)) rethrow;
         _log('quiz refusé par le serveur, abandonné', e);

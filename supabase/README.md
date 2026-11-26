@@ -54,7 +54,8 @@ un quiz se joue ainsi :
    jour), `category` (catégorie obligatoire) ou `mix`. Tire 10 questions,
    réponses mélangées par le serveur (pour chaque joueur et chaque
    question), mais ne renvoie que **la question 1** (`questions: [q1]`,
-   `total: 10`, `position: 1`), **sans bonne réponse ni explication**, et
+   `total: 10`, `position: 1`, `seconds_left: 30`), **sans bonne réponse ni
+   explication**, et
    note son heure d'envoi (`served_at`). Enregistre la session (questions
    tirées, heure de départ serveur), valable **30 min**.
    Limites (`PT429`) : 30 quiz commencés par heure (soumis ou non) et
@@ -70,30 +71,40 @@ un quiz se joue ainsi :
    L'app reprend à la question en cours. Si elle avait déjà été servie, elle
    garde son `served_at` d'origine : plus de 33 s après, elle compte en
    temps écoulé (voulu : sinon fermer l'app donnerait un temps illimité pour
-   chercher). Tout répondu : `position: null`, l'app passe aux résultats. La session du défi reste reprenable
+   chercher) ; `seconds_left` (calculé par le serveur depuis `served_at`,
+   0 à 30) sert de point de départ au chrono de l'app. Tout répondu :
+   `position: null`, l'app passe aux résultats. La session du défi reste reprenable
    jusqu'à minuit (Europe/Paris), au moins 30 min après le départ ; une
    reprise ne compte dans aucune limite. Défi déjà soumis : erreur `23505`
    « défi du jour déjà joué », détail `{"score": n, "total": 10}`.
 2. `next_question(quiz_id)` : question suivant la dernière question
-   répondue (`{ quiz_id, total, position, question }`, sans bonne réponse ni
+   répondue (`{ quiz_id, total, position, seconds_left, question }`, sans bonne réponse ni
    explication), et note son `served_at`. **Refusée (`22023`) tant que la
    question 1 n'a pas de réponse**, quand les 10 sont répondues, sur un quiz
    expiré, soumis ou d'un autre joueur. Idempotente : rappeler (réponse
    perdue par le réseau) renvoie la même question sans changer son
-   `served_at`. `security definer`, EXECUTE pour `authenticated` seulement.
+   `served_at` (`seconds_left` diminue). `security definer`, EXECUTE pour
+   `authenticated` seulement. Si la position reçue n'est pas celle attendue
+   (quiz avancé sur un autre appareil), l'app propose seulement « Quitter ».
 3. `answer_question(quiz_id, question_id, choice, time_ms)` : `choice` =
    position affichée (0 à 3, `null` si temps écoulé). Questions dans l'ordre
-   et déjà servies, réponse horodatée par le serveur et définitive (un
+   et déjà servies : la question n'est cherchée que parmi les questions
+   servies, donc un identifiant absent du quiz et une question pas encore
+   servie donnent **la même erreur** (`22023` « question non servie ») ; on
+   ne peut pas deviner les questions à venir. Réponse horodatée par le serveur et définitive (un
    réessai renvoie la correction déjà enregistrée, même avec un autre
    `choice` ; refusé une fois le quiz soumis). **Temps mesuré par le
    serveur** : temps serveur = `now() - served_at` (gardé dans
    `elapsed_ms`) ; temps officiel (`time_ms`) = min(`time_ms` déclaré de 500
-   à 30 000 ms, temps serveur), au moins 500 ms. Temps serveur > 30 s + 3 s
+   à 30 000 ms, temps serveur), au moins 500 ms (il peut donc dépasser de
+   moins de 500 ms un temps serveur très court). Temps serveur > 30 s + 3 s
    de tolérance : réponse enregistrée en **temps écoulé** (choix ignoré,
    fausse, 30 000 ms). Renvoie `{ …, correct, timed_out, time_ms,
    correct_choice, explanation }`, affichés après chaque réponse.
 4. `submit_quiz(quiz_id)` : exige un quiz servi à ce joueur avec ses 10
-   réponses enregistrées, une durée totale plausible et une dernière réponse
+   réponses enregistrées, une durée totale plausible (somme des temps
+   officiels ≤ durée serveur + 1 s + 10 × 500 ms : un joueur très rapide
+   n'est jamais refusé) et une dernière réponse
    de moins de **6 h**. Le score officiel se calcule sur les réponses
    enregistrées. **Bonus rapidité** seulement si temps officiel < 10 s **et**
    temps serveur ≤ 10 s + 2 s. Double soumission : résultat déjà enregistré
@@ -136,8 +147,8 @@ plus de 2 jours, réponses comprises ; lancée chaque jour à 03:30 UTC par
 vérifier). `start_quiz` purge aussi les anciennes sessions du joueur.
 `quiz_results` n'est pas touché.
 
-Erreurs : `22023` entrée invalide (quiz non servi, expiré, déjà soumis, hors
-ordre ou pas encore servie, `next_question` avant réponse ou après la 10e,
+Erreurs : `22023` entrée invalide (quiz non servi, expiré, déjà soumis,
+question non servie, `next_question` avant réponse ou après la 10e,
 `quiz_id` d'un autre joueur), `P0002` profil absent
 ou pas assez de questions, `PT429` trop de quiz, `23505` défi du jour déjà
 joué (`start_quiz`), `42501` non authentifié. L'app traite
@@ -184,12 +195,18 @@ Limites connues :
   si la dernière réponse date de plus de 6 h ;
 - défi commencé juste avant minuit et fini après : il compte pour le jour
   de la dernière réponse ;
-- reprise du défi : la question affichée au moment de la fermeture compte
-  en temps écoulé si plus de 33 s ont passé (l'app la montre quand même
-  avec un chrono de 30 s ; la correction l'annonce en « Temps écoulé ») ;
-- l'XP affichée en fin de quiz est calculée par l'app (temps de l'app) ;
-  sur un réseau très lent, le serveur peut refuser un bonus rapidité que
-  l'app avait affiché, et le profil serveur corrige l'XP au sync suivant.
+- reprise du défi : la question affichée au moment de la fermeture garde
+  son chrono serveur (`seconds_left`) ; à 0, l'app l'envoie aussitôt en
+  temps écoulé ;
+- l'XP affichée en fin de quiz est d'abord calculée par l'app, puis
+  remplacée par `xp_gained` dès que `submit_quiz` répond (sur un réseau très
+  lent, le serveur peut refuser un bonus rapidité ; un message l'indique).
+  Si la validation est différée (hors ligne), le profil serveur corrige
+  l'XP au sync suivant.
+
+Migration `*_temps_serveur.sql` : supprime les sessions non soumises
+créées par l'ancien `start_quiz` (elles avaient reçu leurs 10 énoncés) ; les
+joueurs concernés recommencent leur quiz ou leur défi du jour.
 
 ## Classement hebdo (`weekly_leaderboard`)
 
@@ -270,7 +287,7 @@ en distant, tout est joué en local (hors classement).
 
 Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
 `tests/start_quiz_test.sql`, `tests/submit_quiz_test.sql`,
-`tests/weekly_leaderboard_test.sql`).
+`tests/temps_serveur_test.sql`, `tests/weekly_leaderboard_test.sql`).
 
 ## Commandes à lancer soi-même
 

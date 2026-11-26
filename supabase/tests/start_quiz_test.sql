@@ -10,7 +10,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(92);
+select plan(91);
 
 -- Données de test (propriétaire) -------------------------------------------
 
@@ -230,8 +230,8 @@ select is(
   current_setting('t.p1')::jsonb - 'quiz_id' - 'questions' - 'expires_at',
   jsonb_build_object('mode', 'daily', 'category', null, 'resumed', false,
                      'day', (now() at time zone 'Europe/Paris')::date,
-                     'total', 10, 'position', 1),
-  'défi du jour : mode, jour Europe/Paris, question 1 sur 10'
+                     'total', 10, 'position', 1, 'seconds_left', 30),
+  'défi du jour : mode, jour Europe/Paris, question 1 sur 10, 30 s'
 );
 
 select ok(
@@ -363,15 +363,15 @@ select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 500)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id',
          tests.q(current_setting('t.p1')::jsonb, 1) ->> 'id'),
-  '22023', null,
-  'question hors ordre (pas encore servie) refusée'
+  '22023', 'question non servie',
+  'question du quiz pas encore servie refusée'
 );
 
 select throws_ok(
   format($$select public.answer_question(%L, 'zz-inconnue', 0, 500)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id'),
-  '22023', null,
-  'question absente du quiz refusée'
+  '22023', 'question non servie',
+  'question absente du quiz : même erreur qu''une question pas encore servie'
 );
 
 select throws_ok(
@@ -561,19 +561,10 @@ select lives_ok(
 
 -- Soumission -------------------------------------------------------------------
 
--- Durée serveur nulle (même transaction) : 5 500 ms déclarés.
-select throws_ok(
-  format($$select public.submit_quiz(%L)$$, current_setting('t.p1')::jsonb ->> 'quiz_id'),
-  '22023', null,
-  'durée totale supérieure à la durée serveur refusée'
-);
-
-reset role;
-update public.quiz_sessions
-   set started_at = started_at - interval '1 minute'
- where id = (current_setting('t.p1')::jsonb ->> 'quiz_id')::uuid;
-set local role authenticated;
-
+-- Durée serveur nulle (même transaction) mais 10 × 500 ms officiels (minimum
+-- par réponse) : accepté, un joueur très rapide n'est jamais refusé pour
+-- « durée totale impossible » (durée déclarée trop longue :
+-- submit_quiz_test.sql).
 -- 9 bonnes réponses, la 2e manquée : 9×10 + 9×5 (rapidité) + combo
 -- (3e à 10e d'affilée : bonus de la 5e à la 10e, 6×5) + 20 = 185.
 select is(

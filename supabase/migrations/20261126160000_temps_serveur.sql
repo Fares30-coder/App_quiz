@@ -30,7 +30,20 @@
 -- question en cours garde son `served_at` d'origine ; si plus de 33 s se
 -- sont écoulées, elle compte comme temps écoulé. Voulu : renvoyer un
 -- nouveau `served_at` à la reprise donnerait un temps illimité pour
--- chercher une réponse (fermer l'app, chercher, reprendre).
+-- chercher une réponse (fermer l'app, chercher, reprendre). start_quiz et
+-- next_question renvoient `seconds_left` (calculé par le serveur) pour que
+-- le chrono de l'app reparte du temps restant réel.
+--
+-- Question non servie : answer_question() ne cherche que parmi les
+-- questions déjà servies et renvoie la même erreur que pour un identifiant
+-- absent du quiz (sinon, en essayant des identifiants, on connaîtrait les
+-- 10 questions d'un quiz ou du défi avant qu'elles soient servies).
+
+-- Sessions en cours créées par l'ancien start_quiz : elles ont déjà reçu
+-- leurs 10 énoncés d'un coup. Supprimées (réponses comprises, `on delete
+-- cascade`) ; le joueur recommence un quiz, défi du jour compris (contrainte
+-- unique par jour : raccourcir `expires_at` bloquerait le défi du jour).
+delete from public.quiz_sessions where submitted_at is null;
 
 -- Heure d'envoi et temps serveur ---------------------------------------------
 
@@ -55,6 +68,23 @@ alter table public.quiz_session_questions
 
 comment on column public.quiz_session_questions.time_ms is
   'Temps officiel : min(temps déclaré par l''app, temps serveur), 500 à 30 000 ms.';
+
+-- Secondes restantes de la question `p_position` (chrono de 30 s depuis son
+-- heure d'envoi, 0 si dépassé, null si pas servie). Fonction interne.
+create function public.question_seconds_left(p_quiz_id uuid, p_position integer)
+returns integer
+language sql
+stable
+set search_path = ''
+as $$
+  select greatest(0, 30 - floor(extract(epoch from (now() - sq.served_at)))::integer)
+    from public.quiz_session_questions sq
+   where sq.quiz_id = p_quiz_id and sq.position = p_position
+     and sq.served_at is not null;
+$$;
+
+revoke execute on function public.question_seconds_left(uuid, integer)
+  from public, anon, authenticated;
 
 -- Énoncé d'une question servie (fonction interne) ------------------------------
 
@@ -106,6 +136,8 @@ revoke execute on function public.served_question_json(uuid, integer)
 -- Retour :
 -- { quiz_id, mode, category, day, expires_at, resumed, total (10),
 --   position (question en cours, null si tout est répondu),
+--   seconds_left (chrono restant de la question en cours, 0 à 30, null si
+--   tout est répondu),
 --   questions: [{ id, category, difficulty, question, answers, answer }] }
 -- Les questions suivantes s'obtiennent une à une avec next_question().
 create or replace function public.start_quiz(mode text, category text default null)
@@ -157,9 +189,11 @@ begin
 
   -- Défi du jour déjà commencé aujourd'hui : reprise (aucune limite, rien
   -- de créé).
+  -- Verrou sur la session (même ordre que answer_question/next_question).
   if v_mode = 'daily' then
     select * into s from public.quiz_sessions qs
-     where qs.user_id = uid and qs.mode = 'daily' and qs.challenge_day = v_today;
+     where qs.user_id = uid and qs.mode = 'daily' and qs.challenge_day = v_today
+       for update;
     v_resumed := found;
   end if;
 
@@ -224,7 +258,8 @@ begin
       -- Course (ne devrait pas arriver grâce au verrou) : défi créé
       -- entre-temps, on le reprend.
       select * into s from public.quiz_sessions qs
-       where qs.user_id = uid and qs.mode = 'daily' and qs.challenge_day = v_today;
+       where qs.user_id = uid and qs.mode = 'daily' and qs.challenge_day = v_today
+         for update;
       v_resumed := true;
     end if;
   end if;
@@ -259,6 +294,7 @@ begin
     'resumed', v_resumed,
     'total', quiz_length,
     'position', v_position,
+    'seconds_left', public.question_seconds_left(s.id, v_position),
     'questions', (
       select jsonb_agg(public.served_question_json(s.id, p) order by p)
         from generate_series(1, least(v_answered + 1, quiz_length)) p
@@ -277,8 +313,9 @@ grant execute on function public.start_quiz(text, text) to authenticated;
 -- start_quiz()). Idempotente : rappeler (réponse perdue par le réseau)
 -- renvoie la même question sans changer son heure d'envoi.
 --
--- Retour : { quiz_id, total, position, question: { id, category,
---            difficulty, question, answers } }
+-- Retour : { quiz_id, total, position, seconds_left (chrono restant, 0 à
+--            30 : moins de 30 si la question était déjà servie),
+--            question: { id, category, difficulty, question, answers } }
 --
 -- Erreurs : 42501 non authentifié, 22023 quiz manquant, inconnu ou d'un autre
 -- joueur, expiré ou déjà validé, question en cours sans réponse, quiz
@@ -338,6 +375,7 @@ begin
     'quiz_id', s.id,
     'total', quiz_length,
     'position', v_position,
+    'seconds_left', public.question_seconds_left(s.id, v_position),
     'question', public.served_question_json(s.id, v_position)
   );
 end;
@@ -349,10 +387,14 @@ grant execute on function public.next_question(uuid) to authenticated;
 -- answer_question() ----------------------------------------------------------
 --
 -- Mêmes paramètres et erreurs que dans *_start_quiz.sql, sauf :
--- - la question doit avoir été servie (start_quiz ou next_question) ;
+-- - la question doit avoir été servie (start_quiz ou next_question) ; une
+--   question pas encore servie et un identifiant absent du quiz donnent la
+--   même erreur (« question non servie ») : impossible de deviner les
+--   questions à venir en essayant des identifiants ;
 -- - `time_ms` déclaré (500 à 30 000 ms) n'est plus refusé s'il dépasse le
 --   temps serveur : le temps officiel est min(time_ms, temps serveur),
---   ramené à 500 ms au moins ;
+--   ramené à 500 ms au moins (il peut donc dépasser un temps serveur de
+--   moins de 500 ms, d'au plus 500 ms ; sans effet sur le bonus rapidité) ;
 -- - temps serveur > 33 s : réponse enregistrée comme temps écoulé (choix
 --   ignoré, temps officiel 30 000 ms).
 --
@@ -402,10 +444,13 @@ begin
     raise exception 'quiz déjà soumis' using errcode = '22023';
   end if;
 
+  -- Seulement parmi les questions déjà servies : même erreur pour une
+  -- question absente du quiz ou pas encore servie.
   select * into sq from public.quiz_session_questions x
-   where x.quiz_id = s.id and x.question_id = answer_question.question_id;
+   where x.quiz_id = s.id and x.question_id = answer_question.question_id
+     and x.served_at is not null;
   if not found then
-    raise exception 'question absente de ce quiz' using errcode = '22023';
+    raise exception 'question non servie' using errcode = '22023';
   end if;
 
   if sq.answered_at is null then
@@ -424,9 +469,10 @@ begin
     select coalesce(max(x.position), 0) + 1 into v_next
       from public.quiz_session_questions x
      where x.quiz_id = s.id and x.answered_at is not null;
-    if sq.position <> v_next or sq.served_at is null then
-      raise exception 'question hors ordre ou pas encore servie'
-        using errcode = '22023';
+    -- Servie et sans réponse = question en cours (servies une à une) ;
+    -- contrôle gardé par prudence, même message.
+    if sq.position <> v_next then
+      raise exception 'question non servie' using errcode = '22023';
     end if;
 
     v_elapsed := greatest(
@@ -436,6 +482,8 @@ begin
       v_choice := null;
       v_time := max_ms;
     else
+      -- Temps officiel : min(déclaré, serveur), au moins 500 ms (il peut donc
+      -- dépasser de moins de 500 ms un temps serveur très court).
       v_time := greatest(least(answer_question.time_ms, v_elapsed), min_ms);
     end if;
 
@@ -494,6 +542,8 @@ declare
   max_quizzes_per_hour constant integer := 20;
   max_delay constant interval := interval '6 hours';
   tolerance_ms constant integer := 1000;
+  -- Temps officiel minimal d'une réponse (answer_question).
+  min_ms constant integer := 500;
 
   uid uuid := (select auth.uid());
   v_now timestamptz := now();
@@ -577,8 +627,12 @@ begin
         using errcode = '22023';
     end if;
     -- Redondant avec le temps officiel (borné par le temps serveur de
-    -- chaque question), gardé par prudence.
-    if v_total_ms > extract(epoch from (v_played - s.started_at)) * 1000 + tolerance_ms then
+    -- chaque question), gardé par prudence. Chaque temps officiel peut
+    -- dépasser son temps serveur de moins de 500 ms (minimum de 500 ms) :
+    -- 10 × 500 ms ajoutés à la tolérance pour ne jamais refuser un joueur
+    -- très rapide.
+    if v_total_ms > extract(epoch from (v_played - s.started_at)) * 1000
+                    + tolerance_ms + quiz_length * min_ms then
       raise exception 'quiz invalide : durée totale impossible'
         using errcode = '22023';
     end if;

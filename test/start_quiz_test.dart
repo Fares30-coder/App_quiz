@@ -48,7 +48,9 @@ Map<String, dynamic> _questionJson(int i) => {
 /// [answered] : nombre de questions déjà répondues (reprise du défi) ; la
 /// 2e a dépassé le temps, les autres sont justes. Questions servies une à
 /// une : les répondues puis la question en cours seulement.
-Map<String, dynamic> _servedJson(String quizId, {int answered = 0}) => {
+Map<String, dynamic> _servedJson(String quizId,
+        {int answered = 0, int? secondsLeft = 30}) =>
+    {
       'quiz_id': quizId,
       'resumed': answered > 0,
       'mode': 'daily',
@@ -57,6 +59,7 @@ Map<String, dynamic> _servedJson(String quizId, {int answered = 0}) => {
       'expires_at': '2026-11-26T10:30:00+00:00',
       'total': 10,
       'position': answered < 10 ? answered + 1 : null,
+      'seconds_left': answered < 10 ? secondsLeft : null,
       'questions': [
         for (var i = 1; i <= answered && i <= 10; i++)
           {
@@ -86,6 +89,14 @@ class _FakeServer {
 
   /// Réponses déjà enregistrées renvoyées par `start_quiz` (reprise).
   int resumedAnswers = 0;
+
+  /// `seconds_left` renvoyé par `start_quiz` et `next_question`.
+  int startSecondsLeft = 30;
+  int nextSecondsLeft = 30;
+
+  /// Décalage de la position renvoyée par `next_question` (quiz avancé
+  /// ailleurs).
+  int nextPositionShift = 0;
   bool offline = false;
 
   /// Réponse de `answer_question` retenue jusqu'à ce que le test la libère.
@@ -118,7 +129,8 @@ class _FakeServer {
           }, 400, request);
         }
         return _json(
-            _servedJson('quiz-${requests.length}', answered: resumedAnswers),
+            _servedJson('quiz-${requests.length}',
+                answered: resumedAnswers, secondsLeft: startSecondsLeft),
             200,
             request);
       case '/rest/v1/rpc/next_question':
@@ -131,8 +143,9 @@ class _FakeServer {
         return _json({
           'quiz_id': body['quiz_id'],
           'total': 10,
-          'position': done + 1,
-          'question': _questionJson(done + 1),
+          'position': done + 1 + nextPositionShift,
+          'seconds_left': nextSecondsLeft,
+          'question': _questionJson(done + 1 + nextPositionShift),
         }, 200, request);
       case '/rest/v1/rpc/answer_question':
         await holdAnswer?.future;
@@ -392,7 +405,8 @@ void main() {
           quizId: start.quizId,
           userId: start.userId,
           answered: start.answered,
-          total: start.total);
+          total: start.total,
+          secondsLeft: start.secondsLeft);
       return quiz;
     }
 
@@ -609,6 +623,74 @@ void main() {
       final sent = server.sent('answer_question');
       expect(sent, hasLength(2));
       expect(sent.last, sent.first, reason: 'même choix, même temps');
+    });
+
+    test('défi repris : chrono du serveur, temps envoyé depuis l\'envoi',
+        () async {
+      server.resumedAnswers = 1;
+      server.startSecondsLeft = 12;
+      final c = await container();
+      final quiz = await started(c);
+
+      expect(c.read(quizControllerProvider).secondsLeft, 12,
+          reason: 'temps restant selon le serveur, pas 30 s');
+      await quiz.answer(1);
+      expect(server.sent('answer_question').single['time_ms'],
+          greaterThanOrEqualTo(18000),
+          reason: '18 s déjà écoulées avant la reprise');
+      quiz.quit();
+    });
+
+    test('défi repris après la fin du chrono : temps écoulé aussitôt',
+        () async {
+      server.resumedAnswers = 1;
+      server.startSecondsLeft = 0;
+      final c = await container();
+      await started(c);
+      await pumpEventQueue();
+
+      final state = c.read(quizControllerProvider);
+      expect(state.timedOut, isTrue);
+      expect(state.answered, isTrue);
+      final sent = server.sent('answer_question').single;
+      expect(sent['choice'], isNull);
+      expect(sent['time_ms'], 30000);
+    });
+
+    test('question suivante déjà servie : chrono restant du serveur', () async {
+      server.nextSecondsLeft = 21;
+      final c = await container();
+      final quiz = await started(c);
+      await quiz.answer(1);
+      quiz.next();
+      await pumpEventQueue();
+
+      final state = c.read(quizControllerProvider);
+      expect(state.index, 1);
+      expect(state.secondsLeft, 21);
+      quiz.quit();
+    });
+
+    test('question inattendue (quiz avancé ailleurs) : pas de « Réessayer »',
+        () async {
+      server.nextPositionShift = 1;
+      final c = await container();
+      final quiz = await started(c);
+      await quiz.answer(1);
+      quiz.next();
+      await pumpEventQueue();
+
+      var state = c.read(quizControllerProvider);
+      expect(state.outOfSync, isTrue);
+      expect(state.nextFailed, isFalse);
+      expect(state.loadingNext, isFalse);
+      expect(state.index, 0);
+      await quiz.retryNext();
+      state = c.read(quizControllerProvider);
+      expect(server.sent('next_question'), hasLength(1),
+          reason: 'aucun nouvel essai');
+      quiz.quit();
+      expect(c.read(quizControllerProvider).outOfSync, isFalse);
     });
 
     test('abandon pendant la correction : réponse tardive ignorée', () async {

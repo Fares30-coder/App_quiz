@@ -334,7 +334,8 @@ void main() {
 
     test('quiz terminé : envoyé, profil serveur appliqué', () async {
       final c = await container();
-      await (await started(c)).submitQuiz(submission());
+      expect(await (await started(c)).submitQuiz(submission()), 100,
+          reason: 'XP accordés par le serveur renvoyés');
 
       expect(server.quizzesSent, hasLength(1));
       expect(server.quizzesSent.single, {'quiz_id': 'quiz-1'});
@@ -350,7 +351,8 @@ void main() {
       server.rpcOffline = true;
       final c = await container();
       final sync = await started(c);
-      await sync.submitQuiz(submission());
+      expect(await sync.submitQuiz(submission()), isNull,
+          reason: 'pas encore validé');
 
       expect(c.read(progressControllerProvider).totalXp, 150,
           reason: 'calcul local conservé');
@@ -515,6 +517,8 @@ void main() {
             isTrue);
         expect(server.quizzesSent.single, {'quiz_id': 'quiz-servi'});
         expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+        expect(c.read(quizControllerProvider).serverXp, 100,
+            reason: 'XP du serveur affichés sur l\'écran Résultats');
       });
 
       test('quiz local en mode Supabase : jamais soumis (hors classement)',
