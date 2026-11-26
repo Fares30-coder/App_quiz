@@ -15,6 +15,7 @@ import 'package:quizzeo/engagement/progress_controller.dart';
 import 'package:quizzeo/models/question.dart';
 import 'package:quizzeo/models/quiz_session.dart';
 import 'package:quizzeo/quiz/quiz_controller.dart';
+import 'package:quizzeo/share/share_content.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -49,13 +50,15 @@ Map<String, dynamic> _questionJson(int i) => {
 /// 2e a dépassé le temps, les autres sont justes. Questions servies une à
 /// une : les répondues puis la question en cours seulement.
 Map<String, dynamic> _servedJson(String quizId,
-        {int answered = 0, int? secondsLeft = 30}) =>
+        {int answered = 0,
+        int? secondsLeft = 30,
+        String? day = '2026-11-26'}) =>
     {
       'quiz_id': quizId,
       'resumed': answered > 0,
       'mode': 'daily',
       'category': null,
-      'day': '2026-11-26',
+      'day': day,
       'expires_at': '2026-11-26T10:30:00+00:00',
       'total': 10,
       'position': answered < 10 ? answered + 1 : null,
@@ -89,6 +92,9 @@ class _FakeServer {
 
   /// Réponses déjà enregistrées renvoyées par `start_quiz` (reprise).
   int resumedAnswers = 0;
+
+  /// `day` (challenge_day, jour de Paris) renvoyé par `start_quiz`.
+  String? startDay = '2026-11-26';
 
   /// `seconds_left` renvoyé par `start_quiz` et `next_question`.
   int startSecondsLeft = 30;
@@ -130,7 +136,9 @@ class _FakeServer {
         }
         return _json(
             _servedJson('quiz-${requests.length}',
-                answered: resumedAnswers, secondsLeft: startSecondsLeft),
+                answered: resumedAnswers,
+                secondsLeft: startSecondsLeft,
+                day: startDay),
             200,
             request);
       case '/rest/v1/rpc/next_question':
@@ -744,6 +752,99 @@ void main() {
       progress.markChallengePlayed(score: 8, total: 10);
       progress.markChallengePlayed();
       expect(c.read(progressControllerProvider).challengeScore, 8);
+    });
+  });
+
+  group('jour du défi (partage)', () {
+    test('parseServerDay : AAAA-MM-JJ en minuit local, sans fuseau', () {
+      final d = parseServerDay('2026-12-12')!;
+      expect(d, DateTime(2026, 12, 12));
+      expect(d.isUtc, isFalse);
+      expect((d.hour, d.minute), (0, 0));
+      expect(parseServerDay('2027-01-01'), DateTime(2027, 1, 1));
+      expect(parseServerDay(null), isNull);
+      expect(parseServerDay(''), isNull);
+      expect(parseServerDay(20261212), isNull);
+      expect(parseServerDay('2026-12-12T23:30:00Z'), isNull);
+      expect(parseServerDay('2026-02-30'), isNull);
+    });
+
+    test('ServedQuiz.fromJson lit le jour du défi', () {
+      final served = ServedQuiz.fromJson(_servedJson('q', day: '2026-12-31'));
+      expect(served.day, DateTime(2026, 12, 31));
+      expect(ServedQuiz.fromJson(_servedJson('q', day: null)).day, isNull);
+    });
+
+    test('jour serveur différent du jour local : numéro du jour serveur',
+        () async {
+      // Joueur aux Antilles : encore le 11 chez lui, déjà le 12 à Paris.
+      server.startDay = '2026-12-12';
+      final start = await repository().startQuiz(
+          mode: QuizMode.dailyChallenge, today: DateTime(2026, 12, 11));
+      expect(start.day, DateTime(2026, 12, 12));
+
+      final c = ProviderContainer(overrides: [
+        clockProvider.overrideWithValue(() => DateTime(2026, 12, 11, 20)),
+      ]);
+      addTearDown(c.dispose);
+      c.read(quizControllerProvider.notifier).start(start.questions,
+          mode: QuizMode.dailyChallenge,
+          quizId: start.quizId,
+          total: start.total,
+          day: start.day);
+      final day = c.read(quizControllerProvider).day!;
+      expect(day, DateTime(2026, 12, 12));
+      expect(challengeNumber(day), 12);
+      final share = scoreShareContent(
+        mode: QuizMode.dailyChallenge,
+        score: 8,
+        total: 10,
+        answers: const [],
+        streakDays: 0,
+        day: day,
+      );
+      expect(share.message, startsWith('Quizzéo · Défi n°\u00a012 · 8/10'));
+      expect(share.overline, 'DÉFI DU JOUR · 12 DÉC.');
+    });
+
+    test('serveur sans jour : repli sur le jour local du lancement', () async {
+      server.startDay = null;
+      final start = await repository()
+          .startQuiz(mode: QuizMode.mix, today: DateTime(2026, 12, 11, 23, 59));
+      expect(start.isServed, isTrue);
+      expect(start.day, DateTime(2026, 12, 11));
+    });
+
+    test('hors ligne : jour du téléphone au lancement', () async {
+      server.offline = true;
+      final start = await repository().startQuiz(
+          mode: QuizMode.dailyChallenge, today: DateTime(2026, 12, 11, 8));
+      expect(start.isServed, isFalse);
+      expect(start.day, DateTime(2026, 12, 11));
+    });
+
+    test('défi joué à cheval sur minuit : numéro du jour de début', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      var now = DateTime(2026, 12, 1, 23, 59, 50);
+      final c = ProviderContainer(overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        clockProvider.overrideWithValue(() => now),
+      ]);
+      addTearDown(c.dispose);
+      final quiz = c.read(quizControllerProvider.notifier);
+      // Repli local : aucun jour fourni, jour du téléphone au début.
+      quiz.start(_local.take(2).toList(), mode: QuizMode.dailyChallenge);
+      expect(await quiz.answer(0), isTrue);
+      now = DateTime(2026, 12, 2, 0, 0, 20);
+      expect(quiz.next(), isTrue);
+      expect(await quiz.answer(0), isTrue);
+      expect(quiz.next(), isFalse);
+
+      final s = c.read(quizControllerProvider);
+      expect(s.isFinished, isTrue);
+      expect(s.day, DateTime(2026, 12, 1));
+      expect(challengeNumber(s.day!), 1);
     });
   });
 }

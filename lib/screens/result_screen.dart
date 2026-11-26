@@ -119,7 +119,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final total = s.questions.length;
     final score = s.score;
     final perfect = outcome.xp.perfect;
-    final today = dayOf(ref.watch(clockProvider)());
+    // Jour figé au début du quiz (jour serveur pour le défi), pas
+    // aujourd'hui : un quiz fini après minuit garde son jour.
+    final day = s.day ?? dayOf(ref.watch(clockProvider)());
     final animate = !context.reduceMotion;
 
     return PopScope(
@@ -175,7 +177,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                 ?.copyWith(fontSize: 26)),
                         const SizedBox(height: 4),
                         Text(
-                          '${_capitalize(formatShortDate(today))} · '
+                          '${_capitalize(formatShortDate(day))} · '
                           '${perfect ? 'Qui fait aussi bien ?' : 'Qui dit mieux ?'}',
                           textAlign: TextAlign.center,
                           style: context.text.bodyMedium,
@@ -191,7 +193,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                             total: total,
                             answers: [for (final a in s.answers) a.correct],
                             streakDays: outcome.streakCount,
-                            day: today,
+                            day: day,
                           ),
                           builder: (context, onPressed) => FilledButton.icon(
                             onPressed: onPressed,

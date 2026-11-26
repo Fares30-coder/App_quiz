@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/question_repository.dart';
+import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../engagement/progress_sync.dart';
 import '../engagement/xp.dart';
@@ -34,6 +35,7 @@ class QuizState {
     this.answers = const [],
     this.outcome,
     this.serverXp,
+    this.day,
   }) : _total = total;
 
   final QuizMode mode;
@@ -89,6 +91,12 @@ class QuizState {
   /// fois connus. Peuvent différer du calcul local (bonus rapidité refusé
   /// sur un réseau lent, plafond du jour).
   final int? serverXp;
+
+  /// Jour du quiz, figé au lancement (voir [QuizStart.day]) : jour du défi
+  /// selon le serveur, sinon jour du téléphone au début du quiz (jamais à
+  /// la fin : un quiz fini après minuit garde son jour). Numéro du défi et
+  /// date de l'image de partage.
+  final DateTime? day;
 
   Question get current => questions[index];
   bool get isServed => quizId != null;
@@ -159,6 +167,7 @@ class QuizState {
         answers: answers ?? this.answers,
         outcome: outcome ?? this.outcome,
         serverXp: serverXp ?? this.serverXp,
+        day: day,
       );
 }
 
@@ -196,6 +205,9 @@ class QuizController extends Notifier<QuizState> {
   /// [secondsLeft] : chrono restant de la question en cours selon le serveur
   /// (défi repris : la question garde son heure d'envoi d'origine) ; par
   /// défaut 30 s.
+  ///
+  /// [day] : jour du quiz ([QuizStart.day]) ; par défaut le jour du
+  /// téléphone maintenant (début du quiz).
   void start(
     List<Question> questions, {
     required QuizMode mode,
@@ -205,6 +217,7 @@ class QuizController extends Notifier<QuizState> {
     List<ServedAnswer> answered = const [],
     int? total,
     int? secondsLeft,
+    DateTime? day,
   }) {
     final done = answered.length.clamp(0, questions.length);
     final results = [
@@ -227,6 +240,7 @@ class QuizController extends Notifier<QuizState> {
       selected: allAnswered ? answered[done - 1].choice : null,
       timedOut: allAnswered && answered[done - 1].choice == null,
       secondsLeft: allAnswered ? 0 : _clampSeconds(secondsLeft),
+      day: dayOf(day ?? ref.read(clockProvider)()),
     );
     if (!allAnswered) _startQuestion();
   }

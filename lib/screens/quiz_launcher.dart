@@ -86,6 +86,7 @@ Future<void> launchQuiz(
           answered: start.answered,
           total: start.total,
           secondsLeft: start.secondsLeft,
+          day: start.day,
         );
     final route = MaterialPageRoute<void>(builder: (_) => const QuizScreen());
     if (replace) {
