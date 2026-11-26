@@ -26,6 +26,9 @@ import 'fonts.dart';
 // Heure UTC : temps restant indépendant du fuseau de la machine de test.
 final _now = DateTime.utc(2026, 11, 26, 9);
 
+/// Horloge des tests, avancée à la main (remise à [_now] avant chaque test).
+var _clock = _now;
+
 Map<String, dynamic> _board({
   List<Map<String, dynamic>>? entries,
   Map<String, dynamic>? me,
@@ -117,7 +120,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _FakeServer server;
-  setUp(() => server = _FakeServer());
+  setUp(() {
+    server = _FakeServer();
+    _clock = _now;
+  });
 
   Future<List<Override>> overrides({
     bool withClient = true,
@@ -139,7 +145,7 @@ void main() {
     if (client != null) addTearDown(client.dispose);
     return [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      clockProvider.overrideWithValue(() => _now),
+      clockProvider.overrideWithValue(() => _clock),
       supabaseClientProvider.overrideWithValue(client),
       authUserIdProvider.overrideWithValue(userId),
       if (fakeRepository) ...[
@@ -227,6 +233,7 @@ void main() {
       c.listen(leaderboardProvider, (_, __) {});
       await c.read(leaderboardProvider.future);
       server.offline = true;
+      _clock = _now.add(LeaderboardController.minRefreshInterval);
       await c.read(leaderboardProvider.notifier).refresh();
       final state = c.read(leaderboardProvider);
       expect(state.hasError, isTrue);
@@ -249,16 +256,35 @@ void main() {
           ));
       await c.read(leaderboardProvider.future);
       expect(c.read(validatedQuizzesProvider), 1);
+      expect(server.leaderboardCalls, 2,
+          reason: 'quiz validé : rechargé même moins de 10 s après');
+    });
+
+    test('tirage : ignoré moins de 10 s après un chargement réussi', () async {
+      final c = await container();
+      c.listen(leaderboardProvider, (_, __) {});
+      await c.read(leaderboardProvider.future);
+
+      _clock = _now.add(const Duration(seconds: 9));
+      await c.read(leaderboardProvider.notifier).refresh();
+      expect(server.leaderboardCalls, 1, reason: 'moins de 10 s');
+
+      _clock = _now.add(LeaderboardController.minRefreshInterval);
+      await c.read(leaderboardProvider.notifier).refresh();
       expect(server.leaderboardCalls, 2);
+
+      // Après une erreur, le tirage réessaie aussitôt.
+      server.offline = true;
+      _clock = _clock.add(LeaderboardController.minRefreshInterval);
+      await c.read(leaderboardProvider.notifier).refresh();
+      server.offline = false;
+      await c.read(leaderboardProvider.notifier).refresh();
+      expect(server.leaderboardCalls, 3);
+      expect(c.read(leaderboardProvider).hasError, isFalse);
     });
 
     test('onglet ouvert : rechargé seulement s\'il date', () async {
-      var now = _now;
-      final c = ProviderContainer(overrides: [
-        ...await overrides(),
-        clockProvider.overrideWithValue(() => now),
-      ]);
-      addTearDown(c.dispose);
+      final c = await container();
       c.listen(leaderboardProvider, (_, __) {});
       await c.read(leaderboardProvider.future);
 
@@ -266,7 +292,7 @@ void main() {
       await c.read(leaderboardProvider.future);
       expect(server.leaderboardCalls, 1, reason: 'chargé à l\'instant');
 
-      now = _now.add(LeaderboardController.maxAge);
+      _clock = _now.add(LeaderboardController.maxAge);
       c.read(leaderboardProvider.notifier).refreshIfStale();
       await c.read(leaderboardProvider.future);
       expect(server.leaderboardCalls, 2);
@@ -363,6 +389,7 @@ void main() {
       expect(server.leaderboardCalls, 1);
 
       server.offline = true;
+      _clock = _now.add(LeaderboardController.minRefreshInterval);
       await tester.fling(find.text('Camille'), const Offset(0, 400), 1000);
       await tester.pumpAndSettle();
       expect(find.textContaining('Hors ligne'), findsOneWidget);

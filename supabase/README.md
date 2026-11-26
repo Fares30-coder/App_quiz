@@ -107,6 +107,9 @@ Migration `*_weekly_leaderboard.sql`. Classement **global** de la semaine en
 cours, du lundi 00:00 au dimanche 23:59 (Europe/Paris, changement d'heure
 compris), calculé uniquement sur l'XP **comptée** de `quiz_results` (après
 plafonds) : le score officiel du serveur, jamais une valeur du client.
+**Plafond propre au classement** : 1 000 XP par joueur et par jour au plus
+(`least(sum(xp), 1000)` par jour, puis somme sur la semaine) ; l'XP du profil
+n'est pas touchée (plafond de `submit_quiz` : 3 000 par jour).
 
 `weekly_leaderboard(max_entries default 50)` (1 à 100, ramené dans
 l'intervalle), `security definer`, EXECUTE pour `authenticated` seulement
@@ -126,22 +129,38 @@ l'intervalle), `security definer`, EXECUTE pour `authenticated` seulement
   dernier quiz rapportant de l'XP), puis identifiant (jamais exposé).
 - Aucune donnée personnelle : ni identifiant, ni série, ni date de jeu ;
   `profiles` reste lisible uniquement par son propriétaire.
-- `profiles.display_name` : pseudo public, généré à l'inscription
-  (`Joueur` + 6 chiffres aléatoires, sans lien avec l'uid ; comptes existants
-  remplis par la migration). 3 à 20 caractères : lettres (accents compris),
+- `profiles.display_name` : pseudo public **unique** (index unique sur
+  `lower(display_name)`, casse ignorée), généré à l'inscription par
+  `generate_display_name()` (`Joueur` + 6 chiffres aléatoires, sans lien avec
+  l'uid ; 10 essais, puis 10 à 9 chiffres, sinon erreur ; `handle_new_user()`
+  réessaie 3 fois en cas de course entre deux inscriptions). Comptes existants
+  remplis ligne par ligne par la migration, sans doublon. 3 à 20 caractères : lettres (accents compris),
   chiffres, espace, `_`, `-`, `.`, sans espace au bord. Pas encore
   modifiable par le joueur (future RPC, avec modération).
 - Index `quiz_results (day, user_id) include (xp, submitted_at)` : agrégation
   de la semaine en parcours d'index seul. Calcul à chaque appel (suffisant au
   lancement ; à mettre en cache ou matérialiser si le volume grossit).
-- `leaderboard_week_start(at)` : fonction interne (lundi à Paris), non
-  exposée.
+- `leaderboard_week_start(at)` et `generate_display_name()` : fonctions
+  internes, non exposées aux clients.
 
 App (`lib/leaderboard/leaderboard_controller.dart`) : chargé à l'ouverture de
-session, rechargé après chaque quiz validé par `submit_quiz`, par tirage et à
-l'ouverture de l'onglet (s'il date de plus d'une minute). Mode local : message
+session, rechargé après chaque quiz validé par `submit_quiz` (toujours), par
+tirage (ignoré moins de 10 s après un chargement réussi) et à l'ouverture de
+l'onglet (s'il date de plus d'une minute). Mode local : message
 « Classement indisponible », aucun faux classement. Hors ligne : dernier
 classement chargé avec un bandeau, sinon message et « Réessayer ».
+
+### À faire avant la publication
+
+- `start_quiz()` / `served_at` côté serveur : questions servies et horodatées
+  par le serveur, pour qu'un script ne puisse pas soumettre des quiz sans les
+  avoir joués (anti-script).
+- Comptes anonymes en prod : captcha (Dashboard > Authentication > Attack
+  Protection) et limite de créations par IP.
+- Classement en cache (table remplie par `pg_cron`, par exemple chaque
+  minute) quand le volume de `quiz_results` grossit.
+- Politique de confidentialité : indiquer que le classement révèle
+  l'activité (pseudo et XP de la semaine) des joueurs du top.
 
 ## Questions (`seed.sql`)
 

@@ -18,6 +18,10 @@ class LeaderboardController extends AsyncNotifier<WeeklyLeaderboard?> {
   /// Au-delà, l'ouverture de l'onglet recharge le classement.
   static const maxAge = Duration(minutes: 1);
 
+  /// Délai minimum entre deux rafraîchissements par tirage (limite les
+  /// appels répétés). Un quiz validé recharge toujours, sans délai.
+  static const minRefreshInterval = Duration(seconds: 10);
+
   DateTime? _fetchedAt;
 
   @override
@@ -31,9 +35,11 @@ class LeaderboardController extends AsyncNotifier<WeeklyLeaderboard?> {
     return board;
   }
 
-  /// Recharge et attend le résultat. Ne lève jamais d'erreur (elle reste
-  /// dans l'état).
+  /// Tirage : recharge et attend le résultat, sauf si le dernier chargement
+  /// réussi date de moins de [minRefreshInterval]. Ne lève jamais d'erreur
+  /// (elle reste dans l'état).
   Future<void> refresh() async {
+    if (!_isOlderThan(minRefreshInterval)) return;
     ref.invalidateSelf();
     try {
       await future;
@@ -44,11 +50,16 @@ class LeaderboardController extends AsyncNotifier<WeeklyLeaderboard?> {
   /// a échoué.
   void refreshIfStale() {
     if (state.isLoading) return;
+    if (_isOlderThan(maxAge)) ref.invalidateSelf();
+  }
+
+  /// Vrai si le dernier chargement a échoué, n'a pas eu lieu ou date de plus
+  /// de [age].
+  bool _isOlderThan(Duration age) {
     final at = _fetchedAt;
-    final now = ref.read(clockProvider)();
-    if (state.hasError || at == null || now.difference(at) >= maxAge) {
-      ref.invalidateSelf();
-    }
+    return state.hasError ||
+        at == null ||
+        ref.read(clockProvider)().difference(at) >= age;
   }
 }
 
