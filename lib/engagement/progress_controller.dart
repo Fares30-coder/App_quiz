@@ -114,6 +114,13 @@ class ProgressController extends Notifier<PlayerProgress> {
     _repo.save(next);
   }
 
+  /// Progression fusionnée avec le serveur (`ProgressSync`) : les jours
+  /// manqués sont appliqués comme à l'ouverture, puis le cache local est mis
+  /// à jour.
+  void replaceFromServer(PlayerProgress merged) => _set(merged.copyWith(
+        streak: settleStreak(merged.streak, dayOf(_now())),
+      ));
+
   /// Fin du premier lancement (consentement + objectif).
   void finishOnboarding({required int dailyGoal, required int? reminder}) {
     _set(state.copyWith(
