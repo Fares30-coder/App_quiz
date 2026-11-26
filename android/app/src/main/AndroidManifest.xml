@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Back-end Supabase : requis en release (debug/profile l'ont déjà). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Rappel quotidien (flutter_local_notifications) : autorisation Android 13+.
          Pas d'alarme exacte : les rappels sont programmés en mode inexact. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>

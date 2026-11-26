@@ -26,8 +26,14 @@ void main() {
       const cases = [
         BackendConfig(url: '', publishableKey: 'sb_publishable_xyz'),
         BackendConfig(url: 'https://abc.supabase.co', publishableKey: ' '),
-        BackendConfig(url: 'abc.supabase.co', publishableKey: 'k'),
-        BackendConfig(url: 'http://abc.supabase.co', publishableKey: 'k'),
+        BackendConfig(
+            url: 'abc.supabase.co', publishableKey: 'sb_publishable_k'),
+        BackendConfig(
+            url: 'http://abc.supabase.co', publishableKey: 'sb_publishable_k'),
+        // Ancienne clé JWT (anon ou service_role) : refusée, liste blanche.
+        BackendConfig(
+            url: 'https://abc.supabase.co',
+            publishableKey: 'eyJhbGciOiJIUzI1NiJ9.x.y'),
       ];
       for (final config in cases) {
         expect(config.isConfigured, isFalse, reason: config.url);

@@ -27,7 +27,7 @@ Future<SupabaseClient?> initBackend(BackendConfig config) async {
     );
     return supabase.client;
   } catch (e) {
-    debugPrint('Supabase indisponible, mode local : $e');
+    if (kDebugMode) debugPrint('Supabase indisponible, mode local : $e');
     return null;
   }
 }

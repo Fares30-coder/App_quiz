@@ -50,3 +50,6 @@ config/*.json
 
 # Claude Code (local)
 .claude/settings.local.json
+
+# Copies de travail des agents Claude Code
+.claude/worktrees/

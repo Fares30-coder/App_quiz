@@ -14,8 +14,10 @@ class BackendConfig {
 
   final String url;
 
-  /// Clé publique `sb_publishable_...` (ou ancienne clé `anon`).
-  /// Jamais de clé secrète (`sb_secret_...` / `service_role`) dans l'app.
+  /// Clé publique `sb_publishable_...` uniquement (liste blanche).
+  /// Jamais de clé secrète (`sb_secret_...` / `service_role`) dans l'app :
+  /// le refus ici n'empêche pas sa compilation dans le binaire, d'où la
+  /// vérification avant build (tool/check_config.sh).
   final String publishableKey;
 
   /// Vrai si l'URL et la clé sont présentes et plausibles.
@@ -26,6 +28,6 @@ class BackendConfig {
         uri.scheme == 'https' &&
         uri.host.isNotEmpty &&
         key.isNotEmpty &&
-        !key.startsWith('sb_secret_');
+        key.startsWith('sb_publishable_');
   }
 }
