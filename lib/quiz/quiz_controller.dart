@@ -279,7 +279,7 @@ class QuizController extends Notifier<QuizState> {
     try {
       final correction = await ref.read(questionRepositoryProvider).answer(
             quizId: quizId,
-            questionId: state.current.id,
+            position: index + 1,
             choice: choice,
             timeMs: submittedMs(elapsed),
           );

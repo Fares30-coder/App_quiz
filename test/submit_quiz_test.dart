@@ -143,7 +143,8 @@ void main() {
     });
   });
 
-  test('supabase/seed.sql est à jour avec assets/questions.json', () {
+  test('supabase/seed.sql est à jour avec supabase/questions/questions.json',
+      () {
     final questions = [
       for (final q
           in jsonDecode(File(questionsPath).readAsStringSync()) as List)

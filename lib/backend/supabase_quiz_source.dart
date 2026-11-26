@@ -35,10 +35,12 @@ class SupabaseQuizSource {
     return ServedQuestion.fromJson(json);
   }
 
-  /// [choice] : position affichée (0 à 3), `null` si le temps est écoulé.
+  /// [position] : numéro de la question dans le quiz (1 à 10 ; le serveur
+  /// n'envoie pas les identifiants). [choice] : position affichée (0 à 3),
+  /// `null` si le temps est écoulé.
   Future<AnswerCorrection> answer({
     required String quizId,
-    required String questionId,
+    required int position,
     required int? choice,
     required int timeMs,
   }) async {
@@ -46,7 +48,7 @@ class SupabaseQuizSource {
       'answer_question',
       params: {
         'quiz_id': quizId,
-        'question_id': questionId,
+        'position': position,
         'choice': choice,
         'time_ms': timeMs,
       },

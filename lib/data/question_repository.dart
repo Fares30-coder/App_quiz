@@ -22,8 +22,8 @@ const quizLength = 10;
 /// une à une (`next_question`, temps de réponse mesuré par le serveur) et
 /// corrige chaque réponse (`answer_question`) ; seuls ces quiz comptent au
 /// classement. Sinon (mode 100 % local, hors ligne, serveur indisponible ou
-/// pas assez de questions) : questions locales (assets/questions.json),
-/// quiz hors classement.
+/// pas assez de questions) : lot hors ligne (assets/questions.json, jamais
+/// servi par le serveur), quiz hors classement.
 ///
 /// Défi du jour : le serveur reprend la session déjà commencée aujourd'hui
 /// ([QuizStart.answered]) ; s'il est déjà soumis, [startQuiz] lève
@@ -133,7 +133,7 @@ class QuestionRepository {
   /// refus) : le quiz attend alors un nouvel essai.
   Future<AnswerCorrection> answer({
     required String quizId,
-    required String questionId,
+    required int position,
     required int? choice,
     required int timeMs,
   }) {
@@ -144,7 +144,7 @@ class QuestionRepository {
     return remote
         .answer(
           quizId: quizId,
-          questionId: questionId,
+          position: position,
           choice: choice,
           timeMs: timeMs,
         )

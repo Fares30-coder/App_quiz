@@ -35,9 +35,9 @@ final _local = [
       ),
 ];
 
-/// Question `srv-i` telle que servie (sans bonne réponse).
+/// Question `i` telle que servie (sans bonne réponse ni identifiant).
 Map<String, dynamic> _questionJson(int i) => {
-      'id': 'srv-$i',
+      'position': i,
       'category': 'divers',
       'difficulty': 2,
       'question': 'Serveur $i ?',
@@ -68,7 +68,7 @@ Map<String, dynamic> _servedJson(String quizId,
               'choice': i == 2 ? null : 1,
               'correct': i != 2,
               'correct_choice': 1,
-              'explanation': 'Explication srv-$i',
+              'explanation': 'Explication $i',
               'time_ms': i == 2 ? 30000 : 4000,
             },
           },
@@ -151,17 +151,17 @@ class _FakeServer {
         await holdAnswer?.future;
         if (offline) throw const SocketException('hors ligne');
         (_answered[body['quiz_id'] as String] ??= {})
-            .add(body['question_id'] as String);
+            .add('${body['position']}');
         final choice = serverTimeout ? null : body['choice'];
         return _json({
           'quiz_id': body['quiz_id'],
-          'question_id': body['question_id'],
+          'position': body['position'],
           'choice': choice,
           'correct': choice == 1,
           'timed_out': choice == null,
           'time_ms': serverTimeout ? 30000 : body['time_ms'],
           'correct_choice': 1,
-          'explanation': 'Explication ${body['question_id']}',
+          'explanation': 'Explication ${body['position']}',
         }, 200, request);
     }
     return http.Response('{"message":"interdit"}', 403, request: request);
@@ -318,7 +318,7 @@ void main() {
         false
       ], reason: 'répondues + question en cours seulement');
       expect(start.total, 10);
-      expect(start.questions[0].explanation, 'Explication srv-1');
+      expect(start.questions[0].explanation, 'Explication 1');
       expect(start.questions[3].explanation, isEmpty);
     });
 
@@ -424,7 +424,7 @@ void main() {
       expect(state.secondsLeft, questionSeconds);
 
       expect(await quiz.answer(1), isTrue);
-      expect(server.sent('answer_question').single['question_id'], 'srv-4');
+      expect(server.sent('answer_question').single['position'], 4);
       state = c.read(quizControllerProvider);
       expect(state.score, 3);
       expect(state.combo, 2, reason: 'combo repris après la 3e réponse');
@@ -464,10 +464,11 @@ void main() {
       final state = c.read(quizControllerProvider);
       expect(state.answered, isTrue);
       expect(state.current.correctIndex, 1);
-      expect(state.current.explanation, 'Explication srv-1');
+      expect(state.current.explanation, 'Explication 1');
       final sent = server.sent('answer_question').single;
       expect(sent['quiz_id'], 'quiz-1');
-      expect(sent['question_id'], 'srv-1');
+      expect(sent['position'], 1);
+      expect(sent.containsKey('question_id'), isFalse);
       expect(sent['choice'], 1);
       expect(sent['time_ms'], 500, reason: 'toucher immédiat : borné à 0,5 s');
 
@@ -503,7 +504,7 @@ void main() {
       ]);
       expect(state.loadingNext, isFalse);
       expect(state.index, 1);
-      expect(state.current.id, 'srv-2');
+      expect(state.current.question, 'Serveur 2 ?');
       expect(state.current.isRevealed, isFalse);
       expect(state.locked, isFalse);
       expect(state.secondsLeft, questionSeconds);
@@ -530,7 +531,7 @@ void main() {
       state = c.read(quizControllerProvider);
       expect(state.nextFailed, isFalse);
       expect(state.index, 1);
-      expect(state.current.id, 'srv-2');
+      expect(state.current.question, 'Serveur 2 ?');
       quiz.quit();
     });
 
@@ -570,7 +571,8 @@ void main() {
       final c = await container();
       final quiz = await started(c);
       for (var i = 0; i < 10; i++) {
-        expect(c.read(quizControllerProvider).current.id, 'srv-${i + 1}');
+        expect(c.read(quizControllerProvider).current.question,
+            'Serveur ${i + 1} ?');
         await quiz.answer(1);
         final more = quiz.next();
         expect(more, i < 9);
