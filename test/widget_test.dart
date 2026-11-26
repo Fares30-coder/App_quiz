@@ -122,7 +122,9 @@ void journeyTests(double textScale) {
     await playChallenge(tester);
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('XP gagnés'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Continuer'), 200);
+    // hitTestable : le bouton peut être construit dans le cache de la liste,
+    // caché sous le bandeau pub ; on défile jusqu'à ce qu'il soit touchable.
+    await tester.scrollUntilVisible(find.text('Continuer').hitTestable(), 200);
     await tester.tap(find.text('Continuer'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
