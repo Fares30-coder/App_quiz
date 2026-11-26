@@ -160,6 +160,19 @@ class ProgressController extends Notifier<PlayerProgress> {
     return result.outcome;
   }
 
+  /// Défi du jour déjà joué selon le serveur (autre appareil, cache local
+  /// effacé) : l'accueil l'affiche comme joué, avec le score s'il est connu.
+  /// XP, série et compteur du jour viennent du sync avec le serveur.
+  void markChallengePlayed({int? score, int? total}) {
+    final today = dayOf(_now());
+    if (state.challengePlayedOn(today)) return;
+    _set(state.copyWith(
+      challengeDay: today,
+      challengeScore: score ?? 0,
+      challengeTotal: total ?? 0,
+    ));
+  }
+
   void setSoundEnabled(bool enabled) =>
       _set(state.copyWith(soundEnabled: enabled));
 

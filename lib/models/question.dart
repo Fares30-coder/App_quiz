@@ -20,27 +20,32 @@ class Question {
     required this.correctIndex,
     required this.explanation,
     required this.difficulty,
-    this.answerOrder,
   });
+
+  /// [correctIndex] d'une question servie par le serveur tant que le joueur
+  /// n'a pas répondu (la correction arrive avec `answer_question`).
+  static const unknownAnswer = -1;
 
   final String id;
   final String category;
   final String question;
+
+  /// Réponses dans l'ordre affiché.
   final List<String> answers;
+
+  /// Index de la bonne réponse dans [answers], ou [unknownAnswer].
   final int correctIndex;
+
+  /// Vide tant que la correction n'est pas connue.
   final String explanation;
 
   /// 1 = facile, 2 = moyen, 3 = difficile.
   final int difficulty;
 
-  /// Index d'origine (ordre de assets/questions.json) de chaque réponse
-  /// affichée ; `null` = ordre d'origine. Envoyé au serveur, qui corrige
-  /// dans cet ordre (`submit_quiz`).
-  final List<int>? answerOrder;
+  /// Bonne réponse connue (question locale, ou corrigée par le serveur).
+  bool get isRevealed => correctIndex >= 0;
 
-  /// Index d'origine de la réponse affichée en position [displayed].
-  int originalIndex(int displayed) => answerOrder?[displayed] ?? displayed;
-
+  /// Question locale (assets/questions.json).
   factory Question.fromJson(Map<String, dynamic> json) => Question(
         id: json['id'] as String,
         category: json['category'] as String,
@@ -49,6 +54,32 @@ class Question {
         correctIndex: json['correctIndex'] as int,
         explanation: json['explanation'] as String,
         difficulty: json['difficulty'] as int,
+      );
+
+  /// Question servie par `start_quiz` : sans bonne réponse ni explication,
+  /// réponses déjà mélangées par le serveur (à ne pas remélanger : le choix
+  /// envoyé est la position affichée). Le serveur n'envoie pas l'identifiant
+  /// de la question : [id] vaut `serveur-<position>` (position 1 à 10 dans
+  /// le quiz), la réponse est envoyée par position.
+  factory Question.fromServerJson(Map<String, dynamic> json) => Question(
+        id: 'serveur-${(json['position'] as num).toInt()}',
+        category: json['category'] as String,
+        question: json['question'] as String,
+        answers: List<String>.from(json['answers'] as List),
+        correctIndex: unknownAnswer,
+        explanation: '',
+        difficulty: (json['difficulty'] as num).toInt(),
+      );
+
+  /// Copie avec la correction reçue du serveur.
+  Question withCorrection(int correctIndex, String explanation) => Question(
+        id: id,
+        category: category,
+        question: question,
+        answers: answers,
+        correctIndex: correctIndex,
+        explanation: explanation,
+        difficulty: difficulty,
       );
 
   /// Copie avec les réponses mélangées (la bonne réponse suit).
@@ -62,7 +93,6 @@ class Question {
       correctIndex: order.indexOf(correctIndex),
       explanation: explanation,
       difficulty: difficulty,
-      answerOrder: [for (final i in order) originalIndex(i)],
     );
   }
 }

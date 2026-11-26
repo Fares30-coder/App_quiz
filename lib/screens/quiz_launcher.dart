@@ -4,11 +4,17 @@ import 'package:material_ui/material_ui.dart';
 import '../data/question_repository.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
+import '../models/quiz_session.dart';
 import '../quiz/quiz_controller.dart';
 import '../widgets/brand.dart';
 import 'quiz_screen.dart';
 
-/// Charge les questions puis ouvre l'écran Question.
+/// Quiz en cours de chargement (appel serveur) : un seul lancement à la
+/// fois, un double toucher est ignoré.
+final quizLaunchingProvider = StateProvider<bool>((ref) => false);
+
+/// Charge les questions (serveur si possible, sinon locales) puis ouvre
+/// l'écran Question.
 /// [category] : identifiant de catégorie, [mixCategory] ou null pour le défi du jour.
 // TODO(etape-3): interstitiel plafonné ici, AVANT le quiz suivant (jamais pendant).
 Future<void> launchQuiz(
@@ -17,35 +23,77 @@ Future<void> launchQuiz(
   String? category,
   bool replace = false,
 }) async {
-  final repo = ref.read(questionRepositoryProvider);
-  final today = dayOf(ref.read(clockProvider)());
-  final mode = category == null
-      ? QuizMode.dailyChallenge
-      : category == mixCategory
-          ? QuizMode.mix
-          : QuizMode.category;
-  final questions = switch (mode) {
-    QuizMode.dailyChallenge => await repo.dailyChallenge(today),
-    QuizMode.mix => await repo.pickQuiz(),
-    QuizMode.category => await repo.pickQuiz(category: category),
-  };
-  if (!context.mounted) return;
-  if (questions.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Pas encore de questions dans cette catégorie.')),
-    );
-    return;
-  }
-  ref.read(quizControllerProvider.notifier).start(
-        questions,
-        mode: mode,
-        category: mode == QuizMode.category ? category : null,
+  final launching = ref.read(quizLaunchingProvider.notifier);
+  if (launching.state) return;
+  launching.state = true;
+  try {
+    final mode = category == null
+        ? QuizMode.dailyChallenge
+        : category == mixCategory
+            ? QuizMode.mix
+            : QuizMode.category;
+    final QuizStart start;
+    try {
+      start = await ref.read(questionRepositoryProvider).startQuiz(
+            mode: mode,
+            category: mode == QuizMode.category ? category : null,
+            today: dayOf(ref.read(clockProvider)()),
+          );
+    } on DailyChallengeAlreadyPlayed catch (played) {
+      // Joué ailleurs (autre appareil, données locales effacées) : l'accueil
+      // passe en « défi joué », sans rejouer le défi en local.
+      ref
+          .read(progressControllerProvider.notifier)
+          .markChallengePlayed(score: played.score, total: played.total);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:
+              Text('Tu as déjà joué le défi du jour. Rendez-vous demain !'),
+        ));
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    if (start.questions.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+            content: Text('Pas encore de questions dans cette catégorie.')),
       );
-  final route = MaterialPageRoute<void>(builder: (_) => const QuizScreen());
-  if (replace) {
-    Navigator.of(context).pushReplacement(route);
-  } else {
-    Navigator.of(context).push(route);
+      return;
+    }
+    if (start.answered.isNotEmpty) {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Défi du jour repris là où tu l\'avais laissé.'),
+      ));
+    }
+    final notice = switch (start.unranked) {
+      UnrankedReason.offline =>
+        'Hors connexion : ce quiz ne comptera pas au classement.',
+      UnrankedReason.notEnoughQuestions =>
+        'Pas encore assez de questions ici : ce quiz ne comptera pas au classement.',
+      null => null,
+    };
+    if (notice != null) {
+      messenger.showSnackBar(SnackBar(content: Text(notice)));
+    }
+    ref.read(quizControllerProvider.notifier).start(
+          start.questions,
+          mode: mode,
+          category: mode == QuizMode.category ? category : null,
+          quizId: start.quizId,
+          userId: start.userId,
+          answered: start.answered,
+          total: start.total,
+          secondsLeft: start.secondsLeft,
+        );
+    final route = MaterialPageRoute<void>(builder: (_) => const QuizScreen());
+    if (replace) {
+      Navigator.of(context).pushReplacement(route);
+    } else {
+      Navigator.of(context).push(route);
+    }
+  } finally {
+    launching.state = false;
   }
 }

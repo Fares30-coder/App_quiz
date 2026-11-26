@@ -13,7 +13,11 @@ import 'progress_repository.dart';
 class PendingQuizRepository {
   PendingQuizRepository(this._prefs);
 
-  static const _key = 'pending_quizzes_v1';
+  /// v2 : quiz servis par `start_quiz` (identifiant seul). Les entrées v1
+  /// (questions et réponses choisies par l'app) ne sont plus acceptées par
+  /// le serveur : jamais relues, effacées par [clear].
+  static const _key = 'pending_quizzes_v2';
+  static const _legacyKey = 'pending_quizzes_v1';
 
   /// Au-delà, les plus anciens sont abandonnés (le serveur refuse de toute
   /// façon les quiz de plus de 6 h et plus de 20 quiz par heure).
@@ -54,7 +58,10 @@ class PendingQuizRepository {
   }
 
   /// Vide la file (purge locale de la session).
-  Future<void> clear() => _prefs.remove(_key);
+  Future<void> clear() async {
+    await _prefs.remove(_key);
+    await _prefs.remove(_legacyKey);
+  }
 
   Future<void> remove(String id) => _save([
         for (final s in load())

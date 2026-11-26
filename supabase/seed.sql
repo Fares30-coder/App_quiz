@@ -1,13 +1,10 @@
--- Fichier généré par tool/generate_seed.dart depuis assets/questions.json.
+-- Fichier généré par tool/generate_seed.dart depuis supabase/questions/questions.json.
 -- Ne pas modifier à la main : relancer `dart run tool/generate_seed.dart`.
 -- Appliqué par `supabase db reset` (local) ou `supabase db push --include-seed`.
 
 insert into public.questions
   (id, category, difficulty, question, answers, correct_index, explanation)
 values
-  ('his-001', 'histoire', 1, 'En quelle année a eu lieu la prise de la Bastille ?', array['1789', '1792', '1776', '1804'], 0, 'La Bastille a été prise le 14 juillet 1789, date devenue la fête nationale française.'),
-  ('his-002', 'histoire', 1, 'Qui a été le premier président de la Ve République ?', array['Charles de Gaulle', 'Georges Pompidou', 'René Coty', 'François Mitterrand'], 0, 'Charles de Gaulle a été élu en décembre 1958 et a pris ses fonctions en janvier 1959. René Coty était le dernier président de la IVe République.'),
-  ('his-003', 'histoire', 1, 'En quelle année le mur de Berlin est-il tombé ?', array['1989', '1991', '1985', '1961'], 0, 'Le mur est tombé le 9 novembre 1989. Il avait été construit en 1961.'),
   ('his-004', 'histoire', 1, 'Qui a été sacré empereur des Français en 1804 ?', array['Louis XVIII', 'Napoléon Ier', 'Charles X', 'Napoléon III'], 1, 'Napoléon Bonaparte s''est couronné lui-même le 2 décembre 1804 à Notre-Dame de Paris.'),
   ('his-005', 'histoire', 1, 'Quelle reine de France a été guillotinée en 1793 ?', array['Marie-Antoinette', 'Catherine de Médicis', 'Anne d''Autriche', 'Marie de Médicis'], 0, 'Marie-Antoinette, épouse de Louis XVI, a été exécutée le 16 octobre 1793, neuf mois après le roi.'),
   ('his-006', 'histoire', 1, 'En quelle année a eu lieu le débarquement allié en Normandie ?', array['1943', '1945', '1942', '1944'], 3, 'Le débarquement a eu lieu le 6 juin 1944, le « Jour J », sur cinq plages normandes.'),
@@ -18,9 +15,6 @@ values
   ('his-011', 'histoire', 2, 'Tenochtitlan était la capitale de quel empire ?', array['L''Empire inca', 'L''Empire maya', 'L''Empire aztèque', 'L''Empire olmèque'], 2, 'Tenochtitlan, bâtie sur un lac, a été conquise par Hernán Cortés en 1521. Mexico s''élève aujourd''hui à son emplacement.'),
   ('his-012', 'histoire', 3, 'En quelle année Henri IV a-t-il signé l''édit de Nantes ?', array['1685', '1598', '1572', '1610'], 1, 'L''édit de Nantes (1598) accordait aux protestants la liberté de conscience et un droit de culte limité à certains lieux. Louis XIV l''a révoqué en 1685.'),
   ('his-013', 'histoire', 3, 'Quel traité signé en 1957 a créé la Communauté économique européenne ?', array['Le traité de Rome', 'Le traité de Maastricht', 'Le traité de Paris', 'Le traité de Lisbonne'], 0, 'Six pays, dont la France, ont signé le traité de Rome le 25 mars 1957. Le traité de Paris (1951) avait créé la CECA.'),
-  ('geo-001', 'geo', 2, 'Quelle est la capitale de l''Australie ?', array['Canberra', 'Sydney', 'Melbourne', 'Perth'], 0, 'Canberra a été choisie comme capitale, en compromis entre Sydney et Melbourne.'),
-  ('geo-002', 'geo', 1, 'Quel est le plus long fleuve de France ?', array['La Loire', 'La Seine', 'Le Rhône', 'La Garonne'], 0, 'La Loire mesure environ 1 000 km et coule entièrement en France.'),
-  ('geo-003', 'geo', 1, 'Quel est le plus grand océan du monde ?', array['L''océan Pacifique', 'L''océan Atlantique', 'L''océan Indien', 'L''océan Arctique'], 0, 'Le Pacifique couvre environ un tiers de la surface de la Terre.'),
   ('geo-004', 'geo', 1, 'Quelle est la capitale du Canada ?', array['Toronto', 'Montréal', 'Vancouver', 'Ottawa'], 3, 'Ottawa, en Ontario, est la capitale fédérale, même si Toronto et Montréal sont plus peuplées.'),
   ('geo-005', 'geo', 1, 'Quel est le plus haut sommet des Alpes ?', array['Le Cervin', 'Le mont Rose', 'Le mont Blanc', 'La Barre des Écrins'], 2, 'Le mont Blanc culmine à environ 4 800 m, dans le massif du Mont-Blanc, entre la France et l''Italie.'),
   ('geo-006', 'geo', 1, 'Quel est le plus grand désert chaud du monde ?', array['Le Kalahari', 'Le Sahara', 'Le désert d''Arabie', 'Le désert de Sonora'], 1, 'Le Sahara couvre plus de 9 millions de km². Les déserts froids de l''Antarctique et de l''Arctique sont plus vastes.'),
@@ -31,9 +25,6 @@ values
   ('geo-011', 'geo', 2, 'Quel est le plus petit pays du monde par sa superficie ?', array['Le Vatican', 'Monaco', 'Saint-Marin', 'Le Liechtenstein'], 0, 'Le Vatican, enclavé dans Rome, mesure moins de 0,5 km². Monaco arrive en deuxième position.'),
   ('geo-012', 'geo', 2, 'Quel détroit sépare l''Europe de l''Afrique ?', array['Le détroit du Bosphore', 'Le détroit de Messine', 'Le détroit d''Ormuz', 'Le détroit de Gibraltar'], 3, 'Au plus étroit, le détroit de Gibraltar ne mesure qu''environ 14 km entre l''Espagne et le Maroc.'),
   ('geo-013', 'geo', 3, 'Quel est le lac le plus profond du monde ?', array['Le lac Tanganyika', 'Le lac Supérieur', 'Le lac Baïkal', 'Le lac Victoria'], 2, 'Le Baïkal, en Sibérie, dépasse 1 600 m de profondeur et contient environ un cinquième de l''eau douce liquide de surface.'),
-  ('sci-001', 'sciences', 1, 'Quel est le symbole chimique de l''or ?', array['Au', 'Ag', 'Or', 'Go'], 0, 'Au vient du latin « aurum ». Ag est le symbole de l''argent.'),
-  ('sci-002', 'sciences', 1, 'Combien de planètes compte le système solaire ?', array['8', '9', '7', '10'], 0, 'Depuis 2006, Pluton est classée planète naine : il reste 8 planètes.'),
-  ('sci-003', 'sciences', 2, 'Quel gaz est le plus abondant dans l''atmosphère terrestre ?', array['L''azote', 'L''oxygène', 'Le dioxyde de carbone', 'L''argon'], 0, 'L''azote représente environ 78 % de l''air, l''oxygène environ 21 %.'),
   ('sci-004', 'sciences', 1, 'Quelle est la formule chimique de l''eau ?', array['CO2', 'H2O', 'H2O2', 'HO2'], 1, 'Une molécule d''eau est formée de deux atomes d''hydrogène et d''un atome d''oxygène. H2O2 est l''eau oxygénée.'),
   ('sci-005', 'sciences', 1, 'Quelle planète est surnommée la planète rouge ?', array['Mars', 'Jupiter', 'Vénus', 'Mercure'], 0, 'Sa couleur vient de l''oxyde de fer, autrement dit de la rouille, présent dans ses poussières.'),
   ('sci-006', 'sciences', 1, 'Quel scientifique a formulé la théorie de la relativité ?', array['Isaac Newton', 'Niels Bohr', 'Max Planck', 'Albert Einstein'], 3, 'Einstein a publié la relativité restreinte en 1905 puis la relativité générale en 1915.'),
@@ -44,9 +35,6 @@ values
   ('sci-011', 'sciences', 2, 'Qui a découvert la pénicilline en 1928 ?', array['Louis Pasteur', 'Marie Curie', 'Alexander Fleming', 'Robert Koch'], 2, 'Le Britannique Alexander Fleming a remarqué qu''une moisissure empêchait la croissance des bactéries : cette découverte a ouvert l''ère des antibiotiques.'),
   ('sci-012', 'sciences', 3, 'Combien de temps met la lumière du Soleil pour atteindre la Terre ?', array['Environ 8 secondes', 'Environ 8 minutes', 'Environ 1 heure', 'Environ 30 minutes'], 1, 'Elle parcourt environ 150 millions de km en un peu plus de 8 minutes : on voit donc le Soleil tel qu''il était 8 minutes plus tôt.'),
   ('sci-013', 'sciences', 3, 'Quel est l''élément chimique le plus abondant dans la croûte terrestre ?', array['L''oxygène', 'Le silicium', 'Le fer', 'L''aluminium'], 0, 'L''oxygène représente près de la moitié de la masse de la croûte, surtout lié au silicium dans les roches.'),
-  ('art-001', 'arts', 1, 'Qui a peint La Joconde ?', array['Léonard de Vinci', 'Michel-Ange', 'Raphaël', 'Botticelli'], 0, 'Léonard de Vinci l''a peinte au début du XVIe siècle. Elle est exposée au Louvre.'),
-  ('art-002', 'arts', 1, 'Qui a écrit Les Misérables ?', array['Victor Hugo', 'Émile Zola', 'Honoré de Balzac', 'Alexandre Dumas'], 0, 'Victor Hugo a publié Les Misérables en 1862.'),
-  ('art-003', 'arts', 2, 'Combien de symphonies Beethoven a-t-il composées ?', array['9', '5', '12', '7'], 0, 'Beethoven a composé 9 symphonies. La 9e contient l''« Ode à la joie », hymne de l''Union européenne.'),
   ('art-004', 'arts', 1, 'Qui a peint La Nuit étoilée ?', array['Claude Monet', 'Paul Gauguin', 'Paul Cézanne', 'Vincent van Gogh'], 3, 'Van Gogh l''a peinte en 1889 à l''asile de Saint-Rémy-de-Provence, d''après la vue depuis la fenêtre de sa chambre.'),
   ('art-005', 'arts', 1, 'Qui a écrit Le Petit Prince ?', array['Jules Verne', 'Albert Camus', 'Antoine de Saint-Exupéry', 'Jacques Prévert'], 2, 'Publié en 1943, c''est l''un des livres les plus traduits au monde. L''auteur, aviateur, l''a aussi illustré.'),
   ('art-006', 'arts', 1, 'Quel compositeur a écrit Les Quatre Saisons ?', array['Jean-Sébastien Bach', 'Antonio Vivaldi', 'Wolfgang Amadeus Mozart', 'Georg Friedrich Haendel'], 1, 'Ces quatre concertos pour violon du Vénitien Vivaldi ont été publiés en 1725.'),
@@ -57,9 +45,6 @@ values
   ('art-011', 'arts', 2, 'Qui a écrit le recueil de poèmes Les Fleurs du mal ?', array['Charles Baudelaire', 'Arthur Rimbaud', 'Paul Verlaine', 'Stéphane Mallarmé'], 0, 'Publié en 1857, le recueil a valu à Baudelaire un procès pour atteinte aux bonnes mœurs.'),
   ('art-012', 'arts', 3, 'Dans quel musée est exposée La Naissance de Vénus de Botticelli ?', array['Le musée du Louvre', 'Le musée du Prado', 'La National Gallery', 'La galerie des Offices'], 3, 'Le tableau est conservé à la galerie des Offices, à Florence, ville où Botticelli a passé l''essentiel de sa vie.'),
   ('art-013', 'arts', 3, 'Quel architecte a conçu la pyramide du Louvre ?', array['Jean Nouvel', 'Renzo Piano', 'Ieoh Ming Pei', 'Frank Gehry'], 2, 'L''architecte sino-américain I. M. Pei l''a dessinée ; elle a été inaugurée en 1989.'),
-  ('spo-001', 'sport', 1, 'Combien de joueurs par équipe sont sur le terrain au football ?', array['11', '10', '9', '12'], 0, 'Chaque équipe aligne 11 joueurs, dont le gardien de but.'),
-  ('spo-002', 'sport', 1, 'Quelle ville a accueilli les Jeux olympiques d''été 2024 ?', array['Paris', 'Los Angeles', 'Tokyo', 'Londres'], 0, 'Paris a accueilli les JO 2024, un siècle après ceux de 1924. Los Angeles organise ceux de 2028.'),
-  ('spo-003', 'sport', 1, 'Sur le Tour de France, quelle est la couleur du maillot du leader du classement général ?', array['Jaune', 'Vert', 'Blanc', 'À pois rouges'], 0, 'Le maillot jaune récompense le leader du classement général. Le vert est pour les points, le blanc pour le meilleur jeune, les pois pour la montagne.'),
   ('spo-004', 'sport', 1, 'Quel tournoi du Grand Chelem de tennis se joue sur terre battue ?', array['Wimbledon', 'Roland-Garros', 'L''US Open', 'L''Open d''Australie'], 1, 'Roland-Garros, à Paris, est le seul des quatre sur terre battue. Wimbledon se joue sur gazon.'),
   ('spo-005', 'sport', 1, 'Combien de joueurs par équipe sont sur le terrain au basket-ball ?', array['5', '6', '7', '4'], 0, 'Chaque équipe aligne 5 joueurs ; les remplacements sont illimités.'),
   ('spo-006', 'sport', 1, 'En quelle année la France a-t-elle remporté sa première Coupe du monde de football ?', array['2018', '1986', '2006', '1998'], 3, 'Les Bleus ont battu le Brésil 3-0 en finale au Stade de France. Ils ont gagné leur deuxième titre en 2018.'),
@@ -70,9 +55,6 @@ values
   ('spo-011', 'sport', 2, 'Combien de sets faut-il gagner pour remporter un match masculin en Grand Chelem ?', array['2', '4', '3', '5'], 2, 'Les matchs masculins se jouent en 3 sets gagnants (5 au maximum), les matchs féminins en 2 sets gagnants.'),
   ('spo-012', 'sport', 3, 'En boxe anglaise professionnelle masculine, combien de temps dure un round ?', array['2 minutes', '3 minutes', '4 minutes', '5 minutes'], 1, 'Chaque round de 3 minutes est suivi d''une minute de repos. Chez les femmes professionnelles, il dure en général 2 minutes.'),
   ('spo-013', 'sport', 3, 'En quelle année ont eu lieu les premiers Jeux olympiques modernes ?', array['1896', '1900', '1888', '1912'], 0, 'Relancés à l''initiative de Pierre de Coubertin, ils se sont tenus à Athènes en 1896.'),
-  ('act-001', 'actu', 2, 'Quel pays a accueilli les Jeux olympiques d''hiver 2026 ?', array['L''Italie', 'La Suisse', 'La Chine', 'Le Japon'], 0, 'Les JO d''hiver 2026 se sont tenus à Milan et Cortina d''Ampezzo, en Italie.'),
-  ('act-002', 'actu', 2, 'Combien de pays ont co-organisé la Coupe du monde de football 2026 ?', array['3', '1', '2', '4'], 0, 'Les États-Unis, le Canada et le Mexique l''ont organisée ensemble, une première à trois pays.'),
-  ('act-003', 'actu', 2, 'En quelle année la cathédrale Notre-Dame de Paris a-t-elle rouvert après l''incendie de 2019 ?', array['2024', '2023', '2025', '2022'], 0, 'Notre-Dame a rouvert ses portes en décembre 2024, plus de cinq ans après l''incendie.'),
   ('act-004', 'actu', 1, 'Quel pays a remporté l''Euro de football 2024 ?', array['L''Angleterre', 'La France', 'L''Allemagne', 'L''Espagne'], 3, 'L''Espagne a battu l''Angleterre 2-1 en finale à Berlin et remporté son quatrième Euro, un record.'),
   ('act-005', 'actu', 1, 'Quel nageur français a remporté quatre médailles d''or individuelles aux JO de Paris 2024 ?', array['Florent Manaudou', 'Maxime Grousset', 'Léon Marchand', 'Yannick Agnel'], 2, 'Léon Marchand a gagné le 200 m papillon, le 200 m brasse, le 200 m et le 400 m quatre nages.'),
   ('act-006', 'actu', 1, 'Qui a été élu président des États-Unis en novembre 2024 ?', array['Kamala Harris', 'Donald Trump', 'Joe Biden', 'Ron DeSantis'], 1, 'Donald Trump a battu Kamala Harris et entamé en janvier 2025 un second mandat, non consécutif au premier.'),
@@ -83,9 +65,6 @@ values
   ('act-011', 'actu', 2, 'Quel club a remporté sa première Ligue des champions en 2025 ?', array['Le Paris Saint-Germain', 'L''Inter Milan', 'Arsenal', 'Le FC Barcelone'], 0, 'Le PSG a battu l''Inter Milan 5-0 en finale à Munich, le 31 mai 2025, un écart record en finale.'),
   ('act-012', 'actu', 3, 'Quelle ville a accueilli l''Exposition universelle 2025 ?', array['Dubaï', 'Riyad', 'Milan', 'Osaka'], 3, 'L''Expo 2025 s''est tenue à Osaka, au Japon. Dubaï avait accueilli la précédente et Riyad organisera celle de 2030.'),
   ('act-013', 'actu', 3, 'Quel joueur a remporté le Ballon d''or 2024 ?', array['Vinícius Júnior', 'Jude Bellingham', 'Rodri', 'Kylian Mbappé'], 2, 'Le milieu espagnol de Manchester City, champion d''Europe 2024, a devancé Vinícius Júnior.'),
-  ('div-001', 'divers', 1, 'Combien de côtés a un hexagone ?', array['6', '5', '7', '8'], 0, '« Hexa » signifie six en grec. La France est surnommée l''Hexagone pour sa forme.'),
-  ('div-002', 'divers', 2, 'Combien de touches compte un piano standard ?', array['88', '76', '92', '64'], 0, 'Un piano standard a 88 touches : 52 blanches et 36 noires.'),
-  ('div-003', 'divers', 2, 'Combien d''os compte le squelette d''un adulte humain ?', array['206', '186', '226', '306'], 0, 'Un adulte a 206 os. Un nouveau-né en a davantage, certains fusionnant pendant la croissance.'),
   ('div-004', 'divers', 1, 'Combien de jours compte une année bissextile ?', array['365', '366', '364', '367'], 1, 'Le 29 février est ajouté environ tous les 4 ans pour rattraper le décalage avec la course de la Terre autour du Soleil.'),
   ('div-005', 'divers', 1, 'Combien de cases compte un échiquier ?', array['64', '81', '100', '49'], 0, 'Un échiquier est un carré de 8 cases sur 8, alternant cases claires et foncées.'),
   ('div-006', 'divers', 1, 'Quelle est la monnaie du Japon ?', array['Le won', 'Le yuan', 'Le baht', 'Le yen'], 3, 'Le yen est la monnaie japonaise. Le won est utilisé en Corée, le yuan en Chine et le baht en Thaïlande.'),
@@ -103,9 +82,19 @@ set category = excluded.category,
     answers = excluded.answers,
     correct_index = excluded.correct_index,
     explanation = excluded.explanation,
+    active = true,
     updated_at = now()
 where (questions.category, questions.difficulty, questions.question,
-       questions.answers, questions.correct_index, questions.explanation)
+       questions.answers, questions.correct_index, questions.explanation,
+       questions.active)
   is distinct from
       (excluded.category, excluded.difficulty, excluded.question,
-       excluded.answers, excluded.correct_index, excluded.explanation);
+       excluded.answers, excluded.correct_index, excluded.explanation,
+       true);
+
+-- Questions absentes du fichier (lot hors ligne de l'app, questions
+-- retirées) : désactivées, jamais supprimées (référencées par les sessions).
+update public.questions
+   set active = false, updated_at = now()
+ where active
+   and id <> all (array['his-004', 'his-005', 'his-006', 'his-007', 'his-008', 'his-009', 'his-010', 'his-011', 'his-012', 'his-013', 'geo-004', 'geo-005', 'geo-006', 'geo-007', 'geo-008', 'geo-009', 'geo-010', 'geo-011', 'geo-012', 'geo-013', 'sci-004', 'sci-005', 'sci-006', 'sci-007', 'sci-008', 'sci-009', 'sci-010', 'sci-011', 'sci-012', 'sci-013', 'art-004', 'art-005', 'art-006', 'art-007', 'art-008', 'art-009', 'art-010', 'art-011', 'art-012', 'art-013', 'spo-004', 'spo-005', 'spo-006', 'spo-007', 'spo-008', 'spo-009', 'spo-010', 'spo-011', 'spo-012', 'spo-013', 'act-004', 'act-005', 'act-006', 'act-007', 'act-008', 'act-009', 'act-010', 'act-011', 'act-012', 'act-013', 'div-004', 'div-005', 'div-006', 'div-007', 'div-008', 'div-009', 'div-010', 'div-011', 'div-012', 'div-013']);

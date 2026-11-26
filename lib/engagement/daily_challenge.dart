@@ -2,7 +2,9 @@ import 'dart:math';
 
 import '../models/question.dart';
 
-/// Défi du jour : même quiz pour tous, déterminé uniquement par la date.
+/// Défi du jour LOCAL (repli hors ligne / mode 100 % local) : même quiz pour
+/// tous, déterminé uniquement par la date. En mode Supabase, le défi du jour
+/// est choisi par le serveur (`start_quiz`, table `daily_challenges`).
 const dailyChallengeLength = 10;
 
 /// Graine du jour : aaaammjj.

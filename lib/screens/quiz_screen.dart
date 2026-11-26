@@ -40,10 +40,12 @@ class QuizScreen extends ConsumerWidget {
     }
   }
 
-  void _answer(WidgetRef ref, int i) {
+  Future<void> _answer(BuildContext context, WidgetRef ref, int i) async {
     HapticFeedback.lightImpact();
     final before = ref.read(quizControllerProvider).combo;
-    final correct = ref.read(quizControllerProvider.notifier).answer(i);
+    // Quiz servi : correction du serveur (quelques centaines de ms).
+    final correct = await ref.read(quizControllerProvider.notifier).answer(i);
+    if (!context.mounted) return;
     if (correct) {
       HapticFeedback.mediumImpact();
       // Le son (« ding » / son neutre) est joué par QuizController.answer.
@@ -69,7 +71,7 @@ class QuizScreen extends ConsumerWidget {
     final c = context.colors;
 
     final statuses = [
-      for (var i = 0; i < state.questions.length; i++)
+      for (var i = 0; i < state.total; i++)
         i < state.answers.length
             ? (state.answers[i].correct ? SegmentStatus.ok : SegmentStatus.ko)
             : i == state.index
@@ -78,6 +80,10 @@ class QuizScreen extends ConsumerWidget {
     ];
 
     AnswerStatus statusOf(int i) {
+      // En attente de la correction du serveur : seul le choix reste en avant.
+      if (state.waiting) {
+        return i == state.selected ? AnswerStatus.neutral : AnswerStatus.dimmed;
+      }
       if (!state.answered) return AnswerStatus.neutral;
       if (i == q.correctIndex) return AnswerStatus.correct;
       if (i == state.selected) return AnswerStatus.wrong;
@@ -92,7 +98,7 @@ class QuizScreen extends ConsumerWidget {
             letter: _letters[i],
             label: q.answers[i],
             status: statusOf(i),
-            onPressed: state.answered ? null : () => _answer(ref, i),
+            onPressed: state.locked ? null : () => _answer(context, ref, i),
           ),
         ],
       ],
@@ -105,7 +111,10 @@ class QuizScreen extends ConsumerWidget {
       },
       child: Scaffold(
         body: SafeArea(
-          bottom: !state.answered,
+          bottom: !state.answered &&
+              !state.answerFailed &&
+              !state.nextFailed &&
+              !state.outOfSync,
           child: Column(
             children: [
               Padding(
@@ -135,14 +144,14 @@ class QuizScreen extends ConsumerWidget {
                                 fontSize: 20,
                               ),
                             ),
-                            TextSpan(text: '/${state.questions.length}'),
+                            TextSpan(text: '/${state.total}'),
                           ],
                         ),
                       ),
                     ),
                     TimerRing(
                       secondsLeft: state.secondsLeft,
-                      frozen: state.answered,
+                      frozen: state.locked,
                     ),
                   ],
                 ),
@@ -172,7 +181,7 @@ class QuizScreen extends ConsumerWidget {
                                     style: context.text.bodyMedium),
                               ],
                             ),
-                            if (!state.answered) _BonusRow(state: state),
+                            if (!state.locked) _BonusRow(state: state),
                             const SizedBox(height: 14),
                             Text(
                               q.question,
@@ -194,10 +203,35 @@ class QuizScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (state.answered)
+              if (state.outOfSync)
+                _RetrySheet(
+                  message: 'Ce quiz a avancé ailleurs (autre appareil ?). '
+                      'Quitte-le puis relance-le pour reprendre.',
+                  onQuit: () => _confirmQuit(context, ref),
+                )
+              else if (state.nextFailed)
+                _RetrySheet(
+                  message: 'Connexion perdue : impossible de charger '
+                      'la question suivante.',
+                  onRetry: () =>
+                      ref.read(quizControllerProvider.notifier).retryNext(),
+                  onQuit: () => _confirmQuit(context, ref),
+                )
+              else if (state.answered)
                 _FeedbackSheet(
                   state: state,
                   onNext: () => _next(context, ref),
+                )
+              else if (state.answerFailed)
+                _RetrySheet(
+                  message: 'Connexion perdue : ta réponse est gardée.',
+                  onRetry: () =>
+                      ref.read(quizControllerProvider.notifier).retryAnswer(),
+                  onQuit: () => _confirmQuit(context, ref),
+                )
+              else if (state.waiting)
+                const LinearProgressIndicator(
+                  semanticsLabel: 'Correction en cours',
                 ),
             ],
           ),
@@ -424,9 +458,18 @@ class _FeedbackSheet extends StatelessWidget {
               ),
             ),
             FilledButton(
-              onPressed: onNext,
-              child:
-                  Text(state.isLast ? 'Voir le résultat' : 'Question suivante'),
+              // Quiz servi : question suivante en cours de chargement.
+              onPressed: state.loadingNext ? null : onNext,
+              child: state.loadingNext
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        semanticsLabel: 'Chargement de la question suivante',
+                      ),
+                    )
+                  : Text(
+                      state.isLast ? 'Voir le résultat' : 'Question suivante'),
             ),
             const SizedBox(height: AppSpacing.s),
           ],
@@ -443,6 +486,70 @@ class _FeedbackSheet extends StatelessWidget {
       builder: (context, offset, child) =>
           FractionalTranslation(translation: offset, child: child),
       child: sheet,
+    );
+  }
+}
+
+/// Connexion perdue pendant un quiz servi (correction ou question suivante
+/// impossible à obtenir) : le joueur réessaie ou quitte.
+class _RetrySheet extends StatelessWidget {
+  const _RetrySheet({
+    required this.message,
+    this.onRetry,
+    required this.onQuit,
+  });
+
+  final String message;
+
+  /// `null` : réessayer ne servirait à rien, seul « Quitter » est proposé.
+  final VoidCallback? onRetry;
+  final VoidCallback onQuit;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: c.surfaceContainerLowest,
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(AppRadius.large)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              liveRegion: true,
+              child: Row(
+                children: [
+                  Icon(onRetry == null ? Icons.sync_problem : Icons.wifi_off,
+                      color: c.error),
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: context.text.titleSmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.m),
+            if (onRetry != null) ...[
+              FilledButton(onPressed: onRetry, child: const Text('Réessayer')),
+              TextButton(
+                  onPressed: onQuit, child: const Text('Quitter le quiz')),
+            ] else
+              FilledButton(
+                  onPressed: onQuit, child: const Text('Quitter le quiz')),
+            const SizedBox(height: AppSpacing.s),
+          ],
+        ),
+      ),
     );
   }
 }

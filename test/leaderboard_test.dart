@@ -249,9 +249,6 @@ void main() {
       await c.read(progressSyncProvider)!.submitQuiz(QuizSubmission(
             id: '00000000-0000-4000-8000-000000000001',
             userId: 'joueur-1',
-            questionIds: [for (var i = 1; i <= 10; i++) 'q-$i'],
-            choices: List.filled(10, 0),
-            timesMs: List.filled(10, 2000),
             playedAt: _now,
           ));
       await c.read(leaderboardProvider.future);
