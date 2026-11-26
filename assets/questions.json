@@ -27,6 +27,96 @@
     "difficulty": 1
   },
   {
+    "id": "his-004",
+    "category": "histoire",
+    "question": "Qui a été sacré empereur des Français en 1804 ?",
+    "answers": ["Louis XVIII", "Napoléon Ier", "Charles X", "Napoléon III"],
+    "correctIndex": 1,
+    "explanation": "Napoléon Bonaparte s'est couronné lui-même le 2 décembre 1804 à Notre-Dame de Paris.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-005",
+    "category": "histoire",
+    "question": "Quelle reine de France a été guillotinée en 1793 ?",
+    "answers": ["Marie-Antoinette", "Catherine de Médicis", "Anne d'Autriche", "Marie de Médicis"],
+    "correctIndex": 0,
+    "explanation": "Marie-Antoinette, épouse de Louis XVI, a été exécutée le 16 octobre 1793, neuf mois après le roi.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-006",
+    "category": "histoire",
+    "question": "En quelle année a eu lieu le débarquement allié en Normandie ?",
+    "answers": ["1943", "1945", "1942", "1944"],
+    "correctIndex": 3,
+    "explanation": "Le débarquement a eu lieu le 6 juin 1944, le « Jour J », sur cinq plages normandes.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-007",
+    "category": "histoire",
+    "question": "Quel pharaon a été découvert dans un tombeau presque intact en 1922 ?",
+    "answers": ["Ramsès II", "Khéops", "Toutânkhamon", "Akhenaton"],
+    "correctIndex": 2,
+    "explanation": "L'archéologue Howard Carter a découvert la tombe de Toutânkhamon dans la Vallée des Rois, avec son célèbre masque d'or.",
+    "difficulty": 2
+  },
+  {
+    "id": "his-008",
+    "category": "histoire",
+    "question": "Quelle bataille de 1815 marque la défaite définitive de Napoléon ?",
+    "answers": ["Austerlitz", "Waterloo", "Iéna", "Wagram"],
+    "correctIndex": 1,
+    "explanation": "À Waterloo, en Belgique actuelle, Napoléon est battu le 18 juin 1815, puis exilé à Sainte-Hélène.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-009",
+    "category": "histoire",
+    "question": "Quel roi de France était surnommé le Roi-Soleil ?",
+    "answers": ["Louis XIV", "Louis XIII", "Louis XV", "Henri IV"],
+    "correctIndex": 0,
+    "explanation": "Louis XIV a régné 72 ans (1643-1715), le plus long règne de l'histoire de France. Il a fait de Versailles le siège du pouvoir.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-010",
+    "category": "histoire",
+    "question": "En quelle année les Françaises ont-elles voté pour la première fois ?",
+    "answers": ["1936", "1919", "1958", "1945"],
+    "correctIndex": 3,
+    "explanation": "Le droit de vote a été accordé aux femmes en 1944 ; elles ont voté pour la première fois aux municipales d'avril 1945.",
+    "difficulty": 2
+  },
+  {
+    "id": "his-011",
+    "category": "histoire",
+    "question": "Tenochtitlan était la capitale de quel empire ?",
+    "answers": ["L'Empire inca", "L'Empire maya", "L'Empire aztèque", "L'Empire olmèque"],
+    "correctIndex": 2,
+    "explanation": "Tenochtitlan, bâtie sur un lac, a été conquise par Hernán Cortés en 1521. Mexico s'élève aujourd'hui à son emplacement.",
+    "difficulty": 2
+  },
+  {
+    "id": "his-012",
+    "category": "histoire",
+    "question": "En quelle année Henri IV a-t-il signé l'édit de Nantes ?",
+    "answers": ["1685", "1598", "1572", "1610"],
+    "correctIndex": 1,
+    "explanation": "L'édit de Nantes (1598) accordait la liberté de culte aux protestants. Louis XIV l'a révoqué en 1685.",
+    "difficulty": 3
+  },
+  {
+    "id": "his-013",
+    "category": "histoire",
+    "question": "Quel traité signé en 1957 a créé la Communauté économique européenne ?",
+    "answers": ["Le traité de Rome", "Le traité de Maastricht", "Le traité de Paris", "Le traité de Lisbonne"],
+    "correctIndex": 0,
+    "explanation": "Six pays, dont la France, ont signé le traité de Rome le 25 mars 1957. Le traité de Paris (1951) avait créé la CECA.",
+    "difficulty": 3
+  },
+  {
     "id": "geo-001",
     "category": "geo",
     "question": "Quelle est la capitale de l'Australie ?",
@@ -52,6 +142,96 @@
     "correctIndex": 0,
     "explanation": "Le Pacifique couvre environ un tiers de la surface de la Terre.",
     "difficulty": 1
+  },
+  {
+    "id": "geo-004",
+    "category": "geo",
+    "question": "Quelle est la capitale du Canada ?",
+    "answers": ["Toronto", "Montréal", "Vancouver", "Ottawa"],
+    "correctIndex": 3,
+    "explanation": "Ottawa, en Ontario, est la capitale fédérale, même si Toronto et Montréal sont plus peuplées.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-005",
+    "category": "geo",
+    "question": "Quel est le plus haut sommet des Alpes ?",
+    "answers": ["Le Cervin", "Le mont Rose", "Le mont Blanc", "La Barre des Écrins"],
+    "correctIndex": 2,
+    "explanation": "Le mont Blanc culmine à environ 4 800 m, à la frontière entre la France et l'Italie.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-006",
+    "category": "geo",
+    "question": "Quel est le plus grand désert chaud du monde ?",
+    "answers": ["Le Kalahari", "Le Sahara", "Le désert d'Arabie", "Le désert de Sonora"],
+    "correctIndex": 1,
+    "explanation": "Le Sahara couvre plus de 9 millions de km². Les déserts froids de l'Antarctique et de l'Arctique sont plus vastes.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-007",
+    "category": "geo",
+    "question": "Avec combien de pays la France métropolitaine a-t-elle une frontière terrestre ?",
+    "answers": ["8", "6", "7", "9"],
+    "correctIndex": 0,
+    "explanation": "Belgique, Luxembourg, Allemagne, Suisse, Italie, Monaco, Andorre et Espagne : 8 voisins terrestres.",
+    "difficulty": 3
+  },
+  {
+    "id": "geo-008",
+    "category": "geo",
+    "question": "Dans quel pays se trouve le site du Machu Picchu ?",
+    "answers": ["La Bolivie", "Le Chili", "L'Équateur", "Le Pérou"],
+    "correctIndex": 3,
+    "explanation": "Cette cité inca du XVe siècle est perchée dans les Andes péruviennes, à environ 2 400 m d'altitude.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-009",
+    "category": "geo",
+    "question": "Quel fleuve traverse Le Caire ?",
+    "answers": ["Le Tigre", "L'Euphrate", "Le Nil", "Le Congo"],
+    "correctIndex": 2,
+    "explanation": "Le Nil traverse l'Égypte du sud au nord avant de se jeter dans la Méditerranée par un vaste delta.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-010",
+    "category": "geo",
+    "question": "Quelle est la capitale de la Turquie ?",
+    "answers": ["Istanbul", "Ankara", "Izmir", "Antalya"],
+    "correctIndex": 1,
+    "explanation": "Ankara est la capitale depuis 1923. Istanbul reste la plus grande ville du pays.",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-011",
+    "category": "geo",
+    "question": "Quel est le plus petit pays du monde par sa superficie ?",
+    "answers": ["Le Vatican", "Monaco", "Saint-Marin", "Le Liechtenstein"],
+    "correctIndex": 0,
+    "explanation": "Le Vatican, enclavé dans Rome, mesure moins de 0,5 km². Monaco arrive en deuxième position.",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-012",
+    "category": "geo",
+    "question": "Quel détroit sépare l'Europe de l'Afrique ?",
+    "answers": ["Le détroit du Bosphore", "Le détroit de Messine", "Le détroit d'Ormuz", "Le détroit de Gibraltar"],
+    "correctIndex": 3,
+    "explanation": "Au plus étroit, le détroit de Gibraltar ne mesure qu'environ 14 km entre l'Espagne et le Maroc.",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-013",
+    "category": "geo",
+    "question": "Quel est le lac le plus profond du monde ?",
+    "answers": ["Le lac Tanganyika", "Le lac Supérieur", "Le lac Baïkal", "Le lac Victoria"],
+    "correctIndex": 2,
+    "explanation": "Le Baïkal, en Sibérie, dépasse 1 600 m de profondeur et contient environ un cinquième de l'eau douce liquide de surface.",
+    "difficulty": 3
   },
   {
     "id": "sci-001",
@@ -81,6 +261,96 @@
     "difficulty": 2
   },
   {
+    "id": "sci-004",
+    "category": "sciences",
+    "question": "Quelle est la formule chimique de l'eau ?",
+    "answers": ["CO2", "H2O", "H2O2", "HO2"],
+    "correctIndex": 1,
+    "explanation": "Une molécule d'eau est formée de deux atomes d'hydrogène et d'un atome d'oxygène. H2O2 est l'eau oxygénée.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-005",
+    "category": "sciences",
+    "question": "Quelle planète est surnommée la planète rouge ?",
+    "answers": ["Mars", "Jupiter", "Vénus", "Mercure"],
+    "correctIndex": 0,
+    "explanation": "Sa couleur vient de l'oxyde de fer, autrement dit de la rouille, présent dans ses poussières.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-006",
+    "category": "sciences",
+    "question": "Quel scientifique a formulé la théorie de la relativité ?",
+    "answers": ["Isaac Newton", "Niels Bohr", "Max Planck", "Albert Einstein"],
+    "correctIndex": 3,
+    "explanation": "Einstein a publié la relativité restreinte en 1905 puis la relativité générale en 1915.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-007",
+    "category": "sciences",
+    "question": "Quelle est la planète la plus proche du Soleil ?",
+    "answers": ["Vénus", "Mars", "Mercure", "La Terre"],
+    "correctIndex": 2,
+    "explanation": "Mercure est aussi la plus petite planète du système solaire. Vénus vient en deuxième position.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-008",
+    "category": "sciences",
+    "question": "Combien de chromosomes contient une cellule humaine (hors cellules reproductrices) ?",
+    "answers": ["23", "46", "44", "48"],
+    "correctIndex": 1,
+    "explanation": "Soit 23 paires : une moitié vient de la mère, l'autre du père. Les ovules et spermatozoïdes en ont 23.",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-009",
+    "category": "sciences",
+    "question": "Quelle est, environ, la vitesse de la lumière dans le vide ?",
+    "answers": ["300 000 km/s", "30 000 km/s", "3 000 000 km/s", "150 000 km/s"],
+    "correctIndex": 0,
+    "explanation": "La lumière parcourt précisément 299 792 458 m par seconde, soit environ 7,5 fois le tour de la Terre.",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-010",
+    "category": "sciences",
+    "question": "Quel est le plus grand organe du corps humain ?",
+    "answers": ["Le foie", "Les poumons", "Le cerveau", "La peau"],
+    "correctIndex": 3,
+    "explanation": "La peau couvre près de 2 m² chez l'adulte. Le foie est le plus gros organe interne.",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-011",
+    "category": "sciences",
+    "question": "Qui a découvert la pénicilline en 1928 ?",
+    "answers": ["Louis Pasteur", "Marie Curie", "Alexander Fleming", "Robert Koch"],
+    "correctIndex": 2,
+    "explanation": "Le Britannique Alexander Fleming a remarqué qu'une moisissure tuait des bactéries : c'est le premier antibiotique.",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-012",
+    "category": "sciences",
+    "question": "Combien de temps met la lumière du Soleil pour atteindre la Terre ?",
+    "answers": ["Environ 8 secondes", "Environ 8 minutes", "Environ 1 heure", "Environ 30 minutes"],
+    "correctIndex": 1,
+    "explanation": "Elle parcourt environ 150 millions de km en un peu plus de 8 minutes : on voit donc le Soleil tel qu'il était 8 minutes plus tôt.",
+    "difficulty": 3
+  },
+  {
+    "id": "sci-013",
+    "category": "sciences",
+    "question": "Quel est l'élément chimique le plus abondant dans la croûte terrestre ?",
+    "answers": ["L'oxygène", "Le silicium", "Le fer", "L'aluminium"],
+    "correctIndex": 0,
+    "explanation": "L'oxygène représente près de la moitié de la masse de la croûte, surtout lié au silicium dans les roches.",
+    "difficulty": 3
+  },
+  {
     "id": "art-001",
     "category": "arts",
     "question": "Qui a peint La Joconde ?",
@@ -106,6 +376,96 @@
     "correctIndex": 0,
     "explanation": "Beethoven a composé 9 symphonies. La 9e contient l'« Ode à la joie », hymne de l'Union européenne.",
     "difficulty": 2
+  },
+  {
+    "id": "art-004",
+    "category": "arts",
+    "question": "Qui a peint La Nuit étoilée ?",
+    "answers": ["Claude Monet", "Paul Gauguin", "Paul Cézanne", "Vincent van Gogh"],
+    "correctIndex": 3,
+    "explanation": "Van Gogh l'a peinte en 1889, depuis sa chambre de l'asile de Saint-Rémy-de-Provence.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-005",
+    "category": "arts",
+    "question": "Qui a écrit Le Petit Prince ?",
+    "answers": ["Jules Verne", "Albert Camus", "Antoine de Saint-Exupéry", "Jacques Prévert"],
+    "correctIndex": 2,
+    "explanation": "Publié en 1943, c'est l'un des livres les plus traduits au monde. L'auteur, aviateur, l'a aussi illustré.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-006",
+    "category": "arts",
+    "question": "Quel compositeur a écrit Les Quatre Saisons ?",
+    "answers": ["Jean-Sébastien Bach", "Antonio Vivaldi", "Wolfgang Amadeus Mozart", "Georg Friedrich Haendel"],
+    "correctIndex": 1,
+    "explanation": "Ces quatre concertos pour violon du Vénitien Vivaldi ont été publiés en 1725.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-007",
+    "category": "arts",
+    "question": "Qui a peint Guernica ?",
+    "answers": ["Pablo Picasso", "Salvador Dalí", "Joan Miró", "Francisco de Goya"],
+    "correctIndex": 0,
+    "explanation": "Picasso l'a peint en 1937 après le bombardement de la ville basque de Guernica pendant la guerre d'Espagne.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-008",
+    "category": "arts",
+    "question": "Quel sculpteur a réalisé Le Penseur ?",
+    "answers": ["Camille Claudel", "Michel-Ange", "Auguste Bartholdi", "Auguste Rodin"],
+    "correctIndex": 3,
+    "explanation": "Le Penseur faisait d'abord partie de La Porte de l'Enfer, inspirée de Dante. On peut le voir au musée Rodin à Paris.",
+    "difficulty": 2
+  },
+  {
+    "id": "art-009",
+    "category": "arts",
+    "question": "Quel mouvement pictural doit son nom à un tableau de Claude Monet ?",
+    "answers": ["Le fauvisme", "Le cubisme", "L'impressionnisme", "Le pointillisme"],
+    "correctIndex": 2,
+    "explanation": "Le tableau Impression, soleil levant (1872) a inspiré à un critique moqueur le mot « impressionnistes ».",
+    "difficulty": 2
+  },
+  {
+    "id": "art-010",
+    "category": "arts",
+    "question": "Dans quelle pièce de Molière trouve-t-on le personnage d'Harpagon ?",
+    "answers": ["Le Misanthrope", "L'Avare", "Tartuffe", "Le Malade imaginaire"],
+    "correctIndex": 1,
+    "explanation": "Harpagon, vieil homme obsédé par sa cassette d'or, est le héros de L'Avare (1668).",
+    "difficulty": 2
+  },
+  {
+    "id": "art-011",
+    "category": "arts",
+    "question": "Qui a écrit le recueil de poèmes Les Fleurs du mal ?",
+    "answers": ["Charles Baudelaire", "Arthur Rimbaud", "Paul Verlaine", "Stéphane Mallarmé"],
+    "correctIndex": 0,
+    "explanation": "Publié en 1857, le recueil a valu à Baudelaire un procès pour atteinte aux bonnes mœurs.",
+    "difficulty": 2
+  },
+  {
+    "id": "art-012",
+    "category": "arts",
+    "question": "Dans quel musée est exposée La Naissance de Vénus de Botticelli ?",
+    "answers": ["Le musée du Louvre", "Le musée du Prado", "La National Gallery", "La galerie des Offices"],
+    "correctIndex": 3,
+    "explanation": "Le tableau est conservé à la galerie des Offices, à Florence, ville où Botticelli a passé sa vie.",
+    "difficulty": 3
+  },
+  {
+    "id": "art-013",
+    "category": "arts",
+    "question": "Quel architecte a conçu la pyramide du Louvre ?",
+    "answers": ["Jean Nouvel", "Renzo Piano", "Ieoh Ming Pei", "Frank Gehry"],
+    "correctIndex": 2,
+    "explanation": "L'architecte sino-américain I. M. Pei l'a dessinée ; elle a été inaugurée en 1989.",
+    "difficulty": 3
   },
   {
     "id": "spo-001",
@@ -135,6 +495,96 @@
     "difficulty": 1
   },
   {
+    "id": "spo-004",
+    "category": "sport",
+    "question": "Quel tournoi du Grand Chelem de tennis se joue sur terre battue ?",
+    "answers": ["Wimbledon", "Roland-Garros", "L'US Open", "L'Open d'Australie"],
+    "correctIndex": 1,
+    "explanation": "Roland-Garros, à Paris, est le seul des quatre sur terre battue. Wimbledon se joue sur gazon.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-005",
+    "category": "sport",
+    "question": "Combien de joueurs par équipe sont sur le terrain au basket-ball ?",
+    "answers": ["5", "6", "7", "4"],
+    "correctIndex": 0,
+    "explanation": "Chaque équipe aligne 5 joueurs ; les remplacements sont illimités.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-006",
+    "category": "sport",
+    "question": "En quelle année la France a-t-elle remporté sa première Coupe du monde de football ?",
+    "answers": ["2018", "1986", "2006", "1998"],
+    "correctIndex": 3,
+    "explanation": "Les Bleus ont battu le Brésil 3-0 en finale au Stade de France. Ils ont gagné leur deuxième titre en 2018.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-007",
+    "category": "sport",
+    "question": "Dans quel sport utilise-t-on un volant ?",
+    "answers": ["Le squash", "Le tennis de table", "Le badminton", "Le padel"],
+    "correctIndex": 2,
+    "explanation": "Le volant, traditionnellement fait de plumes d'oie, peut dépasser 400 km/h lors d'un smash.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-008",
+    "category": "sport",
+    "question": "Combien de points rapporte un essai au rugby à XV ?",
+    "answers": ["3", "5", "4", "7"],
+    "correctIndex": 1,
+    "explanation": "Un essai vaut 5 points, et la transformation qui suit peut en ajouter 2.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-009",
+    "category": "sport",
+    "question": "Quelle distance parcourt-on lors d'un marathon ?",
+    "answers": ["42,195 km", "40 km", "44,5 km", "39,5 km"],
+    "correctIndex": 0,
+    "explanation": "Cette distance a été fixée officiellement en 1921, sur la base du parcours des JO de Londres 1908.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-010",
+    "category": "sport",
+    "question": "Combien de trous compte un parcours de golf standard ?",
+    "answers": ["9", "12", "24", "18"],
+    "correctIndex": 3,
+    "explanation": "Le standard de 18 trous vient du parcours de St Andrews, en Écosse, au XVIIIe siècle.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-011",
+    "category": "sport",
+    "question": "Combien de sets faut-il gagner pour remporter un match masculin en Grand Chelem ?",
+    "answers": ["2", "4", "3", "5"],
+    "correctIndex": 2,
+    "explanation": "Les matchs masculins se jouent en 3 sets gagnants (5 au maximum), les matchs féminins en 2 sets gagnants.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-012",
+    "category": "sport",
+    "question": "En boxe anglaise professionnelle masculine, combien de temps dure un round ?",
+    "answers": ["2 minutes", "3 minutes", "4 minutes", "5 minutes"],
+    "correctIndex": 1,
+    "explanation": "Chaque round de 3 minutes est suivi d'une minute de repos. Chez les femmes professionnelles, il dure en général 2 minutes.",
+    "difficulty": 3
+  },
+  {
+    "id": "spo-013",
+    "category": "sport",
+    "question": "En quelle année ont eu lieu les premiers Jeux olympiques modernes ?",
+    "answers": ["1896", "1900", "1888", "1912"],
+    "correctIndex": 0,
+    "explanation": "Relancés à l'initiative de Pierre de Coubertin, ils se sont tenus à Athènes en 1896.",
+    "difficulty": 3
+  },
+  {
     "id": "act-001",
     "category": "actu",
     "question": "Quel pays a accueilli les Jeux olympiques d'hiver 2026 ?",
@@ -162,6 +612,96 @@
     "difficulty": 2
   },
   {
+    "id": "act-004",
+    "category": "actu",
+    "question": "Quel pays a remporté l'Euro de football 2024 ?",
+    "answers": ["L'Angleterre", "La France", "L'Allemagne", "L'Espagne"],
+    "correctIndex": 3,
+    "explanation": "L'Espagne a battu l'Angleterre 2-1 en finale à Berlin et remporté son quatrième Euro, un record.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-005",
+    "category": "actu",
+    "question": "Quel nageur français a remporté quatre médailles d'or individuelles aux JO de Paris 2024 ?",
+    "answers": ["Florent Manaudou", "Maxime Grousset", "Léon Marchand", "Yannick Agnel"],
+    "correctIndex": 2,
+    "explanation": "Léon Marchand a gagné le 200 m papillon, le 200 m brasse, le 200 m et le 400 m quatre nages.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-006",
+    "category": "actu",
+    "question": "Qui a été élu président des États-Unis en novembre 2024 ?",
+    "answers": ["Kamala Harris", "Donald Trump", "Joe Biden", "Ron DeSantis"],
+    "correctIndex": 1,
+    "explanation": "Donald Trump a battu Kamala Harris et entamé en janvier 2025 un second mandat, non consécutif au premier.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-007",
+    "category": "actu",
+    "question": "Lors de la cérémonie d'ouverture des JO de Paris 2024, sur quel fleuve les athlètes ont-ils défilé ?",
+    "answers": ["La Seine", "La Loire", "Le Rhône", "La Marne"],
+    "correctIndex": 0,
+    "explanation": "Pour la première fois, la cérémonie s'est déroulée hors d'un stade : les délégations ont défilé en bateau sur la Seine.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-008",
+    "category": "actu",
+    "question": "Quel nom a choisi le pape élu en mai 2025 ?",
+    "answers": ["Pie XIII", "Jean-Paul III", "Benoît XVII", "Léon XIV"],
+    "correctIndex": 3,
+    "explanation": "L'Américain Robert Francis Prevost a été élu le 8 mai 2025, après la mort du pape François.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-009",
+    "category": "actu",
+    "question": "Quel pays a remporté l'Eurovision 2024 ?",
+    "answers": ["La Croatie", "L'Italie", "La Suisse", "La France"],
+    "correctIndex": 2,
+    "explanation": "Nemo a gagné pour la Suisse avec la chanson « The Code ». La Croatie a fini deuxième.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-010",
+    "category": "actu",
+    "question": "Qui a été nommé Premier ministre de la France en septembre 2024 ?",
+    "answers": ["François Bayrou", "Michel Barnier", "Gabriel Attal", "Édouard Philippe"],
+    "correctIndex": 1,
+    "explanation": "Michel Barnier a été nommé le 5 septembre 2024. Son gouvernement a été renversé par une motion de censure en décembre.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-011",
+    "category": "actu",
+    "question": "Quel club a remporté sa première Ligue des champions en 2025 ?",
+    "answers": ["Le Paris Saint-Germain", "L'Inter Milan", "Arsenal", "Le FC Barcelone"],
+    "correctIndex": 0,
+    "explanation": "Le PSG a battu l'Inter Milan 5-0 en finale à Munich, le 31 mai 2025, un écart record en finale.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-012",
+    "category": "actu",
+    "question": "Quelle ville a accueilli l'Exposition universelle 2025 ?",
+    "answers": ["Dubaï", "Riyad", "Milan", "Osaka"],
+    "correctIndex": 3,
+    "explanation": "L'Expo 2025 s'est tenue à Osaka, au Japon. Dubaï avait accueilli la précédente et Riyad organisera celle de 2030.",
+    "difficulty": 3
+  },
+  {
+    "id": "act-013",
+    "category": "actu",
+    "question": "Quel joueur a remporté le Ballon d'or 2024 ?",
+    "answers": ["Vinícius Júnior", "Jude Bellingham", "Rodri", "Kylian Mbappé"],
+    "correctIndex": 2,
+    "explanation": "Le milieu espagnol de Manchester City, champion d'Europe 2024, a devancé Vinícius Júnior.",
+    "difficulty": 3
+  },
+  {
     "id": "div-001",
     "category": "divers",
     "question": "Combien de côtés a un hexagone ?",
@@ -187,5 +727,95 @@
     "correctIndex": 0,
     "explanation": "Un adulte a 206 os. Un nouveau-né en a davantage, certains fusionnant pendant la croissance.",
     "difficulty": 2
+  },
+  {
+    "id": "div-004",
+    "category": "divers",
+    "question": "Combien de jours compte une année bissextile ?",
+    "answers": ["365", "366", "364", "367"],
+    "correctIndex": 1,
+    "explanation": "Le 29 février est ajouté environ tous les 4 ans pour rattraper le décalage avec la course de la Terre autour du Soleil.",
+    "difficulty": 1
+  },
+  {
+    "id": "div-005",
+    "category": "divers",
+    "question": "Combien de cases compte un échiquier ?",
+    "answers": ["64", "81", "100", "49"],
+    "correctIndex": 0,
+    "explanation": "Un échiquier est un carré de 8 cases sur 8, alternant cases claires et foncées.",
+    "difficulty": 1
+  },
+  {
+    "id": "div-006",
+    "category": "divers",
+    "question": "Quelle est la monnaie du Japon ?",
+    "answers": ["Le won", "Le yuan", "Le baht", "Le yen"],
+    "correctIndex": 3,
+    "explanation": "Le yen est la monnaie japonaise. Le won est utilisé en Corée, le yuan en Chine et le baht en Thaïlande.",
+    "difficulty": 1
+  },
+  {
+    "id": "div-007",
+    "category": "divers",
+    "question": "Combien de cartes compte un jeu classique, sans les jokers ?",
+    "answers": ["54", "32", "52", "48"],
+    "correctIndex": 2,
+    "explanation": "Quatre couleurs de 13 cartes : 52. Avec deux jokers, on arrive à 54 ; le jeu de belote en a 32.",
+    "difficulty": 1
+  },
+  {
+    "id": "div-008",
+    "category": "divers",
+    "question": "Combien de minutes compte une journée de 24 heures ?",
+    "answers": ["1 240", "1 440", "1 600", "1 340"],
+    "correctIndex": 1,
+    "explanation": "24 heures × 60 minutes = 1 440 minutes, soit 86 400 secondes.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-009",
+    "category": "divers",
+    "question": "Dans quelle ville se trouve la célèbre statue du Manneken-Pis ?",
+    "answers": ["Bruxelles", "Amsterdam", "Anvers", "Liège"],
+    "correctIndex": 0,
+    "explanation": "Cette petite statue de bronze d'environ 55 cm est un symbole de Bruxelles ; elle possède plus de 1 000 costumes.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-010",
+    "category": "divers",
+    "question": "Quel est l'ingrédient principal du houmous ?",
+    "answers": ["La lentille", "Le haricot blanc", "La fève", "Le pois chiche"],
+    "correctIndex": 3,
+    "explanation": "Le houmous est une purée de pois chiches mélangée à du tahini (crème de sésame), du citron et de l'ail.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-011",
+    "category": "divers",
+    "question": "Combien de zéros compte un milliard écrit en chiffres ?",
+    "answers": ["6", "12", "9", "10"],
+    "correctIndex": 2,
+    "explanation": "Un milliard s'écrit 1 000 000 000, soit mille millions. Un million a 6 zéros.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-012",
+    "category": "divers",
+    "question": "Comment appelle-t-on un polygone à 12 côtés ?",
+    "answers": ["Un décagone", "Un dodécagone", "Un ennéagone", "Un hendécagone"],
+    "correctIndex": 1,
+    "explanation": "« Dodéca » signifie douze en grec. Le décagone a 10 côtés, l'ennéagone 9 et l'hendécagone 11.",
+    "difficulty": 3
+  },
+  {
+    "id": "div-013",
+    "category": "divers",
+    "question": "En chiffres romains, que vaut MCM ?",
+    "answers": ["1900", "1100", "2100", "1950"],
+    "correctIndex": 0,
+    "explanation": "M vaut 1 000 et CM vaut 900 (C placé avant M se retranche) : 1 000 + 900 = 1 900.",
+    "difficulty": 3
   }
 ]
