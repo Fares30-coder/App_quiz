@@ -58,11 +58,11 @@ class _FakeServer {
       return http.Response(
           jsonEncode({
             'quiz_id': body['quiz_id'],
-            'question_id': body['question_id'],
+            'position': body['position'],
             'choice': body['choice'],
             'correct': body['choice'] == 0,
             'correct_choice': 0,
-            'explanation': 'Explication ${body['question_id']}',
+            'explanation': 'Explication ${body['position']}',
           }),
           200,
           headers: {'content-type': 'application/json'},
@@ -334,7 +334,8 @@ void main() {
 
     test('quiz terminé : envoyé, profil serveur appliqué', () async {
       final c = await container();
-      await (await started(c)).submitQuiz(submission());
+      expect(await (await started(c)).submitQuiz(submission()), 100,
+          reason: 'XP accordés par le serveur renvoyés');
 
       expect(server.quizzesSent, hasLength(1));
       expect(server.quizzesSent.single, {'quiz_id': 'quiz-1'});
@@ -350,7 +351,8 @@ void main() {
       server.rpcOffline = true;
       final c = await container();
       final sync = await started(c);
-      await sync.submitQuiz(submission());
+      expect(await sync.submitQuiz(submission()), isNull,
+          reason: 'pas encore validé');
 
       expect(c.read(progressControllerProvider).totalXp, 150,
           reason: 'calcul local conservé');
@@ -467,7 +469,7 @@ void main() {
       final served = [
         for (var i = 1; i <= 10; i++)
           Question.fromServerJson({
-            'id': 'q-$i',
+            'position': i,
             'category': 'divers',
             'question': 'Question $i',
             'answers': ['a', 'b', 'c', 'd'],
@@ -500,11 +502,18 @@ void main() {
         expect(state.score, 9);
         expect(state.questions.every((q) => q.isRevealed), isTrue,
             reason: 'corrections gardées pour l\'écran Résultats');
-        expect(state.questions.first.explanation, 'Explication q-1');
+        expect(state.questions.first.explanation, 'Explication 1');
         await pumpEventQueue();
 
         expect(server.answersSent, hasLength(10));
         expect(server.answersSent[1]['choice'], 1);
+        expect([
+          for (final a in server.answersSent) a['position']
+        ], [
+          for (var i = 1; i <= 10; i++) i
+        ], reason: 'réponse envoyée par position, jamais par identifiant');
+        expect(server.answersSent.every((a) => !a.containsKey('question_id')),
+            isTrue);
         expect(server.answersSent.every((a) => a['quiz_id'] == 'quiz-servi'),
             isTrue);
         expect(
@@ -515,6 +524,8 @@ void main() {
             isTrue);
         expect(server.quizzesSent.single, {'quiz_id': 'quiz-servi'});
         expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+        expect(c.read(quizControllerProvider).serverXp, 100,
+            reason: 'XP du serveur affichés sur l\'écran Résultats');
       });
 
       test('quiz local en mode Supabase : jamais soumis (hors classement)',

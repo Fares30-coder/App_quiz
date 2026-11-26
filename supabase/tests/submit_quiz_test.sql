@@ -39,11 +39,16 @@ declare
 begin
   insert into public.quiz_sessions (id, user_id, mode, started_at, expires_at)
   values (serve.id, (select auth.uid()), 'mix', v_start, v_start + interval '30 minutes');
+  -- Temps serveur (served_at → answered_at) égal au temps déclaré.
   insert into public.quiz_session_questions
-    (quiz_id, position, question_id, answer_order, choice, time_ms, answered_at)
-  select serve.id, q.n, q.qid, '{0,1,2,3}', choices[q.n], times[q.n],
-         v_start + make_interval(secs => 1 + (select sum(t) from unnest(times[1:q.n]) t) / 1000.0)
-    from unnest(question_ids) with ordinality as q (qid, n);
+    (quiz_id, position, question_id, answer_order, choice, time_ms, answered_at,
+     served_at, elapsed_ms)
+  select serve.id, q.n, q.qid, '{0,1,2,3}', choices[q.n], times[q.n], a.answered_at,
+         a.answered_at - make_interval(secs => times[q.n] / 1000.0), times[q.n]
+    from unnest(question_ids) with ordinality as q (qid, n),
+         lateral (select v_start + make_interval(
+                    secs => 1 + (select sum(t) from unnest(times[1:q.n]) t) / 1000.0)
+                    as answered_at) a;
   return serve.id;
 end;
 $$;
@@ -297,9 +302,10 @@ insert into public.quiz_sessions (id, user_id, mode, started_at, expires_at)
 values ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-0000000000a1',
         'mix', now() - interval '10 seconds', now() + interval '30 minutes');
 insert into public.quiz_session_questions
-  (quiz_id, position, question_id, answer_order, choice, time_ms, answered_at)
+  (quiz_id, position, question_id, answer_order, choice, time_ms, answered_at,
+   served_at, elapsed_ms)
 select '33333333-3333-3333-3333-333333333333', i, 'zz-' || lpad(i::text, 2, '0'),
-       '{0,1,2,3}', 0, 2000, now()
+       '{0,1,2,3}', 0, 2000, now(), now() - interval '2 seconds', 2000
 from generate_series(1, 10) i;
 -- Quiz servi à A, encore non soumis (essai de B plus bas).
 insert into public.quiz_sessions (id, user_id, mode, started_at, expires_at)

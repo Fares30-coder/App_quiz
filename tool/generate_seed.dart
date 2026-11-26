@@ -1,14 +1,21 @@
-// Génère supabase/seed.sql à partir de assets/questions.json.
+// Génère supabase/seed.sql à partir de supabase/questions/questions.json
+// (questions servies par le serveur, jamais embarquées dans l'app).
 //
 // Usage (depuis la racine du dépôt) : dart run tool/generate_seed.dart
 //
 // Le fichier produit insère ou met à jour les questions (upsert sur `id`) ;
 // `updated_at` ne change que si la question a réellement changé. Aucune
-// question n'est supprimée. Aucun secret : contenu public de l'app.
+// question n'est supprimée : celles absentes du fichier (dont le lot hors
+// ligne de assets/questions.json) sont désactivées (`active = false`), donc
+// plus jamais servies. Le fichier source contient les bonnes réponses : il
+// ne doit jamais être déclaré dans pubspec.yaml ni copié dans assets/.
 import 'dart:convert';
 import 'dart:io';
 
-const questionsPath = 'assets/questions.json';
+const questionsPath = 'supabase/questions/questions.json';
+
+/// Lot hors ligne embarqué dans l'app (jamais servi par le serveur).
+const offlineQuestionsPath = 'assets/questions.json';
 const seedPath = 'supabase/seed.sql';
 
 void main() {
@@ -19,7 +26,8 @@ void main() {
   stdout.writeln('${questions.length} questions écrites dans $seedPath');
 }
 
-/// Contenu de `supabase/seed.sql` pour [questions] (format de assets/questions.json).
+/// Contenu de `supabase/seed.sql` pour [questions] (format de
+/// supabase/questions/questions.json).
 String seedSql(List<Map<String, dynamic>> questions) {
   final rows = [
     for (final q in questions)
@@ -51,12 +59,24 @@ set category = excluded.category,
     answers = excluded.answers,
     correct_index = excluded.correct_index,
     explanation = excluded.explanation,
+    active = true,
     updated_at = now()
 where (questions.category, questions.difficulty, questions.question,
-       questions.answers, questions.correct_index, questions.explanation)
+       questions.answers, questions.correct_index, questions.explanation,
+       questions.active)
   is distinct from
       (excluded.category, excluded.difficulty, excluded.question,
-       excluded.answers, excluded.correct_index, excluded.explanation);
+       excluded.answers, excluded.correct_index, excluded.explanation,
+       true);
+
+-- Questions absentes du fichier (lot hors ligne de l'app, questions
+-- retirées) : désactivées, jamais supprimées (référencées par les sessions).
+update public.questions
+   set active = false, updated_at = now()
+ where active
+   and id <> all (array[${[
+    for (final q in questions) _text(q['id'] as String)
+  ].join(', ')}]);
 ''';
 }
 

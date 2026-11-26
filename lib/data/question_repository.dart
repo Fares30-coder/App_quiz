@@ -18,11 +18,12 @@ const quizLength = 10;
 /// Questions d'un quiz.
 ///
 /// Mode Supabase (client configuré et joueur connecté) : le serveur tire les
-/// questions (`start_quiz`, défi du jour identique pour tous) et corrige
-/// chaque réponse (`answer_question`) ; seuls ces quiz comptent au
+/// questions (`start_quiz`, défi du jour identique pour tous), les envoie
+/// une à une (`next_question`, temps de réponse mesuré par le serveur) et
+/// corrige chaque réponse (`answer_question`) ; seuls ces quiz comptent au
 /// classement. Sinon (mode 100 % local, hors ligne, serveur indisponible ou
-/// pas assez de questions) : questions locales (assets/questions.json),
-/// quiz hors classement.
+/// pas assez de questions) : lot hors ligne (assets/questions.json, jamais
+/// servi par le serveur), quiz hors classement.
 ///
 /// Défi du jour : le serveur reprend la session déjà commencée aujourd'hui
 /// ([QuizStart.answered]) ; s'il est déjà soumis, [startQuiz] lève
@@ -92,6 +93,8 @@ class QuestionRepository {
             quizId: served.id,
             userId: uid,
             answered: served.answered,
+            total: served.total,
+            secondsLeft: served.secondsLeft,
           );
         } catch (e) {
           final played = mode == QuizMode.dailyChallenge
@@ -116,11 +119,21 @@ class QuestionRepository {
     return QuizStart(questions: questions, unranked: unranked);
   }
 
+  /// Question suivante d'un quiz servi. Lève une erreur (réseau, refus) : le
+  /// quiz attend alors un nouvel essai.
+  Future<ServedQuestion> nextQuestion({required String quizId}) {
+    final remote = _remote;
+    if (remote == null) {
+      throw StateError('quiz servi sans serveur configuré');
+    }
+    return remote.next(quizId).timeout(timeout);
+  }
+
   /// Correction d'une réponse à un quiz servi. Lève une erreur (réseau,
   /// refus) : le quiz attend alors un nouvel essai.
   Future<AnswerCorrection> answer({
     required String quizId,
-    required String questionId,
+    required int position,
     required int? choice,
     required int timeMs,
   }) {
@@ -131,7 +144,7 @@ class QuestionRepository {
     return remote
         .answer(
           quizId: quizId,
-          questionId: questionId,
+          position: position,
           choice: choice,
           timeMs: timeMs,
         )
