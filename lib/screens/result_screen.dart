@@ -30,7 +30,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (outcome.leveledUp || outcome.xp.perfect) {
         HapticFeedback.heavyImpact();
-        // TODO(sons): « fanfare » courte (≈ 1 s) si les sons sont activés.
+        // La « fanfare » est jouée par QuizController à la fin du quiz.
       } else if (outcome.goalReachedNow) {
         HapticFeedback.mediumImpact();
       }

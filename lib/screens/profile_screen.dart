@@ -93,7 +93,17 @@ class ProfileScreen extends ConsumerWidget {
                   title: Text('Gérer mes choix pub'),
                   subtitle: Text('Disponible avec l\'arrivée des pubs'),
                 ),
-                // TODO(sons): réglage « Sons » (activés par défaut).
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const Icon(Icons.volume_up_outlined),
+                  title: const Text('Sons'),
+                  subtitle:
+                      const Text('Muets quand le téléphone est en silencieux'),
+                  value: p.soundEnabled,
+                  onChanged: ref
+                      .read(progressControllerProvider.notifier)
+                      .setSoundEnabled,
+                ),
               ],
             ),
           ),

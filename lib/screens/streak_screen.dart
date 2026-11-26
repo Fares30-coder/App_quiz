@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../models/player_progress.dart';
+import '../sound/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
 import '../widgets/engagement_widgets.dart';
@@ -51,7 +52,7 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
         if (!mounted) return;
         setState(() => _shown = count);
         HapticFeedback.mediumImpact();
-        // TODO(sons): son « flamme » (≈ 500 ms) si les sons sont activés.
+        ref.read(soundEffectsProvider).play(Sfx.streak);
       });
     }
   }

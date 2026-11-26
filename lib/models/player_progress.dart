@@ -21,6 +21,7 @@ class PlayerProgress {
     this.challengeScore = 0,
     this.challengeTotal = 0,
     this.dangerShownDay,
+    this.soundEnabled = true,
   });
 
   /// Consentement + objectif du jour passés.
@@ -46,6 +47,9 @@ class PlayerProgress {
   /// Dernier jour où l'écran « Série en danger » a été montré.
   final DateTime? dangerShownDay;
 
+  /// Réglage « Sons » du profil (activés par défaut, muets en mode silencieux).
+  final bool soundEnabled;
+
   int quizzesOn(DateTime today) =>
       isSameDay(quizzesDay, today) ? quizzesCount : 0;
 
@@ -65,6 +69,7 @@ class PlayerProgress {
     int? challengeScore,
     int? challengeTotal,
     DateTime? dangerShownDay,
+    bool? soundEnabled,
   }) =>
       PlayerProgress(
         onboardingDone: onboardingDone ?? this.onboardingDone,
@@ -79,6 +84,7 @@ class PlayerProgress {
         challengeScore: challengeScore ?? this.challengeScore,
         challengeTotal: challengeTotal ?? this.challengeTotal,
         dangerShownDay: dangerShownDay ?? this.dangerShownDay,
+        soundEnabled: soundEnabled ?? this.soundEnabled,
       );
 
   factory PlayerProgress.fromJson(Map<String, dynamic> json) {
@@ -100,6 +106,7 @@ class PlayerProgress {
       challengeScore: json['challengeScore'] as int? ?? 0,
       challengeTotal: json['challengeTotal'] as int? ?? 0,
       dangerShownDay: day('dangerShownDay'),
+      soundEnabled: json['soundEnabled'] as bool? ?? true,
     );
   }
 
@@ -117,6 +124,7 @@ class PlayerProgress {
       'challengeScore': challengeScore,
       'challengeTotal': challengeTotal,
       'dangerShownDay': key(dangerShownDay),
+      'soundEnabled': soundEnabled,
     };
   }
 }

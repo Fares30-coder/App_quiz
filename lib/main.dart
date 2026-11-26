@@ -6,14 +6,20 @@ import 'data/progress_repository.dart';
 import 'engagement/progress_controller.dart';
 import 'screens/consent_screen.dart';
 import 'screens/shell_screen.dart';
+import 'sound/sound_service.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
+  // Préchargement en arrière-plan : ne retarde pas le démarrage.
+  final sounds = AudioplayersSoundService()..preload();
   runApp(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        soundServiceProvider.overrideWithValue(sounds),
+      ],
       child: const QuizzeoApp(),
     ),
   );
