@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -10,26 +9,14 @@ import 'package:quizzeo/data/question_repository.dart';
 import 'package:quizzeo/models/question.dart';
 import 'package:quizzeo/main.dart';
 import 'package:quizzeo/reminder/notification_service.dart';
+import 'package:quizzeo/share/share_content.dart';
+import 'package:quizzeo/share/share_service.dart';
 import 'package:quizzeo/sound/sound_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_notifications.dart';
 import 'fakes.dart';
-
-/// Charge les vraies polices (sinon la police de test, plus large, fausse les mesures).
-Future<void> loadFonts() async {
-  const fonts = {
-    'BricolageGrotesque': ['700', '800'],
-    'AtkinsonHyperlegible': ['400', '700'],
-  };
-  for (final entry in fonts.entries) {
-    final loader = FontLoader(entry.key);
-    for (final w in entry.value) {
-      loader.addFont(rootBundle.load('assets/fonts/${entry.key}-$w.ttf'));
-    }
-    await loader.load();
-  }
-}
+import 'fonts.dart';
 
 final questions = [
   for (final e
@@ -43,6 +30,7 @@ Future<void> pumpApp(
   double height = 1100,
   SoundService sounds = const SilentSoundService(),
   FakeNotificationService? notifications,
+  FakeShareService? share,
 }) async {
   // Format téléphone des maquettes (390×844), assez haut pour tout l'écran objectif.
   tester.view.physicalSize = Size(390, height);
@@ -58,6 +46,7 @@ Future<void> pumpApp(
       soundServiceProvider.overrideWithValue(sounds),
       notificationServiceProvider
           .overrideWithValue(notifications ?? FakeNotificationService()),
+      shareServiceProvider.overrideWithValue(share ?? FakeShareService()),
     ],
     child: const QuizzeoApp(),
   ));
@@ -136,6 +125,50 @@ void main() {
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('progress_v1'), contains('"soundEnabled":false'));
+  });
+
+  testWidgets('partage du score puis de la série', (tester) async {
+    final share = FakeShareService();
+    await pumpApp(tester, {'progress_v1': '{"onboardingDone":true}'},
+        height: 844, share: share);
+    await playChallenge(tester);
+    await tester.pump(const Duration(seconds: 2));
+    await tester.tap(find.text('Partager mon score'));
+    await tester.pump();
+    expect(share.shared, hasLength(1));
+    final score = share.shared.single;
+    expect(score.kind, ShareKind.score);
+    expect(score.overline, startsWith('DÉFI DU JOUR · '));
+    expect(score.answers, hasLength(10));
+    expect(score.streakLabel, '1 jour de série');
+    // Ancre de la feuille de partage (popover iPad) : la zone du bouton.
+    expect(share.origins.single, isNotNull);
+    expect(share.origins.single!.isEmpty, isFalse);
+
+    await tester.scrollUntilVisible(find.text('Continuer').hitTestable(), 200);
+    await tester.tap(find.text('Continuer'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Partager ma série'));
+    await tester.pump();
+    expect(share.shared.last.kind, ShareKind.streak);
+    expect(share.shared.last.streakDays, 1);
+  });
+
+  testWidgets('partage en échec : message, puis bouton de nouveau actif',
+      (tester) async {
+    final share = FakeShareService()..error = Exception('échec');
+    await pumpApp(tester, {'progress_v1': '{"onboardingDone":true}'},
+        height: 844, share: share);
+    await playChallenge(tester);
+    await tester.pump(const Duration(seconds: 2));
+    await tester.tap(find.text('Partager mon score'));
+    await tester.pump();
+    expect(
+        find.text('Le partage n\'a pas fonctionné. Réessaie.'), findsOneWidget);
+    await tester.tap(find.text('Partager mon score'));
+    await tester.pump();
+    expect(share.shared, hasLength(2));
   });
 
   journeyTests(1);

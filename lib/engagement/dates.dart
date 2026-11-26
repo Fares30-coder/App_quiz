@@ -55,6 +55,9 @@ const _months = [
 String formatShortDate(DateTime day) =>
     '${_weekdaysShort[day.weekday - 1]} ${day.day} ${_months[day.month - 1]}';
 
+/// « 25 nov. »
+String formatDayMonth(DateTime day) => '${day.day} ${_months[day.month - 1]}';
+
 /// « L », « M »… pour la rangée des jours.
 String weekdayLetter(DateTime day) => _weekdayLetters[day.weekday - 1];
 
