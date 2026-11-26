@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/quiz_session.dart';
@@ -44,3 +46,22 @@ class SupabaseQuizSource {
 /// Le serveur n'a pas assez de questions pour ce mode (`P0002`).
 bool isNotEnoughQuestions(Object error) =>
     error is PostgrestException && error.code == 'P0002';
+
+/// Défi du jour déjà soumis (`23505`, détail `{"score": n, "total": n}`).
+/// Renvoie null pour toute autre erreur.
+DailyChallengeAlreadyPlayed? challengeAlreadyPlayed(Object error) {
+  if (error is! PostgrestException || error.code != '23505') return null;
+  int? score;
+  int? total;
+  try {
+    final details = error.details;
+    final json = details is String ? jsonDecode(details) : details;
+    if (json is Map) {
+      score = (json['score'] as num?)?.toInt();
+      total = (json['total'] as num?)?.toInt();
+    }
+  } on FormatException {
+    // Détail illisible : défi déjà joué, score inconnu.
+  }
+  return DailyChallengeAlreadyPlayed(score: score, total: total);
+}

@@ -8,7 +8,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(67);
+select plan(92);
 
 -- Données de test (propriétaire) -------------------------------------------
 
@@ -35,13 +35,17 @@ $$;
 grant usage on schema tests to authenticated;
 grant execute on function tests.good(jsonb, integer) to authenticated;
 
--- P1, P2 : joueurs ; P3 : limite de débit ; P4 : profil absent.
+-- P1, P2 : joueurs ; P3 : limite de débit ; P4 : profil absent ;
+-- P5 : soumission tardive ; P6, P7 : quiz abandonnés.
 insert into auth.users (id, aud, role)
 values
   ('00000000-0000-0000-0000-0000000001a1', 'authenticated', 'authenticated'),
   ('00000000-0000-0000-0000-0000000001b1', 'authenticated', 'authenticated'),
   ('00000000-0000-0000-0000-0000000001c1', 'authenticated', 'authenticated'),
-  ('00000000-0000-0000-0000-0000000001d1', 'authenticated', 'authenticated');
+  ('00000000-0000-0000-0000-0000000001d1', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000001e1', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000001f1', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-0000000002a1', 'authenticated', 'authenticated');
 delete from public.profiles where id = '00000000-0000-0000-0000-0000000001d1';
 
 -- P3 a déjà commencé 30 quiz dans l'heure.
@@ -49,6 +53,16 @@ insert into public.quiz_sessions (user_id, mode, started_at, expires_at)
 select '00000000-0000-0000-0000-0000000001c1', 'mix',
        now() - interval '30 minutes', now()
 from generate_series(1, 30);
+
+-- P6 : 10 quiz commencés aujourd'hui, jamais soumis. P7 : 9 abandonnés et
+-- 1 soumis.
+insert into public.quiz_sessions (user_id, mode, started_at, expires_at, submitted_at)
+select '00000000-0000-0000-0000-0000000001f1'::uuid, 'mix', now(), now(), null::timestamptz
+from generate_series(1, 10)
+union all
+select '00000000-0000-0000-0000-0000000002a1', 'mix', now(), now(),
+       case when i = 1 then now() end
+from generate_series(1, 10) i;
 
 -- Droits ---------------------------------------------------------------------
 
@@ -97,8 +111,41 @@ select is(
 
 select ok(
   not has_function_privilege('authenticated', 'public.ensure_daily_challenge(date)', 'execute')
-  and not has_function_privilege('anon', 'public.ensure_daily_challenge(date)', 'execute'),
-  'ensure_daily_challenge : fonction interne'
+  and not has_function_privilege('anon', 'public.ensure_daily_challenge(date)', 'execute')
+  and not has_function_privilege('public', 'public.ensure_daily_challenge(date)', 'execute'),
+  'ensure_daily_challenge : fonction interne (ni public, ni anon, ni authenticated)'
+);
+
+select ok(
+  not has_function_privilege('authenticated', 'public.purge_quiz_sessions()', 'execute')
+  and not has_function_privilege('anon', 'public.purge_quiz_sessions()', 'execute')
+  and not has_function_privilege('public', 'public.purge_quiz_sessions()', 'execute'),
+  'purge_quiz_sessions : fonction interne'
+);
+
+select ok(
+  not has_function_privilege('anon', 'public.submit_quiz(uuid)', 'execute')
+  and not has_function_privilege('public', 'public.submit_quiz(uuid)', 'execute'),
+  'anon et public ne peuvent pas appeler submit_quiz(uuid)'
+);
+
+-- Liste blanche des fonctions du schéma public appelables sans compte :
+-- vide pour l'instant (tout passe par une session, anonyme comprise).
+select is(
+  (select array_agg(p.oid::regprocedure::text order by p.oid::regprocedure::text)
+   from pg_proc p
+   where p.pronamespace = 'public'::regnamespace
+     and (has_function_privilege('anon', p.oid, 'execute')
+          or has_function_privilege('public', p.oid, 'execute'))
+     and p.oid::regprocedure::text <> all (array[]::text[])),
+  null,
+  'aucune fonction du schéma public exécutable par anon ou public hors liste blanche'
+);
+
+select is(
+  (select schedule from cron.job where jobname = 'purge-quiz-sessions'),
+  '30 3 * * *',
+  'purge quotidienne programmée (pg_cron)'
 );
 
 select is(
@@ -168,9 +215,22 @@ select is(
 
 select is(
   current_setting('t.p1')::jsonb - 'quiz_id' - 'questions' - 'expires_at',
-  jsonb_build_object('mode', 'daily', 'category', null,
+  jsonb_build_object('mode', 'daily', 'category', null, 'resumed', false,
                      'day', (now() at time zone 'Europe/Paris')::date),
   'défi du jour : mode et jour Europe/Paris'
+);
+
+select ok(
+  (current_setting('t.p1')::jsonb ->> 'expires_at')::timestamptz
+    >= (((now() at time zone 'Europe/Paris')::date + 1)::timestamp
+        at time zone 'Europe/Paris'),
+  'défi du jour : reprenable jusqu''à minuit (Europe/Paris)'
+);
+
+select ok(
+  (select bool_and((q -> 'answer') = 'null'::jsonb)
+   from jsonb_array_elements(current_setting('t.p1')::jsonb -> 'questions') q),
+  'nouveau quiz : aucune réponse enregistrée'
 );
 
 select ok(
@@ -370,7 +430,7 @@ select is(
     current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id',
     (tests.good(current_setting('t.p1')::jsonb, 0) + 1) % 4, 900),
   current_setting('t.a1')::jsonb,
-  'réessai : correction enregistrée renvoyée, réponse inchangée'
+  'réessai avec un autre choix : réponse d''origine renvoyée, inchangée'
 );
 
 select is(
@@ -381,6 +441,70 @@ select is(
   '{"position": 2, "choice": null, "correct": false}'::jsonb,
   'temps écoulé (choix null) : réponse fausse'
 );
+
+-- Reprise du défi du jour : même session, réponses déjà enregistrées.
+do $$ begin
+  perform set_config('t.r1', public.start_quiz('daily')::text, true);
+end $$;
+
+select is(
+  current_setting('t.r1')::jsonb ->> 'quiz_id',
+  current_setting('t.p1')::jsonb ->> 'quiz_id',
+  'défi démarré deux fois : même session reprise'
+);
+
+select ok(
+  (current_setting('t.r1')::jsonb ->> 'resumed')::boolean,
+  'reprise signalée (resumed)'
+);
+
+select is(
+  (select jsonb_agg(q - 'answer') from jsonb_array_elements(current_setting('t.r1')::jsonb -> 'questions') q),
+  (select jsonb_agg(q - 'answer') from jsonb_array_elements(current_setting('t.p1')::jsonb -> 'questions') q),
+  'reprise : mêmes questions, même ordre des réponses'
+);
+
+select is(
+  (current_setting('t.r1')::jsonb -> 'questions' -> 0 -> 'answer') - 'explanation',
+  jsonb_build_object('choice', tests.good(current_setting('t.p1')::jsonb, 0),
+                     'correct', true,
+                     'correct_choice', tests.good(current_setting('t.p1')::jsonb, 0),
+                     'time_ms', 500),
+  'reprise : 1re réponse avec sa correction'
+);
+
+select is(
+  (current_setting('t.r1')::jsonb -> 'questions' -> 1 -> 'answer')
+    - 'explanation' - 'correct_choice',
+  '{"choice": null, "correct": false, "time_ms": 1000}'::jsonb,
+  'reprise : 2e réponse (temps écoulé)'
+);
+
+select ok(
+  (current_setting('t.r1')::jsonb -> 'questions' -> 1 -> 'answer' ->> 'explanation')
+    like 'Explication%'
+  and (current_setting('t.r1')::jsonb -> 'questions' -> 2 -> 'answer') = 'null'::jsonb,
+  'reprise : explication des questions répondues seulement'
+);
+
+reset role;
+
+select is(
+  (select count(*)::int from public.quiz_sessions
+   where user_id = '00000000-0000-0000-0000-0000000001a1' and mode = 'daily'),
+  1,
+  'reprise : aucune nouvelle session'
+);
+
+select throws_ok(
+  $$insert into public.quiz_sessions (user_id, mode, challenge_day, expires_at)
+    values ('00000000-0000-0000-0000-0000000001a1', 'daily',
+            (now() at time zone 'Europe/Paris')::date, now())$$,
+  '23505', null,
+  'index unique : un seul défi par joueur et par jour'
+);
+
+set local role authenticated;
 
 -- Un autre joueur ne peut ni répondre ni soumettre ce quiz.
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000001b1","role":"authenticated"}';
@@ -444,9 +568,37 @@ select is(
 );
 
 select is(
-  (select row(xp, streak, quiz_count)::text from public.profiles),
+  (select row(xp, streak, quiz_count)::text from public.profiles
+   where id = '00000000-0000-0000-0000-0000000001a1'),
   '(185,1,1)',
   'profil mis à jour une seule fois'
+);
+
+select throws_ok(
+  format($$select public.answer_question(%L, %L, 0, 500)$$,
+         current_setting('t.p1')::jsonb ->> 'quiz_id',
+         current_setting('t.p1')::jsonb -> 'questions' -> 9 ->> 'id'),
+  '22023', null,
+  'réponse (même un réessai) après soumission refusée'
+);
+
+select throws_ok($$select public.start_quiz('daily')$$, '23505', null,
+  'défi du jour déjà soumis : refusé (23505)');
+
+do $$
+declare
+  v_detail text;
+begin
+  perform public.start_quiz('daily');
+exception when unique_violation then
+  get stacked diagnostics v_detail = pg_exception_detail;
+  perform set_config('t.dup', v_detail, true);
+end $$;
+
+select is(
+  current_setting('t.dup')::jsonb,
+  '{"score": 9, "total": 10}'::jsonb,
+  'défi déjà joué : score renvoyé dans le détail de l''erreur'
 );
 
 select throws_ok(
@@ -474,6 +626,49 @@ select throws_ok(
   '22023', null,
   'quiz expiré : réponse refusée'
 );
+
+-- Soumission plus de 6 h après la dernière réponse ---------------------------------
+
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000001e1","role":"authenticated"}';
+
+do $$ begin
+  perform set_config('t.p5', public.start_quiz('mix')::text, true);
+  for i in 0 .. 9 loop
+    perform public.answer_question(
+      (current_setting('t.p5')::jsonb ->> 'quiz_id')::uuid,
+      current_setting('t.p5')::jsonb -> 'questions' -> i ->> 'id', 0, 500);
+  end loop;
+end $$;
+
+reset role;
+update public.quiz_sessions
+   set started_at = now() - interval '8 hours'
+ where id = (current_setting('t.p5')::jsonb ->> 'quiz_id')::uuid;
+update public.quiz_session_questions
+   set answered_at = now() - interval '7 hours'
+ where quiz_id = (current_setting('t.p5')::jsonb ->> 'quiz_id')::uuid;
+set local role authenticated;
+
+select throws_ok(
+  format($$select public.submit_quiz(%L)$$, current_setting('t.p5')::jsonb ->> 'quiz_id'),
+  '22023', null,
+  'soumission plus de 6 h après la dernière réponse refusée'
+);
+
+-- Quiz abandonnés ---------------------------------------------------------------
+
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000001f1","role":"authenticated"}';
+
+select throws_ok($$select public.start_quiz('mix')$$, 'PT429', null,
+  '10 quiz abandonnés aujourd''hui : 11e refusé (PT429)');
+
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000002a1","role":"authenticated"}';
+
+select lives_ok($$select public.start_quiz('mix')$$,
+  '9 abandonnés et 1 soumis : quiz accepté');
+
+select throws_ok($$select public.start_quiz('mix')$$, 'PT429', null,
+  'puis 10 non soumis : refusé (PT429)');
 
 -- Limite de débit, profil absent, sans uid, anon ----------------------------------
 
@@ -510,6 +705,8 @@ select throws_ok(
 );
 select throws_ok($$select * from public.daily_challenges$$, '42501', null,
   'anon ne lit pas daily_challenges');
+select throws_ok($$select public.submit_quiz(gen_random_uuid())$$, '42501', null,
+  'anon ne peut pas appeler submit_quiz');
 
 reset role;
 set local role authenticated;
@@ -521,6 +718,35 @@ select throws_ok($$select answer_order from public.quiz_session_questions$$, '42
   'authenticated ne lit pas l''ordre des réponses servies');
 
 reset role;
+
+-- Défi dont une question a disparu : remplacée, les autres gardées -------------
+
+insert into public.daily_challenges (day, question_ids)
+values ((now() at time zone 'Europe/Paris')::date + 5,
+        '{zz-01,zz-gone,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09}');
+
+select ok(
+  (select cardinality(ids) = 10
+          and ids[1:9] = '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09}'
+          and (select count(*) from public.questions q where q.id = any (ids)) = 10
+   from public.ensure_daily_challenge((now() at time zone 'Europe/Paris')::date + 5) ids),
+  'question disparue remplacée, ordre des autres conservé'
+);
+
+-- Purge globale -------------------------------------------------------------------
+
+insert into public.quiz_sessions (user_id, mode, started_at, expires_at)
+values ('00000000-0000-0000-0000-0000000001b1', 'mix',
+        now() - interval '3 days', now() - interval '3 days');
+
+select is(public.purge_quiz_sessions(), 1, 'purge : 1 session de plus de 2 jours');
+
+select is(
+  (select count(*)::int from public.quiz_sessions
+   where started_at < now() - interval '2 days'),
+  0,
+  'purge : plus aucune session de plus de 2 jours, les récentes gardées'
+);
 
 select * from finish();
 rollback;

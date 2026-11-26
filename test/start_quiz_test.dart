@@ -11,6 +11,7 @@ import 'package:quizzeo/data/progress_repository.dart';
 import 'package:quizzeo/data/question_repository.dart';
 import 'package:quizzeo/engagement/daily_challenge.dart';
 import 'package:quizzeo/engagement/dates.dart';
+import 'package:quizzeo/engagement/progress_controller.dart';
 import 'package:quizzeo/models/question.dart';
 import 'package:quizzeo/models/quiz_session.dart';
 import 'package:quizzeo/quiz/quiz_controller.dart';
@@ -34,8 +35,11 @@ final _local = [
       ),
 ];
 
-Map<String, dynamic> _servedJson(String quizId) => {
+/// [answered] : nombre de questions déjà répondues (reprise du défi) ; la
+/// 2e a dépassé le temps, les autres sont justes.
+Map<String, dynamic> _servedJson(String quizId, {int answered = 0}) => {
       'quiz_id': quizId,
+      'resumed': answered > 0,
       'mode': 'daily',
       'category': null,
       'day': '2026-11-26',
@@ -48,6 +52,15 @@ Map<String, dynamic> _servedJson(String quizId) => {
             'difficulty': 2,
             'question': 'Serveur $i ?',
             'answers': ['d', 'bonne', 'b', 'c'],
+            'answer': i > answered
+                ? null
+                : {
+                    'choice': i == 2 ? null : 1,
+                    'correct': i != 2,
+                    'correct_choice': 1,
+                    'explanation': 'Explication srv-$i',
+                    'time_ms': i == 2 ? 30000 : 4000,
+                  },
           },
       ],
     };
@@ -59,6 +72,12 @@ class _FakeServer {
 
   /// Erreur de `start_quiz` (code SQLSTATE), null = succès.
   String? startError;
+
+  /// Détail de l'erreur de `start_quiz`.
+  String? startErrorDetails;
+
+  /// Réponses déjà enregistrées renvoyées par `start_quiz` (reprise).
+  int resumedAnswers = 0;
   bool offline = false;
 
   /// Réponse de `answer_question` retenue jusqu'à ce que le test la libère.
@@ -72,9 +91,16 @@ class _FakeServer {
       case '/rest/v1/rpc/start_quiz':
         final error = startError;
         if (error != null) {
-          return _json({'code': error, 'message': 'refusé'}, 400, request);
+          return _json({
+            'code': error,
+            'message': 'refusé',
+            'details': startErrorDetails,
+          }, 400, request);
         }
-        return _json(_servedJson('quiz-${requests.length}'), 200, request);
+        return _json(
+            _servedJson('quiz-${requests.length}', answered: resumedAnswers),
+            200,
+            request);
       case '/rest/v1/rpc/answer_question':
         await holdAnswer?.future;
         if (offline) throw const SocketException('hors ligne');
@@ -110,6 +136,7 @@ void main() {
     bool withServer = true,
     String? userId = 'joueur-1',
     Duration timeout = const Duration(seconds: 6),
+    DateTime Function()? now,
   }) {
     if (!withServer) return QuestionRepository(questions: _local);
     final client = SupabaseClient(
@@ -124,6 +151,7 @@ void main() {
       remote: SupabaseQuizSource(client),
       userId: () => userId,
       timeout: timeout,
+      now: now,
     );
   }
 
@@ -218,6 +246,75 @@ void main() {
       expect(start.isServed, isFalse);
     });
 
+    test('défi repris : réponses enregistrées, questions déjà corrigées',
+        () async {
+      server.resumedAnswers = 3;
+      final start = await repository()
+          .startQuiz(mode: QuizMode.dailyChallenge, today: _today);
+
+      expect(start.isServed, isTrue);
+      expect(start.answered, hasLength(3));
+      expect([for (final a in start.answered) a.choice], [1, null, 1]);
+      expect([for (final a in start.answered) a.correct], [true, false, true]);
+      expect(start.answered[1].timeMs, 30000);
+      expect([for (final q in start.questions) q.isRevealed],
+          [true, true, true, ...List.filled(7, false)]);
+      expect(start.questions[0].explanation, 'Explication srv-1');
+      expect(start.questions[3].explanation, isEmpty);
+    });
+
+    test('défi déjà joué (23505) : erreur dédiée, aucun repli local', () async {
+      server.startError = '23505';
+      server.startErrorDetails = '{"score": 7, "total": 10}';
+      await expectLater(
+        repository().startQuiz(mode: QuizMode.dailyChallenge, today: _today),
+        throwsA(isA<DailyChallengeAlreadyPlayed>()
+            .having((e) => e.score, 'score', 7)
+            .having((e) => e.total, 'total', 10)),
+      );
+    });
+
+    test('défi déjà joué, détail illisible : score inconnu', () async {
+      server.startError = '23505';
+      server.startErrorDetails = 'illisible';
+      await expectLater(
+        repository().startQuiz(mode: QuizMode.dailyChallenge, today: _today),
+        throwsA(isA<DailyChallengeAlreadyPlayed>()
+            .having((e) => e.score, 'score', isNull)),
+      );
+    });
+
+    test('échec du serveur : pas de nouvel appel pendant 1 min', () async {
+      var now = DateTime(2026, 11, 26, 10);
+      final repo = repository(now: () => now);
+      server.offline = true;
+
+      await repo.startQuiz(mode: QuizMode.mix, today: _today);
+      expect(server.requests, hasLength(1));
+
+      server.offline = false;
+      now = now.add(const Duration(seconds: 59));
+      final local = await repo.startQuiz(mode: QuizMode.mix, today: _today);
+      expect(server.requests, hasLength(1), reason: 'attente en cours');
+      expect(local.unranked, UnrankedReason.offline);
+
+      now = now.add(const Duration(seconds: 2));
+      final served = await repo.startQuiz(mode: QuizMode.mix, today: _today);
+      expect(server.requests, hasLength(2));
+      expect(served.isServed, isTrue);
+    });
+
+    test('P0002 (catégorie trop petite) : pas d\'attente pour les autres modes',
+        () async {
+      final repo = repository();
+      server.startError = 'P0002';
+      await repo.startQuiz(
+          mode: QuizMode.category, category: 'histoire', today: _today);
+      server.startError = null;
+      final served = await repo.startQuiz(mode: QuizMode.mix, today: _today);
+      expect(served.isServed, isTrue);
+    });
+
     test('mode 100 % local : aucun appel, pas de message', () async {
       final start = await repository(withServer: false)
           .startQuiz(mode: QuizMode.dailyChallenge, today: _today);
@@ -247,9 +344,55 @@ void main() {
       quiz.start(start.questions,
           mode: QuizMode.dailyChallenge,
           quizId: start.quizId,
-          userId: start.userId);
+          userId: start.userId,
+          answered: start.answered);
       return quiz;
     }
+
+    test('défi repris : continue à la 1re question sans réponse', () async {
+      server.resumedAnswers = 3;
+      final c = await container();
+      final quiz = await started(c);
+
+      var state = c.read(quizControllerProvider);
+      expect(state.index, 3);
+      expect(state.answers, hasLength(3));
+      expect(state.score, 2, reason: 'corrections du serveur');
+      expect(state.answers[1].elapsed, const Duration(seconds: 30));
+      expect(state.locked, isFalse);
+      expect(state.secondsLeft, questionSeconds);
+
+      expect(await quiz.answer(1), isTrue);
+      expect(server.sent('answer_question').single['question_id'], 'srv-4');
+      state = c.read(quizControllerProvider);
+      expect(state.score, 3);
+      expect(state.combo, 2, reason: 'combo repris après la 3e réponse');
+      quiz.quit();
+    });
+
+    test('défi repris, tout répondu : dernière question corrigée, puis fin',
+        () async {
+      server.resumedAnswers = 10;
+      final c = await container();
+      final quiz = await started(c);
+
+      final state = c.read(quizControllerProvider);
+      expect(state.index, 9);
+      expect(state.answered, isTrue);
+      expect(state.locked, isTrue);
+      expect(state.selected, 1);
+      expect(state.score, 9);
+      expect(quiz.next(), isFalse);
+      final done = c.read(quizControllerProvider);
+      expect(done.isFinished, isTrue);
+      expect(done.outcome!.xp.correctCount, 9);
+      expect(server.sent('answer_question'), isEmpty);
+      expect(
+          c
+              .read(progressControllerProvider)
+              .challengePlayedOn(dayOf(c.read(clockProvider)())),
+          isTrue);
+    });
 
     test('correction du serveur : bonne réponse et explication révélées',
         () async {
@@ -328,6 +471,41 @@ void main() {
       final state = c.read(quizControllerProvider);
       expect(state.questions, isEmpty);
       expect(state.answers, isEmpty);
+    });
+  });
+
+  group('ProgressController.markChallengePlayed', () {
+    Future<ProviderContainer> container() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final c = ProviderContainer(overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        clockProvider.overrideWithValue(() => DateTime(2026, 11, 26, 9)),
+      ]);
+      addTearDown(c.dispose);
+      return c;
+    }
+
+    test('défi joué ailleurs : accueil cohérent, sans XP ni série', () async {
+      final c = await container();
+      final before = c.read(progressControllerProvider);
+      c
+          .read(progressControllerProvider.notifier)
+          .markChallengePlayed(score: 7, total: 10);
+      final p = c.read(progressControllerProvider);
+      expect(p.challengePlayedOn(_today), isTrue);
+      expect(p.challengeScore, 7);
+      expect(p.challengeTotal, 10);
+      expect(p.totalXp, before.totalXp);
+      expect(p.quizzesOn(_today), before.quizzesOn(_today));
+    });
+
+    test('score déjà connu en local : conservé', () async {
+      final c = await container();
+      final progress = c.read(progressControllerProvider.notifier);
+      progress.markChallengePlayed(score: 8, total: 10);
+      progress.markChallengePlayed();
+      expect(c.read(progressControllerProvider).challengeScore, 8);
     });
   });
 }

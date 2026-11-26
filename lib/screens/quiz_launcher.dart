@@ -32,11 +32,27 @@ Future<void> launchQuiz(
         : category == mixCategory
             ? QuizMode.mix
             : QuizMode.category;
-    final start = await ref.read(questionRepositoryProvider).startQuiz(
-          mode: mode,
-          category: mode == QuizMode.category ? category : null,
-          today: dayOf(ref.read(clockProvider)()),
-        );
+    final QuizStart start;
+    try {
+      start = await ref.read(questionRepositoryProvider).startQuiz(
+            mode: mode,
+            category: mode == QuizMode.category ? category : null,
+            today: dayOf(ref.read(clockProvider)()),
+          );
+    } on DailyChallengeAlreadyPlayed catch (played) {
+      // Joué ailleurs (autre appareil, données locales effacées) : l'accueil
+      // passe en « défi joué », sans rejouer le défi en local.
+      ref
+          .read(progressControllerProvider.notifier)
+          .markChallengePlayed(score: played.score, total: played.total);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:
+              Text('Tu as déjà joué le défi du jour. Rendez-vous demain !'),
+        ));
+      }
+      return;
+    }
     if (!context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     if (start.questions.isEmpty) {
@@ -45,6 +61,11 @@ Future<void> launchQuiz(
             content: Text('Pas encore de questions dans cette catégorie.')),
       );
       return;
+    }
+    if (start.answered.isNotEmpty) {
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Défi du jour repris là où tu l\'avais laissé.'),
+      ));
     }
     final notice = switch (start.unranked) {
       UnrankedReason.offline =>
@@ -62,6 +83,7 @@ Future<void> launchQuiz(
           category: mode == QuizMode.category ? category : null,
           quizId: start.quizId,
           userId: start.userId,
+          answered: start.answered,
         );
     final route = MaterialPageRoute<void>(builder: (_) => const QuizScreen());
     if (replace) {

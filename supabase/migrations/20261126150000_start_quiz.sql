@@ -17,6 +17,10 @@
 --    (plus aucune réponse envoyée à la fin), mêmes contrôles qu'avant
 --    (idempotence, plafonds, limite par heure, série, jour Europe/Paris).
 --
+-- Défi du jour : une seule session par joueur et par jour, reprise par
+-- start_quiz('daily') tant qu'elle n'est pas soumise (23505 ensuite).
+-- Sessions purgées après 2 jours (pg_cron, purge_quiz_sessions()).
+--
 -- Tables internes (RLS sans policy, aucun GRANT client) : `daily_challenges`,
 -- `quiz_sessions`, `quiz_session_questions`. `questions` reste sans GRANT
 -- client (bonne réponse et explication illisibles via l'API).
@@ -43,6 +47,9 @@ revoke all on table public.daily_challenges from public, anon, authenticated;
 -- compris en cas d'appels simultanés grâce à `on conflict do nothing`).
 -- Tirage aléatoire en évitant si possible les questions des 7 jours
 -- précédents. Renvoie null s'il y a moins de 10 questions en base.
+-- Question du défi supprimée entre-temps (seulement possible si aucune
+-- session ne la référence encore) : remplacée par une autre, tirée au
+-- hasard, en fin de liste ; les sessions déjà commencées gardent la leur.
 -- Fonction interne (appelée par start_quiz, ou par pg_cron si besoin).
 create function public.ensure_daily_challenge(p_day date)
 returns text[]
@@ -52,10 +59,33 @@ set search_path = ''
 as $$
 declare
   v_ids text[];
+  v_keep text[];
 begin
   select d.question_ids into v_ids
     from public.daily_challenges d where d.day = p_day;
   if found then
+    if (select count(*) from public.questions q where q.id = any (v_ids)) = 10 then
+      return v_ids;
+    end if;
+    -- Réparation (rare) : verrou sur la ligne puis relecture.
+    select d.question_ids into v_ids
+      from public.daily_challenges d where d.day = p_day for update;
+    v_keep := array(
+      select t.id from unnest(v_ids) with ordinality as t (id, n)
+       where exists (select 1 from public.questions q where q.id = t.id)
+       order by t.n);
+    if cardinality(v_keep) = 10 then
+      return v_ids;
+    end if;
+    v_ids := v_keep || array(
+      select q.id from public.questions q
+       where q.id <> all (v_keep)
+       order by random()
+       limit 10 - cardinality(v_keep));
+    if cardinality(v_ids) <> 10 then
+      return null;
+    end if;
+    update public.daily_challenges d set question_ids = v_ids where d.day = p_day;
     return v_ids;
   end if;
 
@@ -109,6 +139,15 @@ comment on table public.quiz_sessions is
 create index quiz_sessions_user_started_idx
   on public.quiz_sessions (user_id, started_at);
 
+-- Purge quotidienne (purge_quiz_sessions).
+create index quiz_sessions_started_idx
+  on public.quiz_sessions (started_at);
+
+-- Défi du jour : une seule session par joueur et par jour (reprise).
+create unique index quiz_sessions_daily_once_idx
+  on public.quiz_sessions (user_id, challenge_day)
+  where mode = 'daily';
+
 alter table public.quiz_sessions enable row level security;
 revoke all on table public.quiz_sessions from public, anon, authenticated;
 
@@ -132,6 +171,10 @@ create table public.quiz_session_questions (
   check (answered_at is not null or choice is null)
 );
 
+-- Clé étrangère vers questions : contrôles à la suppression d'une question.
+create index quiz_session_questions_question_idx
+  on public.quiz_session_questions (question_id);
+
 comment on table public.quiz_session_questions is
   'Questions servies par quiz (ordre des réponses propre au joueur) et réponses horodatées par le serveur. Aucun accès client.';
 
@@ -145,25 +188,38 @@ revoke all on table public.quiz_session_questions from public, anon, authenticat
 --              'mix' (toutes catégories, catégorie absente) ;
 -- - category : identifiant de catégorie (mode 'category' seulement).
 --
+-- Défi du jour : une seule session par joueur et par jour (Europe/Paris).
+-- Un nouvel appel le même jour REPREND cette session (même quiz_id, mêmes
+-- questions, même ordre des réponses) avec les réponses déjà enregistrées ;
+-- elle reste reprenable jusqu'à minuit (au moins 30 min après le départ).
+-- Défi déjà soumis : erreur 23505, détail { score, total }.
+--
 -- Retour :
 -- { quiz_id, mode, category, day (défi : jour Europe/Paris, sinon null),
---   expires_at,
+--   expires_at, resumed (true si session du défi reprise),
 --   questions: [{ id, category, difficulty, question, answers: [4 textes,
---                 ordre propre à ce quiz] }] }
--- Jamais de bonne réponse ni d'explication.
+--                 ordre propre à ce quiz],
+--                 answer: null tant que la question n'est pas répondue,
+--                   sinon { choice, correct, correct_choice, explanation,
+--                           time_ms } }] }
+-- Bonne réponse et explication seulement pour les questions déjà répondues.
 --
 -- Erreurs : 42501 non authentifié, 22023 paramètres invalides, P0002 profil
 -- absent ou pas assez de questions (moins de 10 pour ce mode), PT429 trop de
--- quiz commencés dans l'heure.
+-- quiz commencés dans l'heure (30) ou trop de quiz abandonnés dans la
+-- journée (10 non soumis), 23505 défi du jour déjà joué.
 create function public.start_quiz(mode text, category text default null)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $$
+-- `mode` / `category` non qualifiés (on conflict ... where mode) = colonnes.
+#variable_conflict use_column
 declare
   quiz_length constant integer := 10;
   max_sessions_per_hour constant integer := 30;
+  max_unsubmitted_per_day constant integer := 10;
   session_ttl constant interval := interval '30 minutes';
   -- Sessions conservées 2 jours (submit_quiz accepte 6 h après la fin).
   session_retention constant interval := interval '2 days';
@@ -172,8 +228,13 @@ declare
   v_mode text := start_quiz.mode;
   v_category text := start_quiz.category;
   v_today date := (now() at time zone 'Europe/Paris')::date;
+  -- Début et fin du jour Europe/Paris (changement d'heure compris).
+  v_day_start timestamptz := v_today::timestamp at time zone 'Europe/Paris';
+  v_day_end timestamptz := (v_today + 1)::timestamp at time zone 'Europe/Paris';
   v_ids text[];
+  v_resumed boolean := false;
   s public.quiz_sessions%rowtype;
+  r public.quiz_results%rowtype;
 begin
   if uid is null then
     raise exception 'non authentifié' using errcode = '42501';
@@ -186,54 +247,92 @@ begin
   end if;
 
   -- Verrou sur le profil : les départs d'un même joueur passent un à un
-  -- (limite de débit fiable).
+  -- (limites fiables, pas deux défis du jour en parallèle).
   perform 1 from public.profiles p where p.id = uid for update;
   if not found then
     raise exception 'profil introuvable' using errcode = 'P0002';
   end if;
 
-  if (select count(*) from public.quiz_sessions qs
-      where qs.user_id = uid and qs.started_at > now() - interval '1 hour')
-     >= max_sessions_per_hour then
-    raise exception 'trop de quiz commencés en une heure, réessayer plus tard'
-      using errcode = 'PT429';
-  end if;
-
-  -- Ménage : anciennes sessions de ce joueur.
-  delete from public.quiz_sessions qs
-   where qs.user_id = uid and qs.started_at < now() - session_retention;
-
+  -- Défi du jour déjà commencé aujourd'hui : reprise (aucune limite, rien
+  -- de créé).
   if v_mode = 'daily' then
-    v_ids := public.ensure_daily_challenge(v_today);
-  else
-    select array_agg(t.id) into v_ids
-      from (select q.id from public.questions q
-             where v_category is null or q.category = v_category
-             order by random()
-             limit quiz_length) t;
-  end if;
-  if v_ids is null or cardinality(v_ids) <> quiz_length
-     or (select count(*) from public.questions q where q.id = any (v_ids))
-        <> quiz_length then
-    raise exception 'pas assez de questions pour ce quiz' using errcode = 'P0002';
+    select * into s from public.quiz_sessions qs
+     where qs.user_id = uid and qs.mode = 'daily' and qs.challenge_day = v_today;
+    v_resumed := found;
   end if;
 
-  insert into public.quiz_sessions
-    (user_id, mode, category, challenge_day, expires_at)
-  values
-    (uid, v_mode, v_category,
-     case when v_mode = 'daily' then v_today end,
-     now() + session_ttl)
-  returning * into s;
+  if not v_resumed then
+    if (select count(*) from public.quiz_sessions qs
+        where qs.user_id = uid and qs.started_at > now() - interval '1 hour')
+       >= max_sessions_per_hour then
+      raise exception 'trop de quiz commencés en une heure, réessayer plus tard'
+        using errcode = 'PT429';
+    end if;
+    if (select count(*) from public.quiz_sessions qs
+        where qs.user_id = uid and qs.submitted_at is null
+          and qs.started_at >= v_day_start)
+       >= max_unsubmitted_per_day then
+      raise exception 'trop de quiz abandonnés aujourd''hui, réessayer demain'
+        using errcode = 'PT429';
+    end if;
 
-  -- Réponses mélangées pour ce joueur, question par question (la
-  -- sous-requête dépend de `t.ord` pour être réévaluée à chaque ligne).
-  insert into public.quiz_session_questions (quiz_id, position, question_id, answer_order)
-  select s.id, t.ord, t.qid,
-         (select array_agg(i::smallint order by random())
-            from generate_series(0, 3) i
-           where t.ord is not null)
-    from unnest(v_ids) with ordinality as t (qid, ord);
+    -- Ménage : anciennes sessions de ce joueur (purge globale :
+    -- purge_quiz_sessions(), chaque nuit).
+    delete from public.quiz_sessions qs
+     where qs.user_id = uid and qs.started_at < now() - session_retention;
+
+    if v_mode = 'daily' then
+      v_ids := public.ensure_daily_challenge(v_today);
+    else
+      select array_agg(t.id) into v_ids
+        from (select q.id from public.questions q
+               where v_category is null or q.category = v_category
+               order by random()
+               limit quiz_length) t;
+    end if;
+    if v_ids is null or cardinality(v_ids) <> quiz_length
+       or (select count(*) from public.questions q where q.id = any (v_ids))
+          <> quiz_length then
+      raise exception 'pas assez de questions pour ce quiz' using errcode = 'P0002';
+    end if;
+
+    -- Défi du jour : valable jusqu'à minuit (Europe/Paris), au moins 30 min.
+    insert into public.quiz_sessions
+      (user_id, mode, category, challenge_day, expires_at)
+    values
+      (uid, v_mode, v_category,
+       case when v_mode = 'daily' then v_today end,
+       case when v_mode = 'daily'
+            then greatest(now() + session_ttl, v_day_end)
+            else now() + session_ttl end)
+    on conflict (user_id, challenge_day) where mode = 'daily' do nothing
+    returning * into s;
+
+    if found then
+      -- Réponses mélangées pour ce joueur, question par question (la
+      -- sous-requête dépend de `t.ord` pour être réévaluée à chaque ligne).
+      insert into public.quiz_session_questions
+        (quiz_id, position, question_id, answer_order)
+      select s.id, t.ord, t.qid,
+             (select array_agg(i::smallint order by random())
+                from generate_series(0, 3) i
+               where t.ord is not null)
+        from unnest(v_ids) with ordinality as t (qid, ord);
+    else
+      -- Course (ne devrait pas arriver grâce au verrou) : défi créé
+      -- entre-temps, on le reprend.
+      select * into s from public.quiz_sessions qs
+       where qs.user_id = uid and qs.mode = 'daily' and qs.challenge_day = v_today;
+      v_resumed := true;
+    end if;
+  end if;
+
+  if s.submitted_at is not null then
+    select * into r from public.quiz_results qr where qr.id = s.id;
+    raise exception 'défi du jour déjà joué'
+      using errcode = '23505',
+            detail = jsonb_build_object('score', r.score, 'total', r.total)::text;
+  end if;
 
   return jsonb_build_object(
     'quiz_id', s.id,
@@ -241,6 +340,7 @@ begin
     'category', s.category,
     'day', s.challenge_day,
     'expires_at', s.expires_at,
+    'resumed', v_resumed,
     'questions', (
       select jsonb_agg(jsonb_build_object(
                'id', q.id,
@@ -248,7 +348,17 @@ begin
                'difficulty', q.difficulty,
                'question', q.question,
                'answers', (select jsonb_agg(q.answers[o.i + 1] order by o.n)
-                             from unnest(sq.answer_order) with ordinality as o (i, n))
+                             from unnest(sq.answer_order) with ordinality as o (i, n)),
+               'answer', case when sq.answered_at is not null then
+                 jsonb_build_object(
+                   'choice', sq.choice,
+                   'correct', sq.choice is not null
+                              and sq.answer_order[sq.choice + 1] = q.correct_index,
+                   'correct_choice',
+                     array_position(sq.answer_order, q.correct_index) - 1,
+                   'explanation', q.explanation,
+                   'time_ms', sq.time_ms)
+               end
              ) order by sq.position)
         from public.quiz_session_questions sq
         join public.questions q on q.id = sq.question_id
@@ -274,14 +384,16 @@ grant execute on function public.start_quiz(text, text) to authenticated;
 --                 réponse précédente (ou le départ) + 1 s de tolérance.
 --
 -- Réessai (réponse perdue par le réseau) : une question déjà répondue
--- renvoie la correction enregistrée, sans rien changer.
+-- renvoie la correction enregistrée, sans rien changer (même si `choice`
+-- diffère). Plus aucune réponse, même un réessai, une fois le quiz soumis.
 --
 -- Retour : { quiz_id, question_id, position, choice, correct,
 --            correct_choice (position affichée de la bonne réponse),
 --            explanation }
 --
 -- Erreurs : 42501 non authentifié, 22023 entrée invalide, quiz inconnu ou
--- d'un autre joueur, expiré, question hors ordre ou temps impossible.
+-- d'un autre joueur, déjà soumis, expiré, question hors ordre ou temps
+-- impossible.
 create function public.answer_question(
   quiz_id uuid,
   question_id text,
@@ -319,6 +431,9 @@ begin
   if not found then
     raise exception 'quiz inconnu' using errcode = '22023';
   end if;
+  if s.submitted_at is not null then
+    raise exception 'quiz déjà soumis' using errcode = '22023';
+  end if;
 
   select * into sq from public.quiz_session_questions x
    where x.quiz_id = s.id and x.question_id = answer_question.question_id;
@@ -336,7 +451,7 @@ begin
        and answer_question.choice not between 0 and 3 then
       raise exception 'réponse hors de 0 à 3' using errcode = '22023';
     end if;
-    if now() > s.expires_at or s.submitted_at is not null then
+    if now() > s.expires_at then
       raise exception 'quiz expiré' using errcode = '22023';
     end if;
 
@@ -391,6 +506,9 @@ grant execute on function public.answer_question(uuid, text, integer, integer)
 -- totale déclarée (somme des temps) au plus égale à la durée serveur
 -- (départ → dernière réponse) + 1 s, dernière réponse il y a 6 h au plus
 -- (envoi différé après une coupure réseau).
+-- Défi du jour repris tard dans la journée : ces contrôles restent valables
+-- (la durée serveur ne fait que s'allonger ; les 6 h comptent depuis la
+-- dernière réponse, pas depuis le départ).
 --
 -- Jour du quiz : heure serveur de la dernière réponse (Europe/Paris), ramenée
 -- au dernier quiz validé s'il est plus récent ; aujourd'hui ou la veille
@@ -622,3 +740,37 @@ grant execute on function public.submit_quiz(uuid) to authenticated;
 
 comment on table public.questions is
   'Questions et bonnes réponses. Aucun accès client : servies sans réponse par start_quiz(), corrigées par answer_question().';
+
+-- Purge globale ----------------------------------------------------------------
+--
+-- Sessions de plus de 2 jours (réponses comprises, `on delete cascade`),
+-- soumises ou non : submit_quiz n'accepte rien au-delà de 6 h après la
+-- dernière réponse, et quiz_results garde le résultat. Lancée chaque nuit
+-- par pg_cron ; start_quiz purge aussi les sessions du joueur.
+create function public.purge_quiz_sessions()
+returns integer
+language plpgsql
+volatile
+set search_path = ''
+as $$
+declare
+  v_count integer;
+begin
+  delete from public.quiz_sessions qs
+   where qs.started_at < now() - interval '2 days';
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke execute on function public.purge_quiz_sessions()
+  from public, anon, authenticated;
+
+create extension if not exists pg_cron with schema pg_catalog;
+
+-- 03:30 UTC chaque jour (cron.schedule remplace un job du même nom).
+select cron.schedule(
+  'purge-quiz-sessions',
+  '30 3 * * *',
+  'select public.purge_quiz_sessions()'
+);

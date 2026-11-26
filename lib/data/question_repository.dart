@@ -23,6 +23,10 @@ const quizLength = 10;
 /// classement. Sinon (mode 100 % local, hors ligne, serveur indisponible ou
 /// pas assez de questions) : questions locales (assets/questions.json),
 /// quiz hors classement.
+///
+/// Défi du jour : le serveur reprend la session déjà commencée aujourd'hui
+/// ([QuizStart.answered]) ; s'il est déjà soumis, [startQuiz] lève
+/// [DailyChallengeAlreadyPlayed] (pas de repli local).
 class QuestionRepository {
   /// [questions] : liste déjà chargée (tests).
   QuestionRepository({
@@ -31,10 +35,13 @@ class QuestionRepository {
     SupabaseQuizSource? remote,
     String? Function()? userId,
     this.timeout = const Duration(seconds: 6),
+    this.retryDelay = const Duration(minutes: 1),
+    DateTime Function()? now,
   })  : _bundle = bundle ?? rootBundle,
         _cache = questions,
         _remote = remote,
-        _userId = userId;
+        _userId = userId,
+        _now = now ?? DateTime.now;
 
   final AssetBundle _bundle;
   List<Question>? _cache;
@@ -44,6 +51,13 @@ class QuestionRepository {
   /// Délai maximal d'attente du serveur avant le repli local (départ) ou
   /// l'erreur (réponse).
   final Duration timeout;
+
+  /// Après un échec de `start_quiz` (délai dépassé, réseau, limite), le
+  /// serveur n'est plus sollicité pendant ce délai : chaque appel peut
+  /// créer une session, qui compte dans les limites du serveur.
+  final Duration retryDelay;
+  final DateTime Function() _now;
+  DateTime? _retryAfter;
 
   Future<List<Question>> all() async {
     if (_cache != null) return _cache!;
@@ -65,22 +79,32 @@ class QuestionRepository {
     UnrankedReason? unranked;
     if (remote != null) {
       final uid = _userId?.call();
-      if (uid == null) {
+      final retryAfter = _retryAfter;
+      if (uid == null || (retryAfter != null && _now().isBefore(retryAfter))) {
         unranked = UnrankedReason.offline;
       } else {
         try {
           final served =
               await remote.start(mode, category: category).timeout(timeout);
+          _retryAfter = null;
           return QuizStart(
             questions: served.questions,
             quizId: served.id,
             userId: uid,
+            answered: served.answered,
           );
         } catch (e) {
+          final played = mode == QuizMode.dailyChallenge
+              ? challengeAlreadyPlayed(e)
+              : null;
+          if (played != null) throw played;
           _log('quiz local (hors classement)', e);
-          unranked = isNotEnoughQuestions(e)
-              ? UnrankedReason.notEnoughQuestions
-              : UnrankedReason.offline;
+          if (isNotEnoughQuestions(e)) {
+            unranked = UnrankedReason.notEnoughQuestions;
+          } else {
+            unranked = UnrankedReason.offline;
+            _retryAfter = _now().add(retryDelay);
+          }
         }
       }
     }

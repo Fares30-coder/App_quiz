@@ -281,9 +281,11 @@ class _ChallengeCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.s),
                 Text(
-                  played
-                      ? 'Ton score : ${progress.challengeScore}/${progress.challengeTotal}'
-                      : '10 questions, les mêmes pour tous',
+                  !played
+                      ? '10 questions, les mêmes pour tous'
+                      : progress.challengeTotal > 0
+                          ? 'Ton score : ${progress.challengeScore}/${progress.challengeTotal}'
+                          : 'Défi du jour joué',
                   style: context.text.headlineSmall?.copyWith(
                     color: onColor,
                     fontWeight: FontWeight.w800,

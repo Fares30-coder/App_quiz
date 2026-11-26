@@ -143,21 +143,41 @@ class QuizController extends Notifier<QuizState> {
 
   /// Démarre un quiz : servi ([quizId] de `start_quiz`, corrigé par le
   /// serveur) ou local (corrigé avec les réponses de l'app).
+  ///
+  /// [answered] : défi du jour repris, réponses déjà enregistrées par le
+  /// serveur (premières questions, déjà corrigées dans [questions]). Elles
+  /// comptent telles quelles ; le quiz reprend à la première question sans
+  /// réponse (ou reste sur la dernière, corrigée, si tout est répondu).
   void start(
     List<Question> questions, {
     required QuizMode mode,
     String? category,
     String? quizId,
     String? userId,
+    List<ServedAnswer> answered = const [],
   }) {
+    final done = answered.length.clamp(0, questions.length);
+    final results = [
+      for (final a in answered.take(done))
+        AnswerResult(
+          correct: a.correct,
+          elapsed: Duration(milliseconds: a.timeMs),
+        ),
+    ];
+    final allAnswered = done > 0 && done == questions.length;
     state = QuizState(
       questions: questions,
       mode: mode,
       category: category,
       quizId: quizId,
       userId: userId,
+      answers: results,
+      index: allAnswered ? done - 1 : done,
+      selected: allAnswered ? answered[done - 1].choice : null,
+      timedOut: allAnswered && answered[done - 1].choice == null,
+      secondsLeft: allAnswered ? 0 : questionSeconds,
     );
-    _startQuestion();
+    if (!allAnswered) _startQuestion();
   }
 
   /// Enregistre la réponse [choice] (position affichée). Renvoie true si

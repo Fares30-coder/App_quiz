@@ -53,13 +53,24 @@ Migration `*_start_quiz.sql` (remplace l'ancienne signature à 5 paramètres de
    10 questions **sans bonne réponse ni explication**, réponses mélangées par
    le serveur (pour chaque joueur et chaque question). Enregistre la session
    (questions servies, heure de départ serveur), valable **30 min**.
-   30 quiz commencés par heure au plus (`PT429`) ; `P0002` s'il y a moins de
-   10 questions pour ce mode (ou profil absent). Sessions effacées après
-   2 jours.
+   Limites (`PT429`) : 30 quiz commencés par heure (soumis ou non) et
+   10 quiz non soumis (abandonnés) par jour Europe/Paris. `P0002` s'il y a
+   moins de 10 questions pour ce mode (ou profil absent).
+   **Défi du jour : une seule session par joueur et par jour** (index unique
+   `quiz_sessions (user_id, challenge_day) where mode = 'daily'`). Un nouvel
+   appel le même jour **reprend** cette session (`resumed: true`) : même
+   `quiz_id`, mêmes questions, même ordre des réponses, et pour chaque
+   question déjà répondue `answer: { choice, correct, correct_choice,
+   explanation, time_ms }` (sinon `answer: null`). L'app reprend à la
+   première question sans réponse. La session du défi reste reprenable
+   jusqu'à minuit (Europe/Paris), au moins 30 min après le départ ; une
+   reprise ne compte dans aucune limite. Défi déjà soumis : erreur `23505`
+   « défi du jour déjà joué », détail `{"score": n, "total": 10}`.
 2. `answer_question(quiz_id, question_id, choice, time_ms)` : `choice` =
    position affichée (0 à 3, `null` si temps écoulé). Questions dans l'ordre,
    réponse horodatée par le serveur et définitive (un réessai renvoie la
-   correction déjà enregistrée). `time_ms` doit rester sous le temps écoulé
+   correction déjà enregistrée, même avec un autre `choice` ; refusé une
+   fois le quiz soumis). `time_ms` doit rester sous le temps écoulé
    côté serveur depuis la réponse précédente, plus 1 s. Renvoie la correction
    et l'explication, affichées après chaque réponse.
 3. `submit_quiz(quiz_id)` : exige un quiz servi à ce joueur avec ses 10
@@ -77,17 +88,39 @@ objectif sans XP), 20 quiz validés par heure (`PT429`).
 
 Défi du jour : table `daily_challenges(day, question_ids)`, créée à la
 demande par `ensure_daily_challenge(day)` (fonction interne, idempotente,
-évite si possible les questions des 7 derniers jours). Identique pour tous,
-pas de `pg_cron` pour l'instant.
+évite si possible les questions des 7 derniers jours). Identique pour tous.
+Si une question du défi a disparu, elle est remplacée (tirage au hasard, en
+fin de liste) au prochain appel ; les sessions déjà commencées gardent la
+leur.
 
-Erreurs : `22023` entrée invalide (quiz non servi, expiré, hors ordre, temps
-impossible, `quiz_id` d'un autre joueur), `P0002` profil absent ou pas assez
-de questions, `PT429` trop de quiz, `42501` non authentifié. L'app traite
+**Ne jamais supprimer une question en base** : la corriger (`update`) à la
+place. Une question servie dans les 2 derniers jours est référencée par
+`quiz_session_questions` (clé étrangère, index `question_id`) et sa
+suppression échoue ; une suppression réussie fausserait le défi du jour
+(remplacement ci-dessus) et l'historique. Pour retirer une question, ajouter
+plus tard une colonne `active` (filtrée par `start_quiz` et
+`ensure_daily_challenge`) plutôt que de la supprimer.
+
+Purge : `purge_quiz_sessions()` (fonction interne) efface les sessions de
+plus de 2 jours, réponses comprises ; lancée chaque jour à 03:30 UTC par
+`pg_cron` (job `purge-quiz-sessions`, extension activée par la migration ;
+`select * from cron.job_run_details order by start_time desc limit 5;` pour
+vérifier). `start_quiz` purge aussi les anciennes sessions du joueur.
+`quiz_results` n'est pas touché.
+
+Erreurs : `22023` entrée invalide (quiz non servi, expiré, déjà soumis, hors
+ordre, temps impossible, `quiz_id` d'un autre joueur), `P0002` profil absent
+ou pas assez de questions, `PT429` trop de quiz, `23505` défi du jour déjà
+joué (`start_quiz`), `42501` non authentifié. L'app traite
 `22023`, `22P02`, `22003`, `23505` et `P0002` comme définitifs (quiz
 abandonné, la file n'est jamais bloquée) ; les autres erreurs sont réessayées.
 
 Repli local : hors ligne, serveur lent (plus de 6 s), `PT429`, `P0002` ou
-sans session, l'app joue les questions de `assets/questions.json`. Ces quiz
+sans session, l'app joue les questions de `assets/questions.json` ; après un
+échec (délai, réseau, `PT429`), elle ne rappelle pas `start_quiz` pendant
+1 min. Défi déjà joué (`23505`) : pas de repli, l'app affiche « Tu as déjà
+joué le défi du jour » et marque le défi comme joué sur l'accueil (avec le
+score du serveur). Ces quiz
 ne comptent pas au classement et ne sont jamais soumis (un message
 l'indique). Si la connexion tombe pendant un quiz servi, la réponse est
 gardée et l'app propose « Réessayer » ou « Quitter ». Si `submit_quiz`
@@ -108,11 +141,22 @@ Limites connues :
 - un quiz joué hors ligne valide la journée et donne de l'XP en local
   seulement ; le profil serveur l'écrase au sync suivant (série perdue
   possible). Piste : une RPC qui ne valide que le jour ;
-- le défi du jour peut être rejoué en connaissant les réponses (borné par
-  les plafonds d'XP) ;
+- le défi du jour ne se joue qu'une fois par compte et par jour, mais un
+  nouveau compte anonyme peut le rejouer (effet borné par les plafonds
+  d'XP et le classement) ;
 - les bonnes réponses restent lisibles dans l'APK tant que toutes les
   questions du serveur y sont aussi ;
-- un quiz dont la dernière réponse arrive après 30 min est perdu.
+- un quiz dont la dernière réponse arrive après 30 min est perdu (défi du
+  jour : après minuit) ;
+- défi du jour entièrement répondu mais jamais soumis (app fermée avant
+  l'écran Résultats) : la reprise le termine, mais `submit_quiz` le refuse
+  si la dernière réponse date de plus de 6 h ;
+- défi commencé juste avant minuit et fini après : il compte pour le jour
+  de la dernière réponse ;
+- le temps de chaque question est mesuré par l'app : une question affichée
+  puis abandonnée repart avec 30 s à la reprise. À traiter avant le test
+  fermé (questions servies une par une, `next_question`, temps mesuré côté
+  serveur).
 
 ## Classement hebdo (`weekly_leaderboard`)
 
