@@ -35,8 +35,19 @@ final _local = [
       ),
 ];
 
+/// Question `srv-i` telle que servie (sans bonne réponse).
+Map<String, dynamic> _questionJson(int i) => {
+      'id': 'srv-$i',
+      'category': 'divers',
+      'difficulty': 2,
+      'question': 'Serveur $i ?',
+      'answers': ['d', 'bonne', 'b', 'c'],
+      'answer': null,
+    };
+
 /// [answered] : nombre de questions déjà répondues (reprise du défi) ; la
-/// 2e a dépassé le temps, les autres sont justes.
+/// 2e a dépassé le temps, les autres sont justes. Questions servies une à
+/// une : les répondues puis la question en cours seulement.
 Map<String, dynamic> _servedJson(String quizId, {int answered = 0}) => {
       'quiz_id': quizId,
       'resumed': answered > 0,
@@ -44,29 +55,26 @@ Map<String, dynamic> _servedJson(String quizId, {int answered = 0}) => {
       'category': null,
       'day': '2026-11-26',
       'expires_at': '2026-11-26T10:30:00+00:00',
+      'total': 10,
+      'position': answered < 10 ? answered + 1 : null,
       'questions': [
-        for (var i = 1; i <= 10; i++)
+        for (var i = 1; i <= answered && i <= 10; i++)
           {
-            'id': 'srv-$i',
-            'category': 'divers',
-            'difficulty': 2,
-            'question': 'Serveur $i ?',
-            'answers': ['d', 'bonne', 'b', 'c'],
-            'answer': i > answered
-                ? null
-                : {
-                    'choice': i == 2 ? null : 1,
-                    'correct': i != 2,
-                    'correct_choice': 1,
-                    'explanation': 'Explication srv-$i',
-                    'time_ms': i == 2 ? 30000 : 4000,
-                  },
+            ..._questionJson(i),
+            'answer': {
+              'choice': i == 2 ? null : 1,
+              'correct': i != 2,
+              'correct_choice': 1,
+              'explanation': 'Explication srv-$i',
+              'time_ms': i == 2 ? 30000 : 4000,
+            },
           },
+        if (answered < 10) _questionJson(answered + 1),
       ],
     };
 
-/// Faux serveur PostgREST : `start_quiz` et `answer_question` (bonne
-/// réponse : position 1).
+/// Faux serveur PostgREST : `start_quiz`, `next_question` et
+/// `answer_question` (bonne réponse : position 1).
 class _FakeServer {
   final requests = <http.Request>[];
 
@@ -82,6 +90,18 @@ class _FakeServer {
 
   /// Réponse de `answer_question` retenue jusqu'à ce que le test la libère.
   Completer<void>? holdAnswer;
+
+  /// Réponse de `next_question` retenue jusqu'à ce que le test la libère.
+  Completer<void>? holdNext;
+
+  /// `answer_question` : temps écoulé selon le serveur (réponse trop lente).
+  bool serverTimeout = false;
+
+  /// Questions répondues par quiz (reprise comprise).
+  final _answered = <String, Set<String>>{};
+
+  int _answeredCount(String quizId) =>
+      resumedAnswers + (_answered[quizId]?.length ?? 0);
 
   late final client = MockClient((request) async {
     requests.add(request);
@@ -101,14 +121,32 @@ class _FakeServer {
             _servedJson('quiz-${requests.length}', answered: resumedAnswers),
             200,
             request);
+      case '/rest/v1/rpc/next_question':
+        await holdNext?.future;
+        if (offline) throw const SocketException('hors ligne');
+        final done = _answeredCount(body['quiz_id'] as String);
+        if (done == 0 || done >= 10) {
+          return _json({'code': '22023', 'message': 'refusé'}, 400, request);
+        }
+        return _json({
+          'quiz_id': body['quiz_id'],
+          'total': 10,
+          'position': done + 1,
+          'question': _questionJson(done + 1),
+        }, 200, request);
       case '/rest/v1/rpc/answer_question':
         await holdAnswer?.future;
         if (offline) throw const SocketException('hors ligne');
+        (_answered[body['quiz_id'] as String] ??= {})
+            .add(body['question_id'] as String);
+        final choice = serverTimeout ? null : body['choice'];
         return _json({
           'quiz_id': body['quiz_id'],
           'question_id': body['question_id'],
-          'choice': body['choice'],
-          'correct': body['choice'] == 1,
+          'choice': choice,
+          'correct': choice == 1,
+          'timed_out': choice == null,
+          'time_ms': serverTimeout ? 30000 : body['time_ms'],
           'correct_choice': 1,
           'explanation': 'Explication ${body['question_id']}',
         }, 200, request);
@@ -166,7 +204,8 @@ void main() {
       expect(start.quizId, 'quiz-1');
       expect(start.userId, 'joueur-1');
       expect(start.unranked, isNull);
-      expect(start.questions, hasLength(10));
+      expect(start.questions, hasLength(1), reason: 'servies une à une');
+      expect(start.total, 10);
       expect(start.questions.any((q) => q.isRevealed), isFalse);
       expect(start.questions.every((q) => q.explanation.isEmpty), isTrue);
       expect(start.questions.first.answers, ['d', 'bonne', 'b', 'c'],
@@ -257,8 +296,15 @@ void main() {
       expect([for (final a in start.answered) a.choice], [1, null, 1]);
       expect([for (final a in start.answered) a.correct], [true, false, true]);
       expect(start.answered[1].timeMs, 30000);
-      expect([for (final q in start.questions) q.isRevealed],
-          [true, true, true, ...List.filled(7, false)]);
+      expect([
+        for (final q in start.questions) q.isRevealed
+      ], [
+        true,
+        true,
+        true,
+        false
+      ], reason: 'répondues + question en cours seulement');
+      expect(start.total, 10);
       expect(start.questions[0].explanation, 'Explication srv-1');
       expect(start.questions[3].explanation, isEmpty);
     });
@@ -345,7 +391,8 @@ void main() {
           mode: QuizMode.dailyChallenge,
           quizId: start.quizId,
           userId: start.userId,
-          answered: start.answered);
+          answered: start.answered,
+          total: start.total);
       return quiz;
     }
 
@@ -411,8 +458,115 @@ void main() {
       expect(sent['time_ms'], 500, reason: 'toucher immédiat : borné à 0,5 s');
 
       expect(quiz.next(), isTrue);
+      await pumpEventQueue();
       expect(await quiz.answer(0), isFalse);
       expect(c.read(quizControllerProvider).score, 1);
+    });
+
+    test('question suivante demandée au serveur, chrono au chargement',
+        () async {
+      final c = await container();
+      final quiz = await started(c);
+      var state = c.read(quizControllerProvider);
+      expect(state.total, 10);
+      expect(state.questions, hasLength(1));
+      expect(quiz.next(), isFalse, reason: 'pas encore répondu');
+      expect(server.sent('next_question'), isEmpty);
+
+      await quiz.answer(1);
+      server.holdNext = Completer<void>();
+      expect(quiz.next(), isTrue);
+      expect(quiz.next(), isTrue, reason: 'chargement en cours : ignoré');
+      state = c.read(quizControllerProvider);
+      expect(state.loadingNext, isTrue);
+      expect(state.index, 0, reason: 'reste sur la question corrigée');
+
+      server.holdNext!.complete();
+      await pumpEventQueue();
+      state = c.read(quizControllerProvider);
+      expect(server.sent('next_question'), [
+        {'quiz_id': 'quiz-1'},
+      ]);
+      expect(state.loadingNext, isFalse);
+      expect(state.index, 1);
+      expect(state.current.id, 'srv-2');
+      expect(state.current.isRevealed, isFalse);
+      expect(state.locked, isFalse);
+      expect(state.secondsLeft, questionSeconds);
+      quiz.quit();
+    });
+
+    test('connexion perdue au chargement : « Réessayer » puis question 2',
+        () async {
+      final c = await container();
+      final quiz = await started(c);
+      await quiz.answer(1);
+      server.offline = true;
+
+      expect(quiz.next(), isTrue);
+      await pumpEventQueue();
+      var state = c.read(quizControllerProvider);
+      expect(state.nextFailed, isTrue);
+      expect(state.loadingNext, isFalse);
+      expect(state.index, 0);
+      expect(state.isFinished, isFalse);
+
+      server.offline = false;
+      await quiz.retryNext();
+      state = c.read(quizControllerProvider);
+      expect(state.nextFailed, isFalse);
+      expect(state.index, 1);
+      expect(state.current.id, 'srv-2');
+      quiz.quit();
+    });
+
+    test('abandon pendant le chargement : question tardive ignorée', () async {
+      final c = await container();
+      final quiz = await started(c);
+      await quiz.answer(1);
+      server.holdNext = Completer<void>();
+
+      quiz.next();
+      await pumpEventQueue();
+      quiz.quit();
+      server.holdNext!.complete();
+      await pumpEventQueue();
+
+      final state = c.read(quizControllerProvider);
+      expect(state.questions, isEmpty);
+      expect(state.loadingNext, isFalse);
+    });
+
+    test('temps écoulé selon le serveur : réponse comptée fausse', () async {
+      final c = await container();
+      final quiz = await started(c);
+      server.serverTimeout = true;
+
+      expect(await quiz.answer(1), isFalse);
+      final state = c.read(quizControllerProvider);
+      expect(state.answered, isTrue);
+      expect(state.timedOut, isTrue);
+      expect(state.selected, isNull);
+      expect(state.answers.single.correct, isFalse);
+      expect(state.answers.single.elapsed, const Duration(seconds: 30));
+      quiz.quit();
+    });
+
+    test('quiz servi joué en entier : 10 questions reçues une à une', () async {
+      final c = await container();
+      final quiz = await started(c);
+      for (var i = 0; i < 10; i++) {
+        expect(c.read(quizControllerProvider).current.id, 'srv-${i + 1}');
+        await quiz.answer(1);
+        final more = quiz.next();
+        expect(more, i < 9);
+        await pumpEventQueue();
+      }
+      final state = c.read(quizControllerProvider);
+      expect(state.isFinished, isTrue);
+      expect(state.score, 10);
+      expect(state.outcome!.xp.correctCount, 10);
+      expect(server.sent('next_question'), hasLength(9));
     });
 
     test('pendant la correction : réponse verrouillée, pas de 2e envoi',

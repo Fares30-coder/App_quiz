@@ -71,7 +71,7 @@ class QuizScreen extends ConsumerWidget {
     final c = context.colors;
 
     final statuses = [
-      for (var i = 0; i < state.questions.length; i++)
+      for (var i = 0; i < state.total; i++)
         i < state.answers.length
             ? (state.answers[i].correct ? SegmentStatus.ok : SegmentStatus.ko)
             : i == state.index
@@ -111,7 +111,7 @@ class QuizScreen extends ConsumerWidget {
       },
       child: Scaffold(
         body: SafeArea(
-          bottom: !state.answered && !state.answerFailed,
+          bottom: !state.answered && !state.answerFailed && !state.nextFailed,
           child: Column(
             children: [
               Padding(
@@ -141,7 +141,7 @@ class QuizScreen extends ConsumerWidget {
                                 fontSize: 20,
                               ),
                             ),
-                            TextSpan(text: '/${state.questions.length}'),
+                            TextSpan(text: '/${state.total}'),
                           ],
                         ),
                       ),
@@ -200,13 +200,22 @@ class QuizScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (state.answered)
+              if (state.nextFailed)
+                _RetrySheet(
+                  message: 'Connexion perdue : impossible de charger '
+                      'la question suivante.',
+                  onRetry: () =>
+                      ref.read(quizControllerProvider.notifier).retryNext(),
+                  onQuit: () => _confirmQuit(context, ref),
+                )
+              else if (state.answered)
                 _FeedbackSheet(
                   state: state,
                   onNext: () => _next(context, ref),
                 )
               else if (state.answerFailed)
                 _RetrySheet(
+                  message: 'Connexion perdue : ta réponse est gardée.',
                   onRetry: () =>
                       ref.read(quizControllerProvider.notifier).retryAnswer(),
                   onQuit: () => _confirmQuit(context, ref),
@@ -440,9 +449,18 @@ class _FeedbackSheet extends StatelessWidget {
               ),
             ),
             FilledButton(
-              onPressed: onNext,
-              child:
-                  Text(state.isLast ? 'Voir le résultat' : 'Question suivante'),
+              // Quiz servi : question suivante en cours de chargement.
+              onPressed: state.loadingNext ? null : onNext,
+              child: state.loadingNext
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        semanticsLabel: 'Chargement de la question suivante',
+                      ),
+                    )
+                  : Text(
+                      state.isLast ? 'Voir le résultat' : 'Question suivante'),
             ),
             const SizedBox(height: AppSpacing.s),
           ],
@@ -463,11 +481,16 @@ class _FeedbackSheet extends StatelessWidget {
   }
 }
 
-/// Correction impossible (connexion perdue pendant un quiz servi) : la
-/// réponse est gardée, le joueur réessaie ou quitte.
+/// Connexion perdue pendant un quiz servi (correction ou question suivante
+/// impossible à obtenir) : le joueur réessaie ou quitte.
 class _RetrySheet extends StatelessWidget {
-  const _RetrySheet({required this.onRetry, required this.onQuit});
+  const _RetrySheet({
+    required this.message,
+    required this.onRetry,
+    required this.onQuit,
+  });
 
+  final String message;
   final VoidCallback onRetry;
   final VoidCallback onQuit;
 
@@ -496,7 +519,7 @@ class _RetrySheet extends StatelessWidget {
                   const SizedBox(width: AppSpacing.m),
                   Expanded(
                     child: Text(
-                      'Connexion perdue : ta réponse est gardée.',
+                      message,
                       style: context.text.titleSmall,
                     ),
                   ),

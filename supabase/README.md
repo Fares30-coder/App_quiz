@@ -43,16 +43,20 @@ puis au retour au premier plan (au plus 1 fois par minute). Règle de fusion :
 - tant qu'un quiz attend d'être validé (file locale non vide), la progression
   locale, en avance, n'est pas remplacée.
 
-## Quiz servis par le serveur (`start_quiz`, `answer_question`, `submit_quiz`)
+## Quiz servis par le serveur (`start_quiz`, `next_question`, `answer_question`, `submit_quiz`)
 
-Migration `*_start_quiz.sql` (remplace l'ancienne signature à 5 paramètres de
-`submit_quiz`). En mode Supabase avec une session, un quiz se joue ainsi :
+Migrations `*_start_quiz.sql` (remplace l'ancienne signature à 5 paramètres
+de `submit_quiz`) et `*_temps_serveur.sql` (questions servies une à une,
+temps de réponse mesuré par le serveur). En mode Supabase avec une session,
+un quiz se joue ainsi :
 
 1. `start_quiz(mode, category default null)` : `mode` = `daily` (défi du
-   jour), `category` (catégorie obligatoire) ou `mix`. Renvoie `quiz_id` et
-   10 questions **sans bonne réponse ni explication**, réponses mélangées par
-   le serveur (pour chaque joueur et chaque question). Enregistre la session
-   (questions servies, heure de départ serveur), valable **30 min**.
+   jour), `category` (catégorie obligatoire) ou `mix`. Tire 10 questions,
+   réponses mélangées par le serveur (pour chaque joueur et chaque
+   question), mais ne renvoie que **la question 1** (`questions: [q1]`,
+   `total: 10`, `position: 1`), **sans bonne réponse ni explication**, et
+   note son heure d'envoi (`served_at`). Enregistre la session (questions
+   tirées, heure de départ serveur), valable **30 min**.
    Limites (`PT429`) : 30 quiz commencés par heure (soumis ou non) et
    10 quiz non soumis (abandonnés) par jour Europe/Paris. `P0002` s'il y a
    moins de 10 questions pour ce mode (ou profil absent).
@@ -61,23 +65,47 @@ Migration `*_start_quiz.sql` (remplace l'ancienne signature à 5 paramètres de
    appel le même jour **reprend** cette session (`resumed: true`) : même
    `quiz_id`, mêmes questions, même ordre des réponses, et pour chaque
    question déjà répondue `answer: { choice, correct, correct_choice,
-   explanation, time_ms }` (sinon `answer: null`). L'app reprend à la
-   première question sans réponse. La session du défi reste reprenable
+   explanation, time_ms }`, suivie de la question en cours (`answer: null`,
+   `position` = son numéro) ; les questions suivantes ne sont pas renvoyées.
+   L'app reprend à la question en cours. Si elle avait déjà été servie, elle
+   garde son `served_at` d'origine : plus de 33 s après, elle compte en
+   temps écoulé (voulu : sinon fermer l'app donnerait un temps illimité pour
+   chercher). Tout répondu : `position: null`, l'app passe aux résultats. La session du défi reste reprenable
    jusqu'à minuit (Europe/Paris), au moins 30 min après le départ ; une
    reprise ne compte dans aucune limite. Défi déjà soumis : erreur `23505`
    « défi du jour déjà joué », détail `{"score": n, "total": 10}`.
-2. `answer_question(quiz_id, question_id, choice, time_ms)` : `choice` =
-   position affichée (0 à 3, `null` si temps écoulé). Questions dans l'ordre,
-   réponse horodatée par le serveur et définitive (un réessai renvoie la
-   correction déjà enregistrée, même avec un autre `choice` ; refusé une
-   fois le quiz soumis). `time_ms` doit rester sous le temps écoulé
-   côté serveur depuis la réponse précédente, plus 1 s. Renvoie la correction
-   et l'explication, affichées après chaque réponse.
-3. `submit_quiz(quiz_id)` : exige un quiz servi à ce joueur avec ses 10
+2. `next_question(quiz_id)` : question suivant la dernière question
+   répondue (`{ quiz_id, total, position, question }`, sans bonne réponse ni
+   explication), et note son `served_at`. **Refusée (`22023`) tant que la
+   question 1 n'a pas de réponse**, quand les 10 sont répondues, sur un quiz
+   expiré, soumis ou d'un autre joueur. Idempotente : rappeler (réponse
+   perdue par le réseau) renvoie la même question sans changer son
+   `served_at`. `security definer`, EXECUTE pour `authenticated` seulement.
+3. `answer_question(quiz_id, question_id, choice, time_ms)` : `choice` =
+   position affichée (0 à 3, `null` si temps écoulé). Questions dans l'ordre
+   et déjà servies, réponse horodatée par le serveur et définitive (un
+   réessai renvoie la correction déjà enregistrée, même avec un autre
+   `choice` ; refusé une fois le quiz soumis). **Temps mesuré par le
+   serveur** : temps serveur = `now() - served_at` (gardé dans
+   `elapsed_ms`) ; temps officiel (`time_ms`) = min(`time_ms` déclaré de 500
+   à 30 000 ms, temps serveur), au moins 500 ms. Temps serveur > 30 s + 3 s
+   de tolérance : réponse enregistrée en **temps écoulé** (choix ignoré,
+   fausse, 30 000 ms). Renvoie `{ …, correct, timed_out, time_ms,
+   correct_choice, explanation }`, affichés après chaque réponse.
+4. `submit_quiz(quiz_id)` : exige un quiz servi à ce joueur avec ses 10
    réponses enregistrées, une durée totale plausible et une dernière réponse
    de moins de **6 h**. Le score officiel se calcule sur les réponses
-   enregistrées. Double soumission : résultat déjà enregistré
+   enregistrées. **Bonus rapidité** seulement si temps officiel < 10 s **et**
+   temps serveur ≤ 10 s + 2 s. Double soumission : résultat déjà enregistré
    (`duplicate: true`).
+
+Tolérances réseau : le temps serveur compte aussi le trajet de la question
+vers l'app et celui de la réponse vers le serveur (quelques centaines de ms
+en 4G, 1 à 2 s sur un réseau faible). 2 s pour le bonus (un tricheur gagne
+au plus 2 s de recherche par question) et 3 s avant le temps écoulé (une
+réponse donnée à 29 s sur un réseau lent reste valable). Un script ne voit
+plus qu'une question à la fois et ne peut plus chercher les réponses avant
+de jouer.
 
 Le serveur recalcule score, XP (barème de `CLAUDE.md`), série et gels
 (jour calendaire **Europe/Paris**), compteur du jour et `last_quiz_at`, puis
@@ -109,7 +137,8 @@ vérifier). `start_quiz` purge aussi les anciennes sessions du joueur.
 `quiz_results` n'est pas touché.
 
 Erreurs : `22023` entrée invalide (quiz non servi, expiré, déjà soumis, hors
-ordre, temps impossible, `quiz_id` d'un autre joueur), `P0002` profil absent
+ordre ou pas encore servie, `next_question` avant réponse ou après la 10e,
+`quiz_id` d'un autre joueur), `P0002` profil absent
 ou pas assez de questions, `PT429` trop de quiz, `23505` défi du jour déjà
 joué (`start_quiz`), `42501` non authentifié. L'app traite
 `22023`, `22P02`, `22003`, `23505` et `P0002` comme définitifs (quiz
@@ -123,7 +152,9 @@ joué le défi du jour » et marque le défi comme joué sur l'accueil (avec le
 score du serveur). Ces quiz
 ne comptent pas au classement et ne sont jamais soumis (un message
 l'indique). Si la connexion tombe pendant un quiz servi, la réponse est
-gardée et l'app propose « Réessayer » ou « Quitter ». Si `submit_quiz`
+gardée et l'app propose « Réessayer » ou « Quitter » ; de même si la
+question suivante ne se charge pas (« Question suivante » appelle
+`next_question`, le chrono local de 30 s démarre à la réception). Si `submit_quiz`
 échoue (réseau), seul l'identifiant du quiz va dans la file locale
 (`lib/data/pending_quiz_repository.dart`, clé `pending_quizzes_v2`),
 renvoyée au sync suivant ; `AuthService.purgeLocalSession()` la vide.
@@ -153,10 +184,12 @@ Limites connues :
   si la dernière réponse date de plus de 6 h ;
 - défi commencé juste avant minuit et fini après : il compte pour le jour
   de la dernière réponse ;
-- le temps de chaque question est mesuré par l'app : une question affichée
-  puis abandonnée repart avec 30 s à la reprise. À traiter avant le test
-  fermé (questions servies une par une, `next_question`, temps mesuré côté
-  serveur).
+- reprise du défi : la question affichée au moment de la fermeture compte
+  en temps écoulé si plus de 33 s ont passé (l'app la montre quand même
+  avec un chrono de 30 s ; la correction l'annonce en « Temps écoulé ») ;
+- l'XP affichée en fin de quiz est calculée par l'app (temps de l'app) ;
+  sur un réseau très lent, le serveur peut refuser un bonus rapidité que
+  l'app avait affiché, et le profil serveur corrige l'XP au sync suivant.
 
 ## Classement hebdo (`weekly_leaderboard`)
 

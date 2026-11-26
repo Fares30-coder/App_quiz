@@ -4,9 +4,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/quiz_session.dart';
 
-/// Accès Supabase aux quiz servis : `start_quiz` (questions sans réponse) et
-/// `answer_question` (correction après chaque réponse). Lève une erreur en
-/// cas de problème réseau ou de refus du serveur.
+/// Accès Supabase aux quiz servis : `start_quiz` (première question, sans
+/// réponse), `next_question` (questions suivantes, une à une) et
+/// `answer_question` (correction après chaque réponse, temps mesuré par le
+/// serveur). Lève une erreur en cas de problème réseau ou de refus du
+/// serveur.
 class SupabaseQuizSource {
   SupabaseQuizSource(this._client);
 
@@ -21,6 +23,16 @@ class SupabaseQuizSource {
       },
     );
     return ServedQuiz.fromJson(json);
+  }
+
+  /// Question suivante (après la réponse à la question en cours). Rappeler
+  /// renvoie la même question sans relancer son chrono serveur.
+  Future<ServedQuestion> next(String quizId) async {
+    final json = await _client.rpc<Map<String, dynamic>>(
+      'next_question',
+      params: {'quiz_id': quizId},
+    );
+    return ServedQuestion.fromJson(json);
   }
 
   /// [choice] : position affichée (0 à 3), `null` si le temps est écoulé.

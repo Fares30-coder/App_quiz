@@ -3,8 +3,10 @@
 -- Lancer en local : `supabase start` puis `supabase test db`.
 --
 -- Dans une transaction, now() ne bouge pas : le temps « écoulé » côté
--- serveur vaut 0, d'où des réponses à 500 ms (tolérance 1 s) et un départ
--- reculé par le propriétaire avant les soumissions.
+-- serveur vaut 0, d'où des réponses à 500 ms (temps officiel ramené à
+-- 500 ms) et un départ reculé par le propriétaire avant les soumissions.
+-- Questions servies une à une (next_question) : tests du temps serveur dans
+-- temps_serveur_test.sql.
 begin;
 create extension if not exists pgtap with schema extensions;
 
@@ -18,21 +20,32 @@ delete from public.quiz_sessions;
 delete from public.daily_challenges;
 delete from public.questions;
 
--- Aide de test : position de la réponse « bonne » dans la question `i`
--- (à partir de 0) d'un quiz renvoyé par start_quiz().
+-- Aides de test : question `i` (à partir de 0) d'un quiz renvoyé par
+-- start_quiz(), lue en base même si elle n'est pas encore servie, et
+-- position de la réponse « bonne » dans cette question.
 create schema tests;
+create function tests.q(quiz jsonb, i integer)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select public.served_question_json((quiz ->> 'quiz_id')::uuid, i + 1);
+$$;
 create function tests.good(quiz jsonb, i integer)
 returns integer
 language sql
-immutable
+stable
 set search_path = ''
 as $$
   select (o.n - 1)::integer
-  from jsonb_array_elements_text(quiz -> 'questions' -> i -> 'answers')
+  from jsonb_array_elements_text(tests.q(quiz, i) -> 'answers')
        with ordinality as o (a, n)
   where o.a = 'bonne';
 $$;
 grant usage on schema tests to authenticated;
+grant execute on function tests.q(jsonb, integer) to authenticated;
 grant execute on function tests.good(jsonb, integer) to authenticated;
 
 -- P1, P2 : joueurs ; P3 : limite de débit ; P4 : profil absent ;
@@ -209,15 +222,16 @@ end $$;
 
 select is(
   jsonb_array_length(current_setting('t.p1')::jsonb -> 'questions'),
-  10,
-  'défi du jour : 10 questions'
+  1,
+  'défi du jour : seule la question 1 est servie'
 );
 
 select is(
   current_setting('t.p1')::jsonb - 'quiz_id' - 'questions' - 'expires_at',
   jsonb_build_object('mode', 'daily', 'category', null, 'resumed', false,
-                     'day', (now() at time zone 'Europe/Paris')::date),
-  'défi du jour : mode et jour Europe/Paris'
+                     'day', (now() at time zone 'Europe/Paris')::date,
+                     'total', 10, 'position', 1),
+  'défi du jour : mode, jour Europe/Paris, question 1 sur 10'
 );
 
 select ok(
@@ -243,7 +257,8 @@ select ok(
 
 select is(
   (select array_agg(q ->> 'id' order by q ->> 'id')
-   from jsonb_array_elements(current_setting('t.p1')::jsonb -> 'questions') q
+   from generate_series(0, 9) i,
+        tests.q(current_setting('t.p1')::jsonb, i) q
    where q ->> 'id' in ('zz-11', 'zz-12', 'his-1', 'his-2', 'his-3')),
   array['his-1', 'his-2', 'his-3', 'zz-11', 'zz-12'],
   'défi du jour : questions absentes des 7 derniers jours en priorité'
@@ -251,7 +266,8 @@ select is(
 
 select ok(
   (select bool_and(jsonb_array_length(q -> 'answers') = 4 and q -> 'answers' ? 'bonne')
-   from jsonb_array_elements(current_setting('t.p1')::jsonb -> 'questions') q),
+   from generate_series(0, 9) i,
+        tests.q(current_setting('t.p1')::jsonb, i) q),
   '4 réponses par question, bonne réponse comprise (position inconnue)'
 );
 
@@ -262,12 +278,10 @@ do $$ begin
 end $$;
 
 select is(
-  (select array_agg(q ->> 'id' order by n)
-   from jsonb_array_elements(current_setting('t.p2')::jsonb -> 'questions')
-        with ordinality as t (q, n)),
-  (select array_agg(q ->> 'id' order by n)
-   from jsonb_array_elements(current_setting('t.p1')::jsonb -> 'questions')
-        with ordinality as t (q, n)),
+  (select array_agg(tests.q(current_setting('t.p2')::jsonb, i) ->> 'id' order by i)
+   from generate_series(0, 9) i),
+  (select array_agg(tests.q(current_setting('t.p1')::jsonb, i) ->> 'id' order by i)
+   from generate_series(0, 9) i),
   'défi du jour identique pour deux joueurs (même ordre)'
 );
 
@@ -324,16 +338,21 @@ select throws_ok($$select public.start_quiz('mix', 'divers')$$, '22023', null,
 select throws_ok($$select public.start_quiz('category', 'histoire')$$, 'P0002', null,
   'catégorie de 3 questions : pas assez de questions (P0002)');
 
+do $$ begin
+  perform set_config('t.cat', public.start_quiz('category', 'divers')::text, true);
+  perform set_config('t.mix', public.start_quiz('mix')::text, true);
+end $$;
+
 select is(
-  (select array_agg(distinct q ->> 'category')
-   from jsonb_array_elements(public.start_quiz('category', 'divers') -> 'questions') q),
+  (select array_agg(distinct tests.q(current_setting('t.cat')::jsonb, i) ->> 'category')
+   from generate_series(0, 9) i),
   array['divers'],
   'mode catégorie : questions de la catégorie'
 );
 
 select is(
-  (select count(distinct q ->> 'id')::int
-   from jsonb_array_elements(public.start_quiz('mix') -> 'questions') q),
+  (select count(distinct tests.q(current_setting('t.mix')::jsonb, i) ->> 'id')::int
+   from generate_series(0, 9) i),
   10,
   'mode mix : 10 questions distinctes'
 );
@@ -343,9 +362,9 @@ select is(
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 500)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id',
-         current_setting('t.p1')::jsonb -> 'questions' -> 1 ->> 'id'),
+         tests.q(current_setting('t.p1')::jsonb, 1) ->> 'id'),
   '22023', null,
-  'question hors ordre refusée'
+  'question hors ordre (pas encore servie) refusée'
 );
 
 select throws_ok(
@@ -358,7 +377,7 @@ select throws_ok(
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 499)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id',
-         current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id'),
+         tests.q(current_setting('t.p1')::jsonb, 0) ->> 'id'),
   '22023', null,
   'réponse en moins de 0,5 s refusée'
 );
@@ -366,7 +385,7 @@ select throws_ok(
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 30001)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id',
-         current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id'),
+         tests.q(current_setting('t.p1')::jsonb, 0) ->> 'id'),
   '22023', null,
   'réponse au-delà de 30 s refusée'
 );
@@ -374,7 +393,7 @@ select throws_ok(
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, null)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id',
-         current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id'),
+         tests.q(current_setting('t.p1')::jsonb, 0) ->> 'id'),
   '22023', null,
   'temps manquant refusé'
 );
@@ -382,23 +401,15 @@ select throws_ok(
 select throws_ok(
   format($$select public.answer_question(%L, %L, 4, 500)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id',
-         current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id'),
+         tests.q(current_setting('t.p1')::jsonb, 0) ->> 'id'),
   '22023', null,
   'réponse hors de 0 à 3 refusée'
 );
 
 select throws_ok(
-  format($$select public.answer_question(%L, %L, 0, 5000)$$,
-         current_setting('t.p1')::jsonb ->> 'quiz_id',
-         current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id'),
-  '22023', null,
-  'temps déclaré supérieur au temps écoulé côté serveur refusé'
-);
-
-select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 500)$$,
          gen_random_uuid(),
-         current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id'),
+         tests.q(current_setting('t.p1')::jsonb, 0) ->> 'id'),
   '22023', null,
   'quiz inconnu refusé'
 );
@@ -408,15 +419,16 @@ select throws_ok(
 do $$ begin
   perform set_config('t.a1', public.answer_question(
     (current_setting('t.p1')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id',
+    tests.q(current_setting('t.p1')::jsonb, 0) ->> 'id',
     tests.good(current_setting('t.p1')::jsonb, 0), 500)::text, true);
 end $$;
 
 select is(
   current_setting('t.a1')::jsonb - 'quiz_id' - 'question_id' - 'explanation' - 'choice',
-  jsonb_build_object('position', 1, 'correct', true,
+  jsonb_build_object('position', 1, 'correct', true, 'timed_out', false,
+                     'time_ms', 500,
                      'correct_choice', tests.good(current_setting('t.p1')::jsonb, 0)),
-  'réponse juste : correction renvoyée'
+  'réponse juste : correction renvoyée (temps officiel ramené à 500 ms)'
 );
 
 select ok(
@@ -427,18 +439,25 @@ select ok(
 select is(
   public.answer_question(
     (current_setting('t.p1')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.p1')::jsonb -> 'questions' -> 0 ->> 'id',
+    tests.q(current_setting('t.p1')::jsonb, 0) ->> 'id',
     (tests.good(current_setting('t.p1')::jsonb, 0) + 1) % 4, 900),
   current_setting('t.a1')::jsonb,
   'réessai avec un autre choix : réponse d''origine renvoyée, inchangée'
 );
 
 select is(
+  public.next_question((current_setting('t.p1')::jsonb ->> 'quiz_id')::uuid)
+    -> 'question' ->> 'id',
+  tests.q(current_setting('t.p1')::jsonb, 1) ->> 'id',
+  'question 2 servie après la réponse à la question 1'
+);
+
+select is(
   public.answer_question(
     (current_setting('t.p1')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.p1')::jsonb -> 'questions' -> 1 ->> 'id',
+    tests.q(current_setting('t.p1')::jsonb, 1) ->> 'id',
     null, 1000) - 'quiz_id' - 'question_id' - 'explanation' - 'correct_choice',
-  '{"position": 2, "choice": null, "correct": false}'::jsonb,
+  '{"position": 2, "choice": null, "correct": false, "timed_out": true, "time_ms": 500}'::jsonb,
   'temps écoulé (choix null) : réponse fausse'
 );
 
@@ -460,8 +479,9 @@ select ok(
 
 select is(
   (select jsonb_agg(q - 'answer') from jsonb_array_elements(current_setting('t.r1')::jsonb -> 'questions') q),
-  (select jsonb_agg(q - 'answer') from jsonb_array_elements(current_setting('t.p1')::jsonb -> 'questions') q),
-  'reprise : mêmes questions, même ordre des réponses'
+  (select jsonb_agg(tests.q(current_setting('t.p1')::jsonb, i) - 'answer' order by i)
+   from generate_series(0, 2) i),
+  'reprise : 2 questions répondues + la 3e (en cours), même ordre des réponses'
 );
 
 select is(
@@ -476,7 +496,7 @@ select is(
 select is(
   (current_setting('t.r1')::jsonb -> 'questions' -> 1 -> 'answer')
     - 'explanation' - 'correct_choice',
-  '{"choice": null, "correct": false, "time_ms": 1000}'::jsonb,
+  '{"choice": null, "correct": false, "time_ms": 500}'::jsonb,
   'reprise : 2e réponse (temps écoulé)'
 );
 
@@ -512,7 +532,7 @@ set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000001b1"
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 500)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id',
-         current_setting('t.p1')::jsonb -> 'questions' -> 2 ->> 'id'),
+         tests.q(current_setting('t.p1')::jsonb, 2) ->> 'id'),
   '22023', null,
   'réponse au quiz d''un autre joueur refusée'
 );
@@ -528,9 +548,11 @@ select throws_ok(
 select lives_ok(
   $q$do $d$ begin
     for i in 2 .. 9 loop
+      perform public.next_question(
+        (current_setting('t.p1')::jsonb ->> 'quiz_id')::uuid);
       perform public.answer_question(
         (current_setting('t.p1')::jsonb ->> 'quiz_id')::uuid,
-        current_setting('t.p1')::jsonb -> 'questions' -> i ->> 'id',
+        tests.q(current_setting('t.p1')::jsonb, i) ->> 'id',
         tests.good(current_setting('t.p1')::jsonb, i), 500);
     end loop;
   end $d$$q$,
@@ -577,7 +599,7 @@ select is(
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 500)$$,
          current_setting('t.p1')::jsonb ->> 'quiz_id',
-         current_setting('t.p1')::jsonb -> 'questions' -> 9 ->> 'id'),
+         tests.q(current_setting('t.p1')::jsonb, 9) ->> 'id'),
   '22023', null,
   'réponse (même un réessai) après soumission refusée'
 );
@@ -604,7 +626,7 @@ select is(
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 500)$$,
          current_setting('t.p2')::jsonb ->> 'quiz_id',
-         current_setting('t.p2')::jsonb -> 'questions' -> 0 ->> 'id'),
+         tests.q(current_setting('t.p2')::jsonb, 0) ->> 'id'),
   '22023', null,
   'P1 ne répond pas au quiz de P2'
 );
@@ -622,7 +644,7 @@ set local role authenticated;
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 500)$$,
          current_setting('t.p2')::jsonb ->> 'quiz_id',
-         current_setting('t.p2')::jsonb -> 'questions' -> 0 ->> 'id'),
+         tests.q(current_setting('t.p2')::jsonb, 0) ->> 'id'),
   '22023', null,
   'quiz expiré : réponse refusée'
 );
@@ -634,9 +656,13 @@ set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000001e1"
 do $$ begin
   perform set_config('t.p5', public.start_quiz('mix')::text, true);
   for i in 0 .. 9 loop
+    if i > 0 then
+      perform public.next_question(
+        (current_setting('t.p5')::jsonb ->> 'quiz_id')::uuid);
+    end if;
     perform public.answer_question(
       (current_setting('t.p5')::jsonb ->> 'quiz_id')::uuid,
-      current_setting('t.p5')::jsonb -> 'questions' -> i ->> 'id', 0, 500);
+      tests.q(current_setting('t.p5')::jsonb, i) ->> 'id', 0, 500);
   end loop;
 end $$;
 

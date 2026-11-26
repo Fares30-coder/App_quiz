@@ -22,14 +22,17 @@ class QuizState {
     this.quizId,
     this.userId,
     this.questions = const [],
+    int? total,
     this.index = 0,
     this.selected,
     this.timedOut = false,
     this.answerFailed = false,
+    this.loadingNext = false,
+    this.nextFailed = false,
     this.secondsLeft = questionSeconds,
     this.answers = const [],
     this.outcome,
-  });
+  }) : _total = total;
 
   final QuizMode mode;
 
@@ -44,8 +47,13 @@ class QuizState {
   final String? userId;
 
   /// Questions dans l'ordre joué ; une question servie reçoit sa bonne
-  /// réponse et son explication une fois répondue.
+  /// réponse et son explication une fois répondue. Quiz servi : seulement
+  /// les questions déjà reçues (une à une, `next_question`).
   final List<Question> questions;
+
+  /// Nombre de questions du quiz (y compris celles pas encore reçues).
+  int get total => _total ?? questions.length;
+  final int? _total;
   final int index;
 
   /// Réponse choisie pour la question en cours (null = pas encore répondu).
@@ -55,6 +63,13 @@ class QuizState {
   /// Correction impossible à obtenir du serveur (réseau) : la réponse est
   /// gardée, à renvoyer avec [QuizController.retryAnswer].
   final bool answerFailed;
+
+  /// Quiz servi : question suivante demandée au serveur.
+  final bool loadingNext;
+
+  /// Question suivante impossible à obtenir (réseau) : à redemander avec
+  /// [QuizController.retryNext].
+  final bool nextFailed;
   final int secondsLeft;
 
   /// Réponses déjà corrigées, dans l'ordre.
@@ -74,7 +89,7 @@ class QuizState {
 
   /// Réponse donnée, correction en attente du serveur.
   bool get waiting => locked && !answered;
-  bool get isLast => index == questions.length - 1;
+  bool get isLast => index == total - 1;
   bool get isFinished => outcome != null;
   int get score => answers.where((a) => a.correct).length;
 
@@ -106,6 +121,8 @@ class QuizState {
     int? Function()? selected,
     bool? timedOut,
     bool? answerFailed,
+    bool? loadingNext,
+    bool? nextFailed,
     int? secondsLeft,
     List<AnswerResult>? answers,
     QuizOutcome? outcome,
@@ -116,10 +133,13 @@ class QuizState {
         quizId: quizId,
         userId: userId,
         questions: questions ?? this.questions,
+        total: _total,
         index: index ?? this.index,
         selected: selected == null ? this.selected : selected(),
         timedOut: timedOut ?? this.timedOut,
         answerFailed: answerFailed ?? this.answerFailed,
+        loadingNext: loadingNext ?? this.loadingNext,
+        nextFailed: nextFailed ?? this.nextFailed,
         secondsLeft: secondsLeft ?? this.secondsLeft,
         answers: answers ?? this.answers,
         outcome: outcome ?? this.outcome,
@@ -144,6 +164,10 @@ class QuizController extends Notifier<QuizState> {
   /// Démarre un quiz : servi ([quizId] de `start_quiz`, corrigé par le
   /// serveur) ou local (corrigé avec les réponses de l'app).
   ///
+  /// [total] : nombre de questions du quiz servi ([questions] ne contient
+  /// que les questions déjà reçues) ; par défaut `questions.length`. Le
+  /// chrono de 30 s démarre à la réception de chaque question.
+  ///
   /// [answered] : défi du jour repris, réponses déjà enregistrées par le
   /// serveur (premières questions, déjà corrigées dans [questions]). Elles
   /// comptent telles quelles ; le quiz reprend à la première question sans
@@ -155,6 +179,7 @@ class QuizController extends Notifier<QuizState> {
     String? quizId,
     String? userId,
     List<ServedAnswer> answered = const [],
+    int? total,
   }) {
     final done = answered.length.clamp(0, questions.length);
     final results = [
@@ -167,6 +192,7 @@ class QuizController extends Notifier<QuizState> {
     final allAnswered = done > 0 && done == questions.length;
     state = QuizState(
       questions: questions,
+      total: total,
       mode: mode,
       category: category,
       quizId: quizId,
@@ -230,9 +256,15 @@ class QuizController extends Notifier<QuizState> {
             timeMs: submittedMs(elapsed),
           );
       if (!stillCurrent()) return false;
+      // Temps écoulé selon le serveur (question reçue il y a plus de 30 s,
+      // tolérance comprise) : la réponse ne compte pas.
+      final timedOut = correction.timedOut;
+      if (timedOut) {
+        state = state.copyWith(selected: () => null, timedOut: true);
+      }
       return _reveal(
-        choice,
-        elapsed,
+        timedOut ? null : choice,
+        timedOut ? const Duration(seconds: questionSeconds) : elapsed,
         state.current
             .withCorrection(correction.correctChoice, correction.explanation),
       );
@@ -259,20 +291,71 @@ class QuizController extends Notifier<QuizState> {
 
   /// Passe à la question suivante. Sur la dernière, termine le quiz
   /// (XP, série, objectif) et renvoie false.
+  ///
+  /// Quiz servi : la question suivante est demandée au serveur
+  /// (`next_question`) ; le quiz reste sur la question corrigée pendant le
+  /// chargement ([QuizState.loadingNext]) ou après un échec
+  /// ([QuizState.nextFailed]) et renvoie true (le quiz continue).
   bool next() {
     if (!state.answered || state.isFinished) return false;
     if (state.isLast) {
       _finish();
       return false;
     }
+    if (state.loadingNext) return true;
+    final quizId = state.quizId;
+    if (quizId != null && state.index + 1 >= state.questions.length) {
+      unawaited(_loadNext(quizId));
+      return true;
+    }
+    _goToNext(state.questions);
+    return true;
+  }
+
+  /// Redemande la question suivante après un échec réseau.
+  Future<void> retryNext() async {
+    final quizId = state.quizId;
+    if (quizId == null || !state.nextFailed || state.loadingNext) return;
+    await _loadNext(quizId);
+  }
+
+  Future<void> _loadNext(String quizId) async {
+    final index = state.index;
+    bool stillCurrent() =>
+        state.quizId == quizId &&
+        state.index == index &&
+        state.loadingNext &&
+        !state.isFinished;
+    state = state.copyWith(loadingNext: true, nextFailed: false);
+    try {
+      final served = await ref
+          .read(questionRepositoryProvider)
+          .nextQuestion(quizId: quizId);
+      if (!stillCurrent()) return;
+      // Position 1 à 10 : la question suivante est la position index + 2.
+      if (served.position != index + 2) {
+        throw StateError('question inattendue');
+      }
+      _goToNext([...state.questions, served.question]);
+    } catch (_) {
+      if (stillCurrent()) {
+        state = state.copyWith(loadingNext: false, nextFailed: true);
+      }
+    }
+  }
+
+  /// Affiche la question suivante (déjà dans [questions]) et lance son chrono.
+  void _goToNext(List<Question> questions) {
     state = state.copyWith(
+      questions: questions,
       index: state.index + 1,
       selected: () => null,
       timedOut: false,
+      loadingNext: false,
+      nextFailed: false,
       secondsLeft: questionSeconds,
     );
     _startQuestion();
-    return true;
   }
 
   /// Abandon : rien n'est compté (ni XP, ni série).
@@ -287,7 +370,7 @@ class QuizController extends Notifier<QuizState> {
           quizXp(state.answers),
           isDailyChallenge: state.mode == QuizMode.dailyChallenge,
           score: state.score,
-          total: state.questions.length,
+          total: state.total,
         );
     state = state.copyWith(outcome: outcome);
     _submit();
