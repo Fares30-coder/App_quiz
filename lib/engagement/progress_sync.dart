@@ -8,23 +8,39 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../backend/auth_service.dart';
 import '../backend/supabase_progress_source.dart';
 import '../backend/supabase_provider.dart';
+import '../data/pending_offline_day_repository.dart';
 import '../data/pending_quiz_repository.dart';
+import '../models/offline_day.dart';
 import '../models/player_progress.dart';
 import '../models/quiz_submission.dart';
 import '../models/server_profile.dart';
 import '../models/streak.dart';
+import 'dates.dart';
 import 'progress_controller.dart';
 
 /// Règle de fusion (voir aussi `supabase/README.md`) :
 /// - tant que `last_quiz_at` du serveur est `null` (aucun quiz soumis via
-///   `submit_quiz()`), la progression locale est conservée telle quelle ;
+///   `submit_quiz()` ni journée validée par `validate_offline_day()`), la
+///   progression locale est conservée telle quelle ;
 /// - dès qu'il est renseigné, le serveur fait foi pour XP, série, gels et
 ///   compteur de quiz du jour (il les a recalculés lui-même) ;
 /// - l'objectif du jour reste un choix local, jamais remplacé par le serveur
 ///   (il lui est envoyé via `set_daily_goal`).
 /// Les jours affichés de la semaine (joués / gelés) restent ceux de l'appareil.
+/// Compteur du jour : le plus grand des deux pour un même jour (les quiz
+/// hors ligne suivants du jour ne sont comptés que par l'appareil, le
+/// serveur ne valide qu'une fois la journée hors ligne). Si le jour local est
+/// postérieur à celui du serveur (journée hors ligne refusée, par exemple
+/// au plafond), le compteur local du jour est gardé : la jauge du jour ne
+/// retombe pas à 0.
 PlayerProgress mergeServerProgress(PlayerProgress local, ServerProfile server) {
   if (server.lastQuizAt == null) return local;
+  final localDay = local.quizzesDay;
+  final serverDay = server.quizDay;
+  final localAhead = localDay != null &&
+      (serverDay == null || daysBetween(serverDay, localDay) > 0);
+  final serverCount = serverDay == null ? 0 : server.quizCount;
+  final sameDay = isSameDay(localDay, serverDay);
   return local.copyWith(
     totalXp: server.xp,
     streak: Streak(
@@ -34,8 +50,10 @@ PlayerProgress mergeServerProgress(PlayerProgress local, ServerProfile server) {
       playedDays: local.streak.playedDays,
       frozenDays: local.streak.frozenDays,
     ),
-    quizzesDay: server.quizDay,
-    quizzesCount: server.quizDay == null ? 0 : server.quizCount,
+    quizzesDay: localAhead ? localDay : serverDay,
+    quizzesCount: localAhead || (sameDay && local.quizzesCount > serverCount)
+        ? local.quizzesCount
+        : serverCount,
   );
 }
 
@@ -47,17 +65,24 @@ PlayerProgress mergeServerProgress(PlayerProgress local, ServerProfile server) {
 /// Les quiz terminés passent par une file locale ([PendingQuizRepository]) :
 /// envoyés aussitôt à `submit_quiz`, sinon au sync suivant. Tant que la file
 /// n'est pas vide, la progression locale (en avance) n'est pas remplacée.
+///
+/// Un quiz local (hors ligne) qui valide la journée passe par une seconde
+/// file ([PendingOfflineDayRepository]) : `validate_offline_day` est appelée
+/// au sync suivant, avant d'appliquer le profil serveur, pour garder la série
+/// (ni XP ni classement). Les deux files sont envoyées dans l'ordre joué.
 class ProgressSync {
   ProgressSync(
     this._ref,
     this._source,
-    this._queue, {
+    this._queue,
+    this._days, {
     this.minInterval = const Duration(minutes: 1),
   });
 
   final Ref _ref;
   final SupabaseProgressSource _source;
   final PendingQuizRepository _queue;
+  final PendingOfflineDayRepository _days;
   final Duration minInterval;
 
   Future<void>? _pending;
@@ -93,7 +118,7 @@ class ProgressSync {
       final server = await _source.fetch(userId);
       if (server == null) return;
       final local = _ref.read(progressControllerProvider);
-      if (_queue.isEmpty) _apply(server);
+      if (_queue.isEmpty && _days.isEmpty) _apply(server);
       if (local.onboardingDone && local.dailyGoal != server.dailyGoal) {
         await _source.setDailyGoal(local.dailyGoal);
       }
@@ -123,27 +148,62 @@ class ProgressSync {
     return _xpGained.remove(submission.id);
   }
 
-  /// Un seul envoi de la file à la fois (quiz terminé pendant un sync).
+  /// Quiz local (hors ligne, lot `assets/`) qui vient de valider la journée
+  /// en mode Supabase : mémorisé sous le compte connecté, puis envoyé à
+  /// `validate_offline_day` (tout de suite si possible, sinon au prochain
+  /// [sync]). Sans session : rien (la progression locale reste celle de
+  /// l'appareil tant que le serveur n'a aucun quiz).
+  Future<void> recordOfflineDay(DateTime playedAt) async {
+    final userId = _ref.read(authUserIdProvider);
+    if (userId == null) return;
+    await _days.add(OfflineDay(userId: userId, playedAt: playedAt));
+    try {
+      await _flush();
+    } catch (e) {
+      _log('journée hors ligne non envoyée, réessai au prochain sync', e);
+    }
+  }
+
+  /// Un seul envoi des files à la fois (quiz terminé pendant un sync).
   Future<void> _flush() =>
       _flushing ??= _flushQueue().whenComplete(() => _flushing = null);
 
-  /// Envoie la file dans l'ordre joué. Un quiz refusé définitivement est
-  /// abandonné ; une erreur passagère arrête l'envoi (file conservée).
-  /// Les quiz d'un autre compte et ceux trop anciens pour le serveur
-  /// (plus de [QuizSubmission.maxDelay]) sont abandonnés sans envoi.
+  /// Envoie les deux files (quiz servis, journées hors ligne) dans l'ordre
+  /// joué : une journée hors ligne de la veille passe avant un quiz servi
+  /// aujourd'hui (sinon la veille compterait comme manquée). Une entrée
+  /// refusée définitivement est abandonnée ; une erreur passagère arrête
+  /// l'envoi (files conservées). Les entrées d'un autre compte et celles trop
+  /// anciennes pour le serveur (plus de 6 h) sont abandonnées sans envoi.
   Future<void> _flushQueue() async {
     final userId = _ref.read(authUserIdProvider);
     if (userId == null) return;
     ServerProfile? last;
+    var submitted = false;
     while (true) {
       final now = _ref.read(clockProvider)();
       await _queue.removeWhere((s) => s.userId != userId || s.isExpiredAt(now));
-      final queue = _queue.load();
-      if (queue.isEmpty) break;
-      final next = queue.first;
+      await _days.removeWhere((d) => d.userId != userId || d.isExpiredAt(now));
+      final quizzes = _queue.load();
+      final days = _days.load();
+      if (quizzes.isEmpty && days.isEmpty) break;
+      final day = days.isEmpty ? null : days.first;
+      final quiz = quizzes.isEmpty ? null : quizzes.first;
+      if (day != null &&
+          (quiz == null || !quiz.playedAt.isBefore(day.playedAt))) {
+        try {
+          last = (await _source.validateOfflineDay(day)).profile;
+        } catch (e) {
+          if (!isRejectedQuiz(e)) rethrow;
+          _log('journée hors ligne refusée par le serveur, abandonnée', e);
+        }
+        await _days.remove(day);
+        continue;
+      }
+      final next = quiz!;
       try {
         final result = await _source.submitQuiz(next);
         last = result.profile;
+        submitted = true;
         _xpGained[next.id] = result.xpGained;
       } catch (e) {
         if (!isRejectedQuiz(e)) rethrow;
@@ -151,10 +211,8 @@ class ProgressSync {
       }
       await _queue.remove(next.id);
     }
-    if (last != null) {
-      _apply(last);
-      _ref.read(validatedQuizzesProvider.notifier).state++;
-    }
+    if (last != null) _apply(last);
+    if (submitted) _ref.read(validatedQuizzesProvider.notifier).state++;
   }
 
   /// Applique le profil serveur selon [mergeServerProgress].
@@ -206,6 +264,7 @@ final progressSyncProvider = Provider<ProgressSync?>((ref) {
     ref,
     SupabaseProgressSource(client),
     ref.watch(pendingQuizRepositoryProvider),
+    ref.watch(pendingOfflineDayRepositoryProvider),
   );
 
   // Lancement : dès que la connexion (anonyme ou restaurée) aboutit.

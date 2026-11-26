@@ -563,7 +563,9 @@ select is(
 
 reset role;
 select is(
-  (select array_agg(sq.elapsed_ms order by qs.started_at, qs.id)
+  -- Tri par valeur : les deux sessions ont le même started_at (now() fixe
+  -- dans la transaction), un tri par session dépendrait d'un uuid aléatoire.
+  (select array_agg(sq.elapsed_ms order by sq.elapsed_ms)
      from public.quiz_sessions qs
      join public.quiz_session_questions sq on sq.quiz_id = qs.id and sq.position = 1
     where qs.user_id = '00000000-0000-0000-0000-0000000003d1'),
