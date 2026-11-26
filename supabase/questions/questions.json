@@ -628,5 +628,635 @@
     "correctIndex": 0,
     "explanation": "M vaut 1 000 et CM vaut 900 (C placé avant M se retranche) : 1 000 + 900 = 1 900.",
     "difficulty": 3
+  },
+  {
+    "id": "his-014",
+    "category": "histoire",
+    "question": "Quel navigateur a atteint l'Amérique en 1492 ?",
+    "answers": ["Christophe Colomb", "Vasco de Gama", "Fernand de Magellan", "Amerigo Vespucci"],
+    "correctIndex": 0,
+    "explanation": "Au service des Rois catholiques d'Espagne, Colomb aborde une île des Bahamas le 12 octobre 1492, persuadé d'avoir atteint les Indes.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-015",
+    "category": "histoire",
+    "question": "En quelle année a commencé la Première Guerre mondiale ?",
+    "answers": ["1912", "1914", "1916", "1918"],
+    "correctIndex": 1,
+    "explanation": "Le conflit éclate en août 1914, un mois après l'assassinat de l'archiduc François-Ferdinand à Sarajevo. Il prend fin en 1918.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-016",
+    "category": "histoire",
+    "question": "Qui a été le premier homme à marcher sur la Lune, en 1969 ?",
+    "answers": ["Buzz Aldrin", "Youri Gagarine", "Neil Armstrong", "John Glenn"],
+    "correctIndex": 2,
+    "explanation": "Le 21 juillet 1969 (heure française), Armstrong pose le pied sur la Lune lors de la mission Apollo 11, suivi de Buzz Aldrin.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-017",
+    "category": "histoire",
+    "question": "Quel paquebot a fait naufrage en avril 1912 lors de son voyage inaugural ?",
+    "answers": ["Le Lusitania", "L'Olympic", "Le Normandie", "Le Titanic"],
+    "correctIndex": 3,
+    "explanation": "Le Titanic a heurté un iceberg dans l'Atlantique Nord dans la nuit du 14 au 15 avril 1912 ; environ 1 500 personnes ont péri.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-018",
+    "category": "histoire",
+    "question": "Quel chef gaulois a été vaincu par Jules César à Alésia ?",
+    "answers": ["Vercingétorix", "Ambiorix", "Brennus", "Dumnorix"],
+    "correctIndex": 0,
+    "explanation": "Assiégé à Alésia en 52 av. J.-C., Vercingétorix se rend à César. Il est exécuté à Rome quelques années plus tard.",
+    "difficulty": 2
+  },
+  {
+    "id": "his-019",
+    "category": "histoire",
+    "question": "Quelle jeune femme a aidé à libérer Orléans, assiégée par les Anglais, en 1429 ?",
+    "answers": ["Blanche de Castille", "Jeanne d'Arc", "Aliénor d'Aquitaine", "Anne de Bretagne"],
+    "correctIndex": 1,
+    "explanation": "Après Orléans, Jeanne d'Arc fait sacrer Charles VII à Reims. Capturée, elle est brûlée à Rouen en 1431.",
+    "difficulty": 2
+  },
+  {
+    "id": "his-020",
+    "category": "histoire",
+    "question": "En quelle année l'esclavage a-t-il été définitivement aboli dans les colonies françaises ?",
+    "answers": ["1794", "1815", "1848", "1870"],
+    "correctIndex": 2,
+    "explanation": "Le décret du 27 avril 1848, porté par Victor Schœlcher, abolit l'esclavage. Une première abolition de 1794 avait été annulée par Napoléon en 1802.",
+    "difficulty": 2
+  },
+  {
+    "id": "his-021",
+    "category": "histoire",
+    "question": "Comment appelle-t-on le conflit qui a opposé la France et l'Angleterre de 1337 à 1453 ?",
+    "answers": ["La guerre de Trente Ans", "La guerre de Sept Ans", "Les guerres de Religion", "La guerre de Cent Ans"],
+    "correctIndex": 3,
+    "explanation": "Malgré son nom, elle a duré 116 ans, entrecoupée de longues trêves.",
+    "difficulty": 2
+  },
+  {
+    "id": "his-022",
+    "category": "histoire",
+    "question": "En quelle année Constantinople a-t-elle été prise par les Ottomans ?",
+    "answers": ["1453", "1204", "1492", "1515"],
+    "correctIndex": 0,
+    "explanation": "Le sultan Mehmed II s'empare de la ville le 29 mai 1453, ce qui met fin à l'Empire byzantin. Elle deviendra Istanbul.",
+    "difficulty": 3
+  },
+  {
+    "id": "his-023",
+    "category": "histoire",
+    "question": "Quels traités ont mis fin à la guerre de Trente Ans en 1648 ?",
+    "answers": ["Les traités d'Utrecht", "Les traités de Westphalie", "Le traité des Pyrénées", "Le traité de Versailles"],
+    "correctIndex": 1,
+    "explanation": "Signés à Münster et Osnabrück, ils redessinent l'Europe et donnent notamment à la France une grande partie de l'Alsace.",
+    "difficulty": 3
+  },
+  {
+    "id": "geo-014",
+    "category": "geo",
+    "question": "Dans quelle ville se trouve la statue de la Liberté ?",
+    "answers": ["Washington", "New York", "Boston", "Philadelphie"],
+    "correctIndex": 1,
+    "explanation": "Offerte par la France aux États-Unis, elle a été inaugurée en 1886. Sa structure interne a été conçue par Gustave Eiffel.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-015",
+    "category": "geo",
+    "question": "Quelle chaîne de montagnes sépare la France de l'Espagne ?",
+    "answers": ["Les Alpes", "Le Jura", "Les Pyrénées", "Les Vosges"],
+    "correctIndex": 2,
+    "explanation": "Les Pyrénées s'étendent sur environ 430 km, de l'Atlantique à la Méditerranée. Andorre est nichée en leur cœur.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-016",
+    "category": "geo",
+    "question": "Quel est le plus grand pays du monde par sa superficie ?",
+    "answers": ["Le Canada", "La Chine", "Les États-Unis", "La Russie"],
+    "correctIndex": 3,
+    "explanation": "Avec environ 17 millions de km², la Russie est presque deux fois plus vaste que le Canada, deuxième du classement.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-017",
+    "category": "geo",
+    "question": "Quelle est la capitale du Portugal ?",
+    "answers": ["Lisbonne", "Porto", "Coimbra", "Faro"],
+    "correctIndex": 0,
+    "explanation": "Lisbonne est bâtie sur l'estuaire du Tage. Elle a été en grande partie détruite par un séisme en 1755.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-018",
+    "category": "geo",
+    "question": "Quelle est la capitale du Brésil ?",
+    "answers": ["Rio de Janeiro", "Brasília", "São Paulo", "Salvador"],
+    "correctIndex": 1,
+    "explanation": "Brasília a été construite de toutes pièces et inaugurée en 1960 pour remplacer Rio de Janeiro comme capitale.",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-019",
+    "category": "geo",
+    "question": "Quelle est la capitale du Maroc ?",
+    "answers": ["Casablanca", "Marrakech", "Rabat", "Fès"],
+    "correctIndex": 2,
+    "explanation": "Rabat est la capitale politique du Maroc, alors que Casablanca en est la plus grande ville et le poumon économique.",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-020",
+    "category": "geo",
+    "question": "Dans quel pays se trouve la ville historique de Tombouctou ?",
+    "answers": ["Le Niger", "La Mauritanie", "Le Burkina Faso", "Le Mali"],
+    "correctIndex": 3,
+    "explanation": "Surnommée « la ville aux 333 saints », Tombouctou est célèbre pour ses mosquées en terre et ses manuscrits anciens.",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-021",
+    "category": "geo",
+    "question": "Quelle est la capitale de la Nouvelle-Zélande ?",
+    "answers": ["Wellington", "Auckland", "Christchurch", "Dunedin"],
+    "correctIndex": 0,
+    "explanation": "Wellington, au sud de l'île du Nord, est la capitale depuis 1865. Auckland est pourtant la ville la plus peuplée.",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-022",
+    "category": "geo",
+    "question": "Quel pays possède le plus de fuseaux horaires, en comptant ses territoires d'outre-mer ?",
+    "answers": ["La Russie", "La France", "Les États-Unis", "Le Royaume-Uni"],
+    "correctIndex": 1,
+    "explanation": "Grâce à ses territoires répartis sur tous les océans, la France couvre 12 fuseaux horaires (13 avec la terre Adélie), contre 11 pour la Russie.",
+    "difficulty": 3
+  },
+  {
+    "id": "geo-023",
+    "category": "geo",
+    "question": "Quel est le plus long fleuve d'Europe ?",
+    "answers": ["Le Danube", "Le Rhin", "La Volga", "Le Dniepr"],
+    "correctIndex": 2,
+    "explanation": "La Volga coule entièrement en Russie sur environ 3 500 km avant de se jeter dans la mer Caspienne. Le Danube arrive deuxième.",
+    "difficulty": 3
+  },
+  {
+    "id": "sci-014",
+    "category": "sciences",
+    "question": "Combien de pattes possède une araignée ?",
+    "answers": ["6", "10", "8", "12"],
+    "correctIndex": 2,
+    "explanation": "Les araignées sont des arachnides et ont 8 pattes, contrairement aux insectes, qui en ont 6.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-015",
+    "category": "sciences",
+    "question": "Quelle est l'étoile la plus proche de la Terre ?",
+    "answers": ["Proxima du Centaure", "Sirius", "L'étoile Polaire", "Le Soleil"],
+    "correctIndex": 3,
+    "explanation": "Le Soleil est une étoile, à environ 150 millions de km. Après lui, la plus proche est Proxima du Centaure, à un peu plus de 4 années-lumière.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-016",
+    "category": "sciences",
+    "question": "À quelle température l'eau pure bout-elle au niveau de la mer ?",
+    "answers": ["100 °C", "90 °C", "80 °C", "120 °C"],
+    "correctIndex": 0,
+    "explanation": "À la pression atmosphérique normale, l'eau bout à 100 °C. En altitude, la pression baisse et l'eau bout à plus basse température.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-017",
+    "category": "sciences",
+    "question": "Quel est le plus grand animal vivant sur Terre ?",
+    "answers": ["L'éléphant d'Afrique", "La baleine bleue", "Le requin-baleine", "Le cachalot"],
+    "correctIndex": 1,
+    "explanation": "La baleine bleue peut dépasser 25 m de long et 100 tonnes, ce qui en fait le plus grand animal connu, dinosaures compris.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-018",
+    "category": "sciences",
+    "question": "Quel est le symbole chimique du fer ?",
+    "answers": ["Fr", "F", "Fe", "Ir"],
+    "correctIndex": 2,
+    "explanation": "Fe vient du latin ferrum. F désigne le fluor, Fr le francium et Ir l'iridium.",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-019",
+    "category": "sciences",
+    "question": "Combien de cœurs possède une pieuvre ?",
+    "answers": ["1", "2", "4", "3"],
+    "correctIndex": 3,
+    "explanation": "Deux cœurs envoient le sang vers les branchies et un troisième l'envoie dans le reste du corps. Son sang est bleu.",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-020",
+    "category": "sciences",
+    "question": "Quel chimiste a publié le premier tableau périodique des éléments en 1869 ?",
+    "answers": ["Dmitri Mendeleïev", "Antoine Lavoisier", "Marie Curie", "John Dalton"],
+    "correctIndex": 0,
+    "explanation": "Le chimiste russe a classé les éléments selon leur masse et laissé des cases vides pour des éléments encore inconnus, découverts ensuite.",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-021",
+    "category": "sciences",
+    "question": "Quel est l'os le plus long du corps humain ?",
+    "answers": ["Le tibia", "Le fémur", "L'humérus", "Le péroné"],
+    "correctIndex": 1,
+    "explanation": "Le fémur, l'os de la cuisse, mesure environ un quart de la taille d'une personne. C'est aussi l'un des plus solides.",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-022",
+    "category": "sciences",
+    "question": "Quel physicien a mis en évidence le noyau de l'atome en 1911 ?",
+    "answers": ["Niels Bohr", "Joseph John Thomson", "Ernest Rutherford", "James Chadwick"],
+    "correctIndex": 2,
+    "explanation": "En bombardant une fine feuille d'or, Rutherford a montré que la masse de l'atome est concentrée dans un minuscule noyau.",
+    "difficulty": 3
+  },
+  {
+    "id": "sci-023",
+    "category": "sciences",
+    "question": "Quel métal est le meilleur conducteur d'électricité ?",
+    "answers": ["Le cuivre", "L'or", "L'aluminium", "L'argent"],
+    "correctIndex": 3,
+    "explanation": "L'argent conduit un peu mieux que le cuivre, mais il est bien plus cher : c'est pourquoi les câbles électriques sont en cuivre.",
+    "difficulty": 3
+  },
+  {
+    "id": "art-014",
+    "category": "arts",
+    "question": "Qui a écrit Roméo et Juliette ?",
+    "answers": ["Molière", "Miguel de Cervantès", "Johann Wolfgang von Goethe", "William Shakespeare"],
+    "correctIndex": 3,
+    "explanation": "Shakespeare a écrit cette tragédie vers 1595. L'histoire des deux amants se déroule à Vérone, en Italie.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-015",
+    "category": "arts",
+    "question": "Qui a peint le plafond de la chapelle Sixtine ?",
+    "answers": ["Michel-Ange", "Raphaël", "Léonard de Vinci", "Le Caravage"],
+    "correctIndex": 0,
+    "explanation": "Michel-Ange l'a peint de 1508 à 1512, à la demande du pape Jules II. La Création d'Adam en est la scène la plus célèbre.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-016",
+    "category": "arts",
+    "question": "Qui a écrit Les Trois Mousquetaires ?",
+    "answers": ["Victor Hugo", "Alexandre Dumas", "Jules Verne", "Honoré de Balzac"],
+    "correctIndex": 1,
+    "explanation": "Publié en 1844, le roman suit d'Artagnan et ses amis Athos, Porthos et Aramis.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-017",
+    "category": "arts",
+    "question": "Quel auteur belge a créé Tintin ?",
+    "answers": ["Franquin", "Peyo", "Hergé", "Morris"],
+    "correctIndex": 2,
+    "explanation": "Tintin apparaît en 1929. Hergé est le pseudonyme de Georges Remi, formé à partir de ses initiales inversées (R. G.).",
+    "difficulty": 1
+  },
+  {
+    "id": "art-018",
+    "category": "arts",
+    "question": "Quel compositeur a écrit l'opéra La Flûte enchantée ?",
+    "answers": ["Ludwig van Beethoven", "Richard Wagner", "Giuseppe Verdi", "Wolfgang Amadeus Mozart"],
+    "correctIndex": 3,
+    "explanation": "Mozart l'a créé à Vienne en 1791, quelques semaines avant sa mort, à 35 ans.",
+    "difficulty": 2
+  },
+  {
+    "id": "art-019",
+    "category": "arts",
+    "question": "Quel peintre a réalisé Le Déjeuner sur l'herbe en 1863 ?",
+    "answers": ["Édouard Manet", "Claude Monet", "Auguste Renoir", "Gustave Courbet"],
+    "correctIndex": 0,
+    "explanation": "Refusé au Salon officiel, le tableau a fait scandale au Salon des refusés de 1863. Il est exposé au musée d'Orsay.",
+    "difficulty": 2
+  },
+  {
+    "id": "art-020",
+    "category": "arts",
+    "question": "Quelle romancière a créé le détective Hercule Poirot ?",
+    "answers": ["Mary Shelley", "Agatha Christie", "Jane Austen", "Virginia Woolf"],
+    "correctIndex": 1,
+    "explanation": "Le détective belge apparaît en 1920 dans La Mystérieuse Affaire de Styles. Agatha Christie est l'une des autrices les plus vendues au monde.",
+    "difficulty": 2
+  },
+  {
+    "id": "art-021",
+    "category": "arts",
+    "question": "Qui a écrit le roman Le Rouge et le Noir ?",
+    "answers": ["Gustave Flaubert", "Émile Zola", "Stendhal", "Honoré de Balzac"],
+    "correctIndex": 2,
+    "explanation": "Publié en 1830, le roman raconte l'ascension de Julien Sorel. Stendhal est le pseudonyme d'Henri Beyle.",
+    "difficulty": 2
+  },
+  {
+    "id": "art-022",
+    "category": "arts",
+    "question": "Quel peintre a réalisé La Jeune Fille à la perle ?",
+    "answers": ["Rembrandt", "Frans Hals", "Pieter Bruegel l'Ancien", "Johannes Vermeer"],
+    "correctIndex": 3,
+    "explanation": "Ce tableau du peintre néerlandais, peint vers 1665, est conservé au Mauritshuis, à La Haye.",
+    "difficulty": 3
+  },
+  {
+    "id": "art-023",
+    "category": "arts",
+    "question": "Quel était le vrai nom de Molière ?",
+    "answers": ["Jean-Baptiste Poquelin", "Jean-Baptiste Lully", "François-Marie Arouet", "Pierre Carlet"],
+    "correctIndex": 0,
+    "explanation": "Fils d'un tapissier du roi, il prend le nom de Molière vers 1644. François-Marie Arouet est le vrai nom de Voltaire.",
+    "difficulty": 3
+  },
+  {
+    "id": "spo-014",
+    "category": "sport",
+    "question": "Dans quel pays le judo a-t-il été créé ?",
+    "answers": ["Le Japon", "La Chine", "La Corée du Sud", "La Thaïlande"],
+    "correctIndex": 0,
+    "explanation": "Le judo a été fondé en 1882 à Tokyo par Jigoro Kano. Il est devenu un sport olympique en 1964.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-015",
+    "category": "sport",
+    "question": "Combien de temps dure un match de football, hors arrêts de jeu et prolongations ?",
+    "answers": ["80 minutes", "90 minutes", "100 minutes", "120 minutes"],
+    "correctIndex": 1,
+    "explanation": "Un match se joue en deux mi-temps de 45 minutes. L'arbitre ajoute ensuite du temps additionnel pour compenser les arrêts.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-016",
+    "category": "sport",
+    "question": "Combien d'anneaux figurent sur le drapeau olympique ?",
+    "answers": ["4", "6", "5", "7"],
+    "correctIndex": 2,
+    "explanation": "Les cinq anneaux entrelacés, dessinés par Pierre de Coubertin, symbolisent l'union des continents.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-017",
+    "category": "sport",
+    "question": "Dans quel sport réalise-t-on un « strike » en renversant toutes les quilles d'un coup ?",
+    "answers": ["Le billard", "Le curling", "La pétanque", "Le bowling"],
+    "correctIndex": 3,
+    "explanation": "Un strike, c'est renverser les 10 quilles dès le premier lancer. Une partie parfaite, 12 strikes d'affilée, vaut 300 points.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-018",
+    "category": "sport",
+    "question": "À quelle hauteur se trouve un panier de basket-ball ?",
+    "answers": ["3,05 m", "2,80 m", "3,25 m", "3,50 m"],
+    "correctIndex": 0,
+    "explanation": "Le cercle est fixé à 10 pieds, soit 3,05 m. Cette hauteur n'a pas changé depuis l'invention du jeu en 1891.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-019",
+    "category": "sport",
+    "question": "Combien de joueurs par équipe sont sur le terrain au volley-ball ?",
+    "answers": ["5", "6", "7", "8"],
+    "correctIndex": 1,
+    "explanation": "Chaque équipe aligne 6 joueurs, qui tournent d'une position chaque fois qu'ils récupèrent le service.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-020",
+    "category": "sport",
+    "question": "Sur quelle surface se joue le tournoi de Wimbledon ?",
+    "answers": ["La terre battue", "Le dur", "Le gazon", "La moquette"],
+    "correctIndex": 2,
+    "explanation": "Créé en 1877 à Londres, Wimbledon est le plus ancien tournoi de tennis du monde et le seul Grand Chelem sur gazon.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-021",
+    "category": "sport",
+    "question": "Au tennis, comment appelle-t-on le score de 40-40 ?",
+    "answers": ["Avantage", "Jeu blanc", "Tie-break", "Égalité"],
+    "correctIndex": 3,
+    "explanation": "À 40-40, il faut ensuite marquer deux points d'affilée : le premier donne l'avantage, le second le jeu.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-022",
+    "category": "sport",
+    "question": "Quel pays a remporté la première Coupe du monde de football, en 1930 ?",
+    "answers": ["L'Uruguay", "L'Argentine", "Le Brésil", "L'Italie"],
+    "correctIndex": 0,
+    "explanation": "Organisateur du tournoi, l'Uruguay a battu l'Argentine 4-2 en finale à Montevideo.",
+    "difficulty": 3
+  },
+  {
+    "id": "spo-023",
+    "category": "sport",
+    "question": "Au hockey sur glace, combien de joueurs par équipe sont sur la glace, gardien compris ?",
+    "answers": ["5", "6", "7", "8"],
+    "correctIndex": 1,
+    "explanation": "Chaque équipe aligne un gardien et 5 joueurs de champ, qui se relaient très souvent en cours de jeu.",
+    "difficulty": 3
+  },
+  {
+    "id": "act-014",
+    "category": "actu",
+    "question": "Quel pays a remporté la Coupe du monde de football 2022 au Qatar ?",
+    "answers": ["La France", "L'Argentine", "La Croatie", "Le Brésil"],
+    "correctIndex": 1,
+    "explanation": "L'Argentine de Lionel Messi a battu la France aux tirs au but (3-3, puis 4-2) en finale, le 18 décembre 2022.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-015",
+    "category": "actu",
+    "question": "Quelle équipe a remporté la Coupe du monde de rugby 2023, organisée en France ?",
+    "answers": ["La Nouvelle-Zélande", "La France", "L'Afrique du Sud", "L'Irlande"],
+    "correctIndex": 2,
+    "explanation": "Les Springboks ont battu la Nouvelle-Zélande 12-11 en finale au Stade de France, remportant un 4e titre record.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-016",
+    "category": "actu",
+    "question": "Quel pape est mort le 21 avril 2025 ?",
+    "answers": ["Benoît XVI", "Jean-Paul II", "Paul VI", "François"],
+    "correctIndex": 3,
+    "explanation": "Le pape François, premier pape sud-américain, est mort à 88 ans, après douze ans de pontificat.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-017",
+    "category": "actu",
+    "question": "Quel roi a été couronné à Londres en mai 2023 ?",
+    "answers": ["Charles III", "William V", "George VII", "Édouard IX"],
+    "correctIndex": 0,
+    "explanation": "Charles III, roi depuis la mort d'Élisabeth II en septembre 2022, a été couronné à l'abbaye de Westminster le 6 mai 2023.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-018",
+    "category": "actu",
+    "question": "Quel coureur a remporté le Tour de France 2025 ?",
+    "answers": ["Jonas Vingegaard", "Tadej Pogačar", "Remco Evenepoel", "Primož Roglič"],
+    "correctIndex": 1,
+    "explanation": "Le Slovène a décroché son quatrième Tour de France, devant le Danois Jonas Vingegaard.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-019",
+    "category": "actu",
+    "question": "Quel joueur a remporté le tournoi masculin de Roland-Garros 2025 ?",
+    "answers": ["Jannik Sinner", "Novak Djokovic", "Carlos Alcaraz", "Alexander Zverev"],
+    "correctIndex": 2,
+    "explanation": "L'Espagnol a battu Jannik Sinner en cinq sets lors d'une finale de plus de cinq heures, après avoir sauvé trois balles de match.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-020",
+    "category": "actu",
+    "question": "En 2024, quel pays est devenu le premier à inscrire la liberté de recourir à l'IVG dans sa Constitution ?",
+    "answers": ["L'Espagne", "La Suède", "L'Irlande", "La France"],
+    "correctIndex": 3,
+    "explanation": "Le Parlement réuni en Congrès à Versailles a adopté cette révision constitutionnelle le 4 mars 2024.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-021",
+    "category": "actu",
+    "question": "Selon l'ONU, quel pays est devenu en 2023 le plus peuplé du monde ?",
+    "answers": ["L'Inde", "La Chine", "L'Indonésie", "Les États-Unis"],
+    "correctIndex": 0,
+    "explanation": "L'Inde a dépassé la Chine en 2023 avec plus de 1,4 milliard d'habitants, selon les estimations des Nations unies.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-022",
+    "category": "actu",
+    "question": "Quel pays est devenu en mars 2024 le 32e membre de l'OTAN ?",
+    "answers": ["La Finlande", "La Suède", "L'Ukraine", "L'Autriche"],
+    "correctIndex": 1,
+    "explanation": "La Suède a rejoint l'Alliance le 7 mars 2024, un an après la Finlande, rompant avec deux siècles de neutralité.",
+    "difficulty": 3
+  },
+  {
+    "id": "act-023",
+    "category": "actu",
+    "question": "Quelle mission a réalisé en septembre 2024 la première sortie dans l'espace d'astronautes privés ?",
+    "answers": ["Inspiration4", "Axiom Mission 3", "Polaris Dawn", "Artemis I"],
+    "correctIndex": 2,
+    "explanation": "Le 12 septembre 2024, le milliardaire Jared Isaacman et l'ingénieure Sarah Gillis sont sortis de leur capsule Crew Dragon de SpaceX.",
+    "difficulty": 3
+  },
+  {
+    "id": "div-014",
+    "category": "divers",
+    "question": "Combien de couleurs compte traditionnellement un arc-en-ciel ?",
+    "answers": ["5", "6", "7", "8"],
+    "correctIndex": 2,
+    "explanation": "Rouge, orange, jaune, vert, bleu, indigo et violet : Isaac Newton a retenu ce découpage en sept couleurs.",
+    "difficulty": 1
+  },
+  {
+    "id": "div-015",
+    "category": "divers",
+    "question": "Quel animal est un emblème traditionnel de la France ?",
+    "answers": ["L'aigle", "Le lion", "L'ours", "Le coq"],
+    "correctIndex": 3,
+    "explanation": "Le coq vient d'un jeu de mots latin : gallus signifie à la fois « coq » et « Gaulois ».",
+    "difficulty": 1
+  },
+  {
+    "id": "div-016",
+    "category": "divers",
+    "question": "Quel fruit est l'ingrédient principal du guacamole ?",
+    "answers": ["L'avocat", "La mangue", "La papaye", "La goyave"],
+    "correctIndex": 0,
+    "explanation": "Le guacamole est une recette d'origine aztèque, au Mexique, à base d'avocat écrasé.",
+    "difficulty": 1
+  },
+  {
+    "id": "div-017",
+    "category": "divers",
+    "question": "Combien de mois de l'année comptent 31 jours ?",
+    "answers": ["5", "7", "6", "8"],
+    "correctIndex": 1,
+    "explanation": "Janvier, mars, mai, juillet, août, octobre et décembre ont 31 jours. Astuce : comptez sur les bosses de vos poings.",
+    "difficulty": 1
+  },
+  {
+    "id": "div-018",
+    "category": "divers",
+    "question": "Sur un dé à six faces classique, quelle est la somme de deux faces opposées ?",
+    "answers": ["6", "8", "7", "9"],
+    "correctIndex": 2,
+    "explanation": "Le 1 est opposé au 6, le 2 au 5 et le 3 au 4 : chaque paire fait 7.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-019",
+    "category": "divers",
+    "question": "Malgré son nom, de quelle couleur est la « boîte noire » d'un avion ?",
+    "answers": ["Noire", "Rouge", "Jaune", "Orange"],
+    "correctIndex": 3,
+    "explanation": "Elle est peinte en orange vif pour être retrouvée plus facilement après un accident.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-020",
+    "category": "divers",
+    "question": "Quelles noces célèbre-t-on pour 50 ans de mariage ?",
+    "answers": ["Les noces d'or", "Les noces d'argent", "Les noces de diamant", "Les noces de platine"],
+    "correctIndex": 0,
+    "explanation": "On fête les noces d'argent à 25 ans, d'or à 50 ans et de diamant à 60 ans de mariage.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-021",
+    "category": "divers",
+    "question": "Aux dames internationales (damier de 100 cases), combien de pions chaque joueur a-t-il au départ ?",
+    "answers": ["12", "20", "16", "24"],
+    "correctIndex": 1,
+    "explanation": "Chaque joueur place 20 pions sur les cases foncées des quatre premières rangées. Les dames anglaises, sur 64 cases, en utilisent 12.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-022",
+    "category": "divers",
+    "question": "Comment s'appelle le symbole « & » ?",
+    "answers": ["L'arobase", "L'astérisque", "L'esperluette", "Le tilde"],
+    "correctIndex": 2,
+    "explanation": "L'esperluette vient de la ligature des lettres e et t, qui forment le mot latin et.",
+    "difficulty": 3
+  },
+  {
+    "id": "div-023",
+    "category": "divers",
+    "question": "Combien de lettres compte l'alphabet grec ?",
+    "answers": ["22", "26", "28", "24"],
+    "correctIndex": 3,
+    "explanation": "Il va d'alpha à oméga. L'alphabet hébreu en compte 22, l'alphabet latin 26 et l'alphabet arabe 28.",
+    "difficulty": 3
   }
 ]
