@@ -215,6 +215,57 @@ Migration `*_temps_serveur.sql` : supprime les sessions non soumises
 créées par l'ancien `start_quiz` (elles avaient reçu leurs 10 énoncés) ; les
 joueurs concernés recommencent leur quiz ou leur défi du jour.
 
+## Signalements de questions (`report_question`)
+
+Migration `*_question_reports.sql`. Après sa réponse à une question d'un
+quiz **servi**, le joueur peut la signaler (lien « Signaler » sous
+l'explication ; jamais en quiz local). 4 motifs fixes, pas de texte libre :
+`fausse` (Réponse fausse), `ambigue` (Question ambiguë), `faute` (Faute ou
+coquille), `autre`.
+
+`report_question(p_quiz_id, p_position, p_reason)` : `security definer`,
+EXECUTE pour `authenticated` seulement. L'app n'envoie que la session et la
+position (1 à 10) ; le serveur retrouve la question (servie à ce joueur et
+**déjà répondue**) et ne renvoie jamais son identifiant. Retour
+`{ "reported": true }`, identique pour un doublon (aucune nouvelle ligne,
+motif d'origine gardé). Erreurs : `22023` motif invalide ou « question
+introuvable » (même erreur pour un quiz d'un autre joueur, purgé, une
+position non servie ou sans réponse), `PT429` au-delà de **20 signalements
+par joueur et par jour** (Europe/Paris), `42501` non authentifié.
+Signalable tant que la session existe (purge après 2 jours).
+
+Table `question_reports` (RLS sans policy, aucun GRANT client) :
+`question_id` (clé étrangère vers `questions`, pas vers la session : le
+signalement survit à la purge), `user_id` (`on delete set null` : gardé
+après suppression du compte), `reason`, `created_at`, unique
+`(user_id, question_id)`.
+
+Trier les signalements (SQL Editor du Dashboard, ou `supabase db query`) :
+
+```sql
+select r.question_id,
+       count(*) as signalements,
+       count(*) filter (where r.reason = 'fausse')  as fausse,
+       count(*) filter (where r.reason = 'ambigue') as ambigue,
+       count(*) filter (where r.reason = 'faute')   as faute,
+       count(*) filter (where r.reason = 'autre')   as autre,
+       max(r.created_at) as dernier,
+       q.active,
+       q.question,
+       q.answers[q.correct_index + 1] as bonne_reponse,
+       q.explanation
+  from public.question_reports r
+  join public.questions q on q.id = r.question_id
+ group by r.question_id, q.active, q.question, q.answers, q.correct_index,
+          q.explanation
+ order by signalements desc, dernier desc;
+```
+
+Correction : modifier la question dans `supabase/questions/questions.json`
+(ou l'en retirer pour la désactiver), régénérer le seed puis
+`supabase db push --include-seed`. Les signalements traités peuvent ensuite
+être supprimés (`delete from public.question_reports where question_id = …`).
+
 ## Classement hebdo (`weekly_leaderboard`)
 
 Migration `*_weekly_leaderboard.sql`. Classement **global** de la semaine en
@@ -311,7 +362,7 @@ local (hors classement).
 Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
 `tests/start_quiz_test.sql`, `tests/submit_quiz_test.sql`,
 `tests/temps_serveur_test.sql`, `tests/questions_serveur_test.sql`,
-`tests/weekly_leaderboard_test.sql`).
+`tests/weekly_leaderboard_test.sql`, `tests/question_reports_test.sql`).
 
 ## Commandes à lancer soi-même
 
