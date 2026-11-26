@@ -10,6 +10,7 @@ import 'backend/secure_session_storage.dart';
 import 'backend/supabase_provider.dart';
 import 'data/progress_repository.dart';
 import 'engagement/progress_controller.dart';
+import 'engagement/progress_sync.dart';
 import 'reminder/reminder_scheduler.dart';
 import 'screens/consent_screen.dart';
 import 'screens/shell_screen.dart';
@@ -70,6 +71,8 @@ class RootGate extends ConsumerWidget {
     ref.watch(reminderSchedulerProvider);
     // Connexion anonyme en arrière-plan (rien en mode local, jamais bloquant).
     ref.watch(authServiceProvider);
+    // Sync de la progression (après connexion, au premier plan ; rien en local).
+    ref.watch(progressSyncProvider);
     final onboardingDone = ref.watch(
       progressControllerProvider.select((p) => p.onboardingDone),
     );

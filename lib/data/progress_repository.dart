@@ -10,13 +10,25 @@ final sharedPreferencesProvider = Provider<SharedPreferences>(
   (ref) => throw UnimplementedError('sharedPreferencesProvider non initialisé'),
 );
 
-/// Progression locale (shared_preferences). Sera synchronisée avec le back-end à l'étape 2.
-class ProgressRepository {
-  ProgressRepository(this._prefs);
+/// Stockage de la progression sur l'appareil.
+///
+/// La version locale sert de cache : l'app reste jouable hors ligne. La
+/// progression du serveur (table `profiles`) est lue par
+/// `SupabaseProgressSource` puis fusionnée par `ProgressSync`
+/// (`lib/engagement/progress_sync.dart`).
+abstract interface class ProgressRepository {
+  PlayerProgress load();
+  Future<void> save(PlayerProgress progress);
+}
+
+/// Progression locale (shared_preferences).
+class LocalProgressRepository implements ProgressRepository {
+  LocalProgressRepository(this._prefs);
 
   static const _key = 'progress_v1';
   final SharedPreferences _prefs;
 
+  @override
   PlayerProgress load() {
     final raw = _prefs.getString(_key);
     if (raw == null) return const PlayerProgress();
@@ -27,10 +39,11 @@ class ProgressRepository {
     }
   }
 
+  @override
   Future<void> save(PlayerProgress progress) =>
       _prefs.setString(_key, jsonEncode(progress.toJson()));
 }
 
-final progressRepositoryProvider = Provider(
-  (ref) => ProgressRepository(ref.watch(sharedPreferencesProvider)),
+final progressRepositoryProvider = Provider<ProgressRepository>(
+  (ref) => LocalProgressRepository(ref.watch(sharedPreferencesProvider)),
 );

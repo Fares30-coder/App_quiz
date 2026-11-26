@@ -25,6 +25,24 @@ local et réessaie au retour au premier plan. Session dans le Keychain / Keystor
 Dashboard (projet Paris) : Authentication > Sign In / Providers > « Allow
 anonymous sign-ins » activé ; limites de débit dans Authentication > Rate Limits.
 
+## Progression (`profiles`)
+
+Une ligne par utilisateur, créée par trigger à l'inscription (migration
+`*_profiles.sql`). Le client la **lit** seulement (RLS + GRANT select) ;
+XP, série, gels et compteur de quiz seront écrits par `submit_quiz()`.
+Seule écriture client : `set_daily_goal(goal)` (1 à 3).
+
+Sync (`lib/engagement/progress_sync.dart`) : en arrière-plan après connexion,
+puis au retour au premier plan (au plus 1 fois par minute). Règle de fusion :
+- `last_quiz_at` null (aucun quiz soumis au serveur) : la progression locale
+  est conservée telle quelle ;
+- `last_quiz_at` renseigné : le serveur remplace XP, série, gels et compteur
+  de quiz du jour en local ;
+- l'objectif du jour est un choix local, envoyé par `set_daily_goal` à chaque
+  changement et à chaque sync s'il diffère (donc réessayé après un échec).
+
+Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`).
+
 ## Commandes à lancer soi-même
 
 CLI : `brew install supabase/tap/supabase` (ou `npx supabase ...`).
