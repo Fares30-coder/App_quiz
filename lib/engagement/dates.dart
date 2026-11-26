@@ -67,3 +67,24 @@ String formatHour(int minutes) {
   final m = minutes % 60;
   return '$h h ${m.toString().padLeft(2, '0')}';
 }
+
+/// « Semaine du 23 au 29 nov. », ou « Semaine du 30 nov. au 6 déc. ».
+String formatWeekRange(DateTime start, DateTime end) {
+  final from = start.month == end.month && start.year == end.year
+      ? '${start.day}'
+      : formatDayMonth(start);
+  return 'Semaine du $from au ${formatDayMonth(end)}';
+}
+
+/// Temps restant jusqu'à [end] : « Fin dans 4 j 6 h », « Fin dans 6 h 12 min »,
+/// « Fin dans 12 min », ou « Semaine terminée ».
+String formatTimeLeft(DateTime end, DateTime now) {
+  final left = end.difference(now);
+  if (left <= Duration.zero) return 'Semaine terminée';
+  final days = left.inDays;
+  final hours = left.inHours % 24;
+  final minutes = left.inMinutes % 60;
+  if (days > 0) return 'Fin dans $days j $hours h';
+  if (hours > 0) return 'Fin dans $hours h $minutes min';
+  return 'Fin dans ${minutes < 1 ? 1 : minutes} min';
+}

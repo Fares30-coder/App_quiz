@@ -142,7 +142,10 @@ class ProgressSync {
       }
       await _queue.remove(next.id);
     }
-    if (last != null) _apply(last);
+    if (last != null) {
+      _apply(last);
+      _ref.read(validatedQuizzesProvider.notifier).state++;
+    }
   }
 
   /// Applique le profil serveur selon [mergeServerProgress].
@@ -179,6 +182,11 @@ void _log(String message, Object error) {
   ].whereType<Object>().join(' ');
   debugPrint('Sync : $message ($detail)');
 }
+
+/// Nombre de quiz validés par le serveur depuis le lancement (incrémenté
+/// après chaque envoi réussi de la file) : le classement s'y abonne pour se
+/// recharger.
+final validatedQuizzesProvider = StateProvider<int>((ref) => 0);
 
 /// Synchronisation, `null` en mode 100 % local (aucun appel).
 /// Lu par `RootGate` : se lance à l'ouverture de session et au premier plan.
