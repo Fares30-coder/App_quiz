@@ -7,6 +7,7 @@ environment:
   sdk: ^3.5.0
 
 dependencies:
+  audioplayers: ^6.8.1
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
@@ -22,6 +23,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/questions.json
+    # Sons générés (CC0, voir assets/sounds/LICENSES.md).
+    - assets/sounds/correct.wav
+    - assets/sounds/wrong.wav
+    - assets/sounds/streak.wav
+    - assets/sounds/fanfare.wav
   # Polices embarquées (licence OFL, voir assets/fonts/OFL-*.txt).
   fonts:
     - family: BricolageGrotesque

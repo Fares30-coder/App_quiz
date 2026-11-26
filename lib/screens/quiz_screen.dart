@@ -46,8 +46,7 @@ class QuizScreen extends ConsumerWidget {
     final correct = ref.read(quizControllerProvider.notifier).answer(i);
     if (correct) {
       HapticFeedback.mediumImpact();
-      // TODO(sons): court « ding » (≈ 300 ms) si les sons sont activés,
-      // session audio ambient sur iOS (muet en mode silencieux).
+      // Le son (« ding » / son neutre) est joué par QuizController.answer.
       if (before + 1 >= 2) HapticFeedback.selectionClick();
     }
   }

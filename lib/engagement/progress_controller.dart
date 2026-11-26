@@ -149,6 +149,9 @@ class ProgressController extends Notifier<PlayerProgress> {
     return result.outcome;
   }
 
+  void setSoundEnabled(bool enabled) =>
+      _set(state.copyWith(soundEnabled: enabled));
+
   void markDangerShown() => _set(state.copyWith(dangerShownDay: dayOf(_now())));
 
   /// Gel obtenu (pub récompensée à l'étape 3, ou offert aux joueurs « sans pub »).

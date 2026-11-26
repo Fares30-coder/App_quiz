@@ -4,11 +4,15 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:quizzeo/data/progress_repository.dart';
 import 'package:quizzeo/data/question_repository.dart';
 import 'package:quizzeo/models/question.dart';
 import 'package:quizzeo/main.dart';
+import 'package:quizzeo/sound/sound_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'fakes.dart';
 
 /// Charge les vraies polices (sinon la police de test, plus large, fausse les mesures).
 Future<void> loadFonts() async {
@@ -35,6 +39,7 @@ Future<void> pumpApp(
   WidgetTester tester,
   Map<String, Object> prefs, {
   double height = 1100,
+  SoundService sounds = const SilentSoundService(),
 }) async {
   // Format téléphone des maquettes (390×844), assez haut pour tout l'écran objectif.
   tester.view.physicalSize = Size(390, height);
@@ -47,6 +52,7 @@ Future<void> pumpApp(
       sharedPreferencesProvider.overrideWithValue(instance),
       questionRepositoryProvider
           .overrideWithValue(QuestionRepository(questions: questions)),
+      soundServiceProvider.overrideWithValue(sounds),
     ],
     child: const QuizzeoApp(),
   ));
@@ -80,6 +86,21 @@ void main() {
     expect(find.text('Jouer le défi'), findsOneWidget);
     expect(find.text('Objectif du jour'), findsOneWidget);
     expect(find.text('Niveau 1'), findsOneWidget);
+  });
+
+  testWidgets('profil : réglage « Sons » activé par défaut et persisté',
+      (tester) async {
+    await pumpApp(tester, {'progress_v1': '{"onboardingDone":true}'});
+    await tester.tap(find.text('Profil'));
+    await tester.pump(const Duration(milliseconds: 500));
+    final toggle = find.widgetWithText(SwitchListTile, 'Sons');
+    await tester.scrollUntilVisible(toggle, 100);
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    await tester.tap(toggle);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('progress_v1'), contains('"soundEnabled":false'));
   });
 
   journeyTests(1);
@@ -117,8 +138,9 @@ void journeyTests(double textScale) {
       (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final sounds = FakeSoundService();
     await pumpApp(tester, {'progress_v1': '{"onboardingDone":true}'},
-        height: 844);
+        height: 844, sounds: sounds);
     await playChallenge(tester);
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('XP gagnés'), findsOneWidget);
@@ -129,6 +151,12 @@ void journeyTests(double textScale) {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('Série validée !'), findsOneWidget);
+    // Un son par réponse, puis la « flamme » de la série.
+    expect(
+      sounds.played.where((s) => s == Sfx.correct || s == Sfx.wrong),
+      hasLength(10),
+    );
+    expect(sounds.played.last, Sfx.streak);
     await tester.tap(find.text('Continuer'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../engagement/progress_controller.dart';
 import '../engagement/xp.dart';
 import '../models/question.dart';
+import '../sound/sound_service.dart';
 
 const questionSeconds = 30;
 
@@ -94,6 +95,8 @@ class QuizController extends Notifier<QuizState> {
   Timer? _timer;
   final _stopwatch = Stopwatch();
 
+  SoundEffects get _sounds => ref.read(soundEffectsProvider);
+
   @override
   QuizState build() {
     ref.onDispose(() => _timer?.cancel());
@@ -118,6 +121,7 @@ class QuizController extends Notifier<QuizState> {
         AnswerResult(correct: correct, elapsed: _stopwatch.elapsed),
       ],
     );
+    _sounds.play(correct ? Sfx.correct : Sfx.wrong);
     return correct;
   }
 
@@ -135,6 +139,7 @@ class QuizController extends Notifier<QuizState> {
         ),
       ],
     );
+    _sounds.play(Sfx.wrong);
   }
 
   /// Passe à la question suivante. Sur la dernière, termine le quiz
@@ -170,6 +175,9 @@ class QuizController extends Notifier<QuizState> {
           total: state.questions.length,
         );
     state = state.copyWith(outcome: outcome);
+    // Fanfare à 10/10 ou en cas de montée de niveau (même moment que
+    // l'haptique de l'écran Résultats, qui s'ouvre aussitôt).
+    if (outcome.xp.perfect || outcome.leveledUp) _sounds.play(Sfx.fanfare);
   }
 
   void _startQuestion() {
