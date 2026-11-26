@@ -1,11 +1,15 @@
 -- Tests pgTAP du signalement de questions : report_question(quiz_id,
 -- position, motif), question retrouvée côté serveur et jamais renvoyée,
--- doublon sans effet, plafond quotidien, table illisible par les clients.
+-- doublon sans effet, plafond quotidien (jour Europe/Paris), table et
+-- séquence illisibles par les clients, purge RGPD (90 jours).
+-- Dans une transaction, now() ne bouge pas : la frontière du jour est testée
+-- avec des lignes dont `created_at` est choisi autour du début du jour à
+-- Paris.
 -- Lancer en local : `supabase start` puis `supabase test db`.
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(31);
+select plan(46);
 
 -- Données de test (propriétaire) -------------------------------------------
 
@@ -22,11 +26,18 @@ select 'qr-' || lpad(i::text, 2, '0'), 'divers', 1, 'Question ' || i,
        array['bonne', 'b', 'c', 'd'], 0, 'Explication ' || i
 from generate_series(1, 30) i;
 
--- Joueur A (signale), joueur B (autre joueur), joueur C (plafond).
+-- Joueur A (signale), joueur B (autre joueur), joueur C (plafond), joueur
+-- D (frontière du jour).
 insert into auth.users (id, aud, role)
 values ('00000000-0000-0000-0000-0000000005a1', 'authenticated', 'authenticated'),
        ('00000000-0000-0000-0000-0000000005b1', 'authenticated', 'authenticated'),
-       ('00000000-0000-0000-0000-0000000005c1', 'authenticated', 'authenticated');
+       ('00000000-0000-0000-0000-0000000005c1', 'authenticated', 'authenticated'),
+       ('00000000-0000-0000-0000-0000000005d1', 'authenticated', 'authenticated');
+
+-- Début du jour en cours à Paris (comme report_question).
+create temporary table t_day on commit drop as
+select ((now() at time zone 'Europe/Paris')::date::timestamp
+          at time zone 'Europe/Paris') as start;
 
 -- Schéma et droits -------------------------------------------------------------
 
@@ -48,6 +59,25 @@ select ok(
   format('%s : aucun privilège sur question_reports', r)
 )
 from unnest(array['anon', 'authenticated']) r;
+
+select ok(
+  not has_sequence_privilege(r, 'public.question_reports_id_seq',
+                             'usage,select,update'),
+  format('%s : aucun privilège sur question_reports_id_seq', r)
+)
+from unnest(array['anon', 'authenticated']) r;
+
+select ok(
+  not has_function_privilege(r, 'public.purge_question_reports()', 'execute'),
+  format('%s : purge_question_reports interdite', r)
+)
+from unnest(array['anon', 'authenticated', 'public']) r;
+
+select is(
+  (select schedule from cron.job where jobname = 'purge-question-reports'),
+  '35 3 * * *',
+  'purge_question_reports : job pg_cron chaque nuit'
+);
 
 select ok(
   has_function_privilege('authenticated',
@@ -180,6 +210,19 @@ select throws_ok(
   'motif absent : refusé'
 );
 
+select throws_ok(
+  $$select public.report_question(null, 1, 'fausse')$$,
+  '22023', 'question introuvable',
+  'quiz_id nul : refusé'
+);
+
+select throws_ok(
+  format($$select public.report_question(%L, null, 'fausse')$$,
+         current_setting('t.quiz')),
+  '22023', 'question introuvable',
+  'position nulle : refusée'
+);
+
 -- Session d'un autre joueur -------------------------------------------------------------
 
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000005b1","role":"authenticated"}';
@@ -245,7 +288,8 @@ select throws_ok(
 reset role;
 
 -- Joueur C : quiz joué (question 1 répondue), puis 20 signalements déjà
--- faits aujourd'hui (questions hors de ce quiz) et 5 hier (non comptés).
+-- faits : 19 aujourd'hui et 1 avant-hier (non compté), sur des questions
+-- hors de ce quiz.
 set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000005c1","role":"authenticated"}';
 
@@ -320,6 +364,117 @@ select is(
     where user_id = '00000000-0000-0000-0000-0000000005c1'),
   20,
   'plafond : aucune ligne de plus'
+);
+
+select is(
+  (select count(*)::int from public.question_reports r
+     join public.quiz_session_questions sq on sq.question_id = r.question_id
+    where sq.quiz_id = current_setting('t.quiz_c')::uuid
+      and sq.position = 1),
+  0,
+  'refus PT429 : question 1 de C non enregistrée'
+);
+
+-- Frontière du jour à Paris ----------------------------------------------------------
+--
+-- Joueur D : 20 signalements à 23:59 (Paris) la veille, puis un signalement
+-- aujourd'hui : accepté (le plafond repart à 00:00, Paris). Ensuite, 20
+-- signalements à 00:00 pile aujourd'hui : comptés, refus.
+
+set local role authenticated;
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000005d1","role":"authenticated"}';
+
+do $$
+declare
+  s jsonb := public.start_quiz('mix');
+begin
+  perform set_config('t.quiz_d', s ->> 'quiz_id', true);
+  perform public.answer_question((s ->> 'quiz_id')::uuid, 1, 0, 2000);
+end $$;
+
+reset role;
+
+create temporary table t_other_d on commit drop as
+select q.id
+  from public.questions q
+ where q.id not in (select sq.question_id from public.quiz_session_questions sq
+                     where sq.quiz_id = current_setting('t.quiz_d')::uuid)
+ order by q.id
+ limit 20;
+
+insert into public.question_reports (question_id, user_id, reason, created_at)
+select t.id, '00000000-0000-0000-0000-0000000005d1', 'autre',
+       (select start from t_day) - interval '1 minute'
+  from t_other_d t;
+
+set local role authenticated;
+
+select is(
+  public.report_question(current_setting('t.quiz_d')::uuid, 1, 'faute'),
+  '{"reported": true}'::jsonb,
+  '20 signalements la veille à 23:59 (Paris) : non comptés aujourd''hui'
+);
+
+reset role;
+
+delete from public.question_reports
+ where user_id = '00000000-0000-0000-0000-0000000005d1'
+   and question_id = (select sq.question_id from public.quiz_session_questions sq
+                       where sq.quiz_id = current_setting('t.quiz_d')::uuid
+                         and sq.position = 1);
+
+update public.question_reports
+   set created_at = (select start from t_day)
+ where user_id = '00000000-0000-0000-0000-0000000005d1';
+
+set local role authenticated;
+
+select throws_ok(
+  format($$select public.report_question(%L, 1, 'fausse')$$,
+         current_setting('t.quiz_d')),
+  'PT429', 'trop de signalements aujourd''hui, réessayer demain',
+  '20 signalements à 00:00 (Paris) aujourd''hui : comptés, refus'
+);
+
+reset role;
+
+-- Purge RGPD : user_id mis à null au-delà de 90 jours ---------------------------------
+
+update public.question_reports
+   set created_at = now() - interval '90 days 1 minute'
+ where user_id = '00000000-0000-0000-0000-0000000005d1'
+   and question_id in (select id from t_other_d order by id limit 5);
+
+update public.question_reports
+   set created_at = now() - interval '89 days 23 hours'
+ where user_id = '00000000-0000-0000-0000-0000000005d1'
+   and question_id in (select id from t_other_d order by id offset 5 limit 5);
+
+select is(
+  public.purge_question_reports(),
+  5,
+  'purge : 5 signalements de plus de 90 jours détachés'
+);
+
+select is(
+  (select count(*)::int from public.question_reports
+    where user_id is null and question_id in
+          (select id from t_other_d order by id limit 5)),
+  5,
+  'purge : au-delà de 90 jours, user_id null (motif et question gardés)'
+);
+
+select is(
+  (select count(*)::int from public.question_reports
+    where user_id = '00000000-0000-0000-0000-0000000005d1'),
+  15,
+  'purge : en deçà de 90 jours, signalements toujours rattachés'
+);
+
+select is(
+  public.purge_question_reports(),
+  0,
+  'purge : relancée, aucune ligne de plus'
 );
 
 -- Purge des sessions et suppression du compte : signalement gardé ------------------------

@@ -9,16 +9,21 @@
 -- `question_reports` référence `questions` (pas la session) : un
 -- signalement survit à la purge des sessions (2 jours) et à la suppression
 -- du compte (`user_id` mis à null). Lecture et tri : Dashboard / SQL
--- (supabase/README.md), aucun accès client.
+-- (supabase/README.md), aucun accès client. Aucune question n'est jamais
+-- désactivée automatiquement à partir des signalements (tri manuel).
+--
+-- RGPD : un signalement reste rattaché au compte 90 jours, puis `user_id`
+-- est mis à null (purge_question_reports(), chaque nuit par pg_cron).
 
 create table public.question_reports (
   id bigint generated always as identity primary key,
   question_id text not null references public.questions (id),
-  -- null : compte supprimé depuis le signalement.
+  -- null : compte supprimé, ou signalement de plus de 90 jours.
   user_id uuid references auth.users (id) on delete set null,
   reason text not null check (reason in ('fausse', 'ambigue', 'faute', 'autre')),
   created_at timestamptz not null default now(),
-  -- Un signalement par joueur et par question (doublon ignoré).
+  -- Un signalement par joueur et par question (doublon ignoré). Les
+  -- lignes à user_id null ne se gênent pas (NULL distincts).
   unique (user_id, question_id)
 );
 
@@ -38,6 +43,10 @@ create index question_reports_user_created_idx
 -- n'écrivent la table directement.
 alter table public.question_reports enable row level security;
 revoke all on table public.question_reports from public, anon, authenticated;
+-- Séquence de l'identity : aucun droit client (privilèges par défaut de
+-- Supabase).
+revoke all on sequence public.question_reports_id_seq
+  from public, anon, authenticated;
 
 -- report_question() -------------------------------------------------------------
 --
@@ -125,3 +134,37 @@ revoke execute on function public.report_question(uuid, integer, text)
   from public, anon;
 grant execute on function public.report_question(uuid, integer, text)
   to authenticated;
+
+-- Purge RGPD ------------------------------------------------------------------
+--
+-- Signalements de plus de 90 jours : détachés du joueur (`user_id` mis à
+-- null), motif et question gardés. Sans effet sur le plafond (jour en cours)
+-- ni sur l'unicité (NULL distincts). Lancée chaque nuit par pg_cron, comme
+-- purge_quiz_sessions() (extension activée par *_start_quiz.sql).
+create function public.purge_question_reports()
+returns integer
+language plpgsql
+volatile
+set search_path = ''
+as $$
+declare
+  v_count integer;
+begin
+  update public.question_reports r
+     set user_id = null
+   where r.user_id is not null
+     and r.created_at < now() - interval '90 days';
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke execute on function public.purge_question_reports()
+  from public, anon, authenticated;
+
+-- 03:35 UTC chaque jour (cron.schedule remplace un job du même nom).
+select cron.schedule(
+  'purge-question-reports',
+  '35 3 * * *',
+  'select public.purge_question_reports()'
+);
