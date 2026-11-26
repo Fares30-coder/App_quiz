@@ -30,18 +30,22 @@ anonymous sign-ins » activé ; limites de débit dans Authentication > Rate Lim
 Une ligne par utilisateur, créée par trigger à l'inscription (migration
 `*_profiles.sql`). Le client la **lit** seulement (RLS + GRANT select) ;
 XP, série, gels et compteur de quiz sont écrits uniquement par
-`submit_quiz()`. Autre écriture client : `set_daily_goal(goal)` (1 à 3).
+`submit_quiz()` (et, pour la série seulement, `validate_offline_day()`).
+Autre écriture client : `set_daily_goal(goal)` (1 à 3).
 
 Sync (`lib/engagement/progress_sync.dart`) : en arrière-plan après connexion,
 puis au retour au premier plan (au plus 1 fois par minute). Règle de fusion :
-- `last_quiz_at` null (aucun quiz soumis au serveur) : la progression locale
-  est conservée telle quelle ;
+- `last_quiz_at` null (aucun quiz soumis au serveur, aucune journée validée
+  hors ligne) : la progression locale est conservée telle quelle ;
 - `last_quiz_at` renseigné : le serveur remplace XP, série, gels et compteur
-  de quiz du jour en local ;
+  de quiz du jour en local (compteur : le plus grand des deux pour un même
+  jour, car seul le 1er quiz hors ligne du jour est connu du serveur ; si
+  le jour local est postérieur à celui du serveur, par exemple après une
+  journée hors ligne refusée, le compteur local est gardé) ;
 - l'objectif du jour est un choix local, envoyé par `set_daily_goal` à chaque
   changement et à chaque sync s'il diffère (donc réessayé après un échec) ;
-- tant qu'un quiz attend d'être validé (file locale non vide), la progression
-  locale, en avance, n'est pas remplacée.
+- tant qu'un quiz ou une journée hors ligne attend d'être validé (files
+  locales non vides), la progression locale, en avance, n'est pas remplacée.
 
 ## Quiz servis par le serveur (`start_quiz`, `next_question`, `answer_question`, `submit_quiz`)
 
@@ -168,7 +172,8 @@ catégorie n'en a que 3) ; après un
 joué le défi du jour » et marque le défi comme joué sur l'accueil (avec le
 score du serveur). Ces quiz
 ne comptent pas au classement et ne sont jamais soumis (un message
-l'indique). Si la connexion tombe pendant un quiz servi, la réponse est
+l'indique) ; s'ils valident la journée, elle est gardée par
+`validate_offline_day` (section Série hors ligne). Si la connexion tombe pendant un quiz servi, la réponse est
 gardée et l'app propose « Réessayer » ou « Quitter » ; de même si la
 question suivante ne se charge pas (« Question suivante » appelle
 `next_question`, le chrono local de 30 s démarre à la réception). Si `submit_quiz`
@@ -186,9 +191,10 @@ Tables (RLS activé, aucune policy ni GRANT client sauf mention) :
   Alimente le classement hebdo.
 
 Limites connues :
-- un quiz joué hors ligne valide la journée et donne de l'XP en local
-  seulement ; le profil serveur l'écrase au sync suivant (série perdue
-  possible). Piste : une RPC qui ne valide que le jour ;
+- un quiz joué hors ligne donne de l'XP en local seulement : le profil
+  serveur la remplace au sync suivant (voulu : seul le serveur accorde de
+  l'XP). La série et le compteur du jour sont conservés par
+  `validate_offline_day` (section suivante), dans ses limites ;
 - le défi du jour ne se joue qu'une fois par compte et par jour, mais un
   nouveau compte anonyme peut le rejouer (effet borné par les plafonds
   d'XP et le classement) ;
@@ -214,6 +220,77 @@ Limites connues :
 Migration `*_temps_serveur.sql` : supprime les sessions non soumises
 créées par l'ancien `start_quiz` (elles avaient reçu leurs 10 énoncés) ; les
 joueurs concernés recommencent leur quiz ou leur défi du jour.
+
+## Série hors ligne (`validate_offline_day`)
+
+Migration `*_serie_hors_ligne.sql`. Un quiz local (lot hors ligne, jamais
+soumis) qui valide la journée en mode Supabase est mémorisé dans une file
+locale (`lib/data/pending_offline_day_repository.dart`, clé
+`pending_offline_days_v1` : compte connecté, heure de fin) ; au sync suivant,
+l'app appelle `validate_offline_day(played_at)` **avant** d'appliquer le
+profil serveur. Les deux files (quiz servis, journées hors ligne) sont
+envoyées dans l'ordre joué. Entrée d'un autre compte ou de plus de 6 h :
+abandonnée sans envoi. Sans session au moment du quiz : rien n'est mémorisé.
+`AuthService.purgeLocalSession()` vide aussi cette file. Mode 100 % local :
+inchangé.
+
+`validate_offline_day(played_at timestamptz)` : `security definer`,
+`search_path = ''`, EXECUTE pour `authenticated` seulement. Elle appelle
+`private.validate_offline_day(uid, played_at, as_of)` avec `auth.uid()` et
+`now()` : schéma `private` non exposé par l'API, aucun usage ni EXECUTE
+client ; `as_of` permet aux tests de fixer l'heure. Valide le jour
+(Europe/Paris) de `played_at` avec les règles de `submit_quiz` (jours
+manqués couverts par les gels, sinon série perdue, gels conservés),
+incrémente le compteur du jour et avance `last_quiz_at`. **Aucune XP, aucune
+ligne dans `quiz_results`** (donc aucun effet sur le classement ni sur les
+plafonds d'XP), **aucun gel gagné**. Verrou `for update` sur le profil.
+Retour : `{ validated, reason, day, profile }` (profil au format de
+`submit_quiz`).
+
+- `22023` (définitif, l'app abandonne l'entrée) : `played_at` manquant, dans
+  le futur (au-delà de 5 min de décalage d'horloge), de plus de 6 h, ou jour
+  hors de la veille et d'aujourd'hui ; `42501` non authentifié (`anon`
+  refusé) ; `P0002` profil absent.
+- Refus propres (`validated: false`, profil renvoyé inchangé) :
+  `already_validated` si le jour est déjà validé (quiz servi, appel
+  précédent : idempotent) ou antérieur au dernier jour validé (le passé
+  n'est pas réécrit) ; `limit` si 3 jours ont déjà été validés hors ligne
+  sur les 7 jours finissant au jour du quiz (la veille a donc sa propre
+  fenêtre). Un jour hors ligne aussi validé par un quiz servi (ligne dans
+  `quiz_results`, index `quiz_results_day_user_idx`) ne compte pas.
+- Table `offline_days (user_id, day)` : jours validés ainsi (idempotence,
+  plafond), RLS sans policy, aucun GRANT client ; lignes de plus de 14 jours
+  purgées à chaque validation.
+
+Abus (inhérent au hors ligne) : rien ne prouve qu'un quiz a été joué, un
+joueur peut donc valider sa série **sans jouer** en appelant la RPC. Bornes :
+1 validation par jour, aujourd'hui ou la veille seulement, jamais de gel ni
+d'XP ni de place au classement, et au plus **3 jours sur 7** : une série ne
+tient pas durablement sans quiz servi. Un appel refusé n'écrit rien (les
+limites de débit de l'API s'appliquent). Piste plus stricte si besoin :
+exiger un quiz servi la veille ou l'avant-veille.
+
+Limites :
+- sur un même appareil, la journée hors ligne passe toujours avant un quiz
+  servi plus récent (même file, ordre joué). Mais si un **autre appareil** a
+  déjà validé le lendemain, une veille jouée hors ligne arrive trop tard
+  (jour antérieur au dernier jour validé) : elle compte comme manquée (gel
+  consommé ou série perdue) ;
+- au-delà de 6 h sans connexion, ou au 4e jour hors ligne sur 7, la journée
+  n'est plus validée et le profil serveur remplace la série locale ;
+- `last_quiz_at` avancé par la RPC : `submit_quiz` date un quiz servi de
+  `greatest(dernière réponse, last_quiz_at)`. Un quiz servi fini avant le
+  quiz hors ligne mais envoyé après (autre appareil, ou réseau revenu plus
+  tard) est donc daté de l'heure du quiz hors ligne, voire d'aujourd'hui
+  alors que sa dernière réponse date de la veille (XP du jour, classement
+  de la semaine). Effet faible aujourd'hui ; **à revoir avant les badges et
+  les ligues** (jour d'un quiz servi = jour de sa dernière réponse) ;
+- rattrapage de la veille seulement entre 0 h et 6 h (Paris) : `played_at`
+  doit dater de moins de 6 h. Une veille jouée à 23 h et envoyée à 7 h est
+  refusée (`22023`) et compte comme manquée. **À revoir avant les badges et
+  les ligues** si des séries longues deviennent un enjeu ;
+- tant que la migration n'est pas poussée, l'appel échoue (erreur
+  passagère) : l'entrée est gardée jusqu'à 6 h, puis abandonnée.
 
 ## Signalements de questions (`report_question`)
 
@@ -362,7 +439,8 @@ local (hors classement).
 Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
 `tests/start_quiz_test.sql`, `tests/submit_quiz_test.sql`,
 `tests/temps_serveur_test.sql`, `tests/questions_serveur_test.sql`,
-`tests/weekly_leaderboard_test.sql`, `tests/question_reports_test.sql`).
+`tests/weekly_leaderboard_test.sql`, `tests/serie_hors_ligne_test.sql`,
+`tests/question_reports_test.sql`).
 
 ## Commandes à lancer soi-même
 

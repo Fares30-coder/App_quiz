@@ -1,10 +1,12 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/offline_day.dart';
 import '../models/quiz_submission.dart';
 import '../models/server_profile.dart';
 
 /// Accès Supabase à la progression : lecture de `profiles`, objectif du
-/// jour (`set_daily_goal`) et quiz terminés (`submit_quiz`). Aucune écriture
+/// jour (`set_daily_goal`), quiz terminés (`submit_quiz`) et journées
+/// validées hors ligne (`validate_offline_day`). Aucune écriture
 /// directe sur la table (refusée de toute façon par les GRANT et RLS).
 class SupabaseProgressSource {
   SupabaseProgressSource(this._client);
@@ -35,6 +37,17 @@ class SupabaseProgressSource {
       params: submission.toRpcParams(),
     );
     return SubmitQuizResult.fromJson(json);
+  }
+
+  /// Fait valider la journée d'un quiz joué hors ligne (série, gels,
+  /// compteur du jour ; ni XP ni classement) et renvoie le profil à jour.
+  /// Lève une erreur en cas d'échec (voir [isRejectedQuiz]).
+  Future<OfflineDayResult> validateOfflineDay(OfflineDay day) async {
+    final json = await _client.rpc<Map<String, dynamic>>(
+      'validate_offline_day',
+      params: day.toRpcParams(),
+    );
+    return OfflineDayResult.fromJson(json);
   }
 }
 

@@ -407,6 +407,7 @@ class QuizController extends Notifier<QuizState> {
         );
     state = state.copyWith(outcome: outcome);
     _submit();
+    if (!state.isServed && outcome.streakValidatedNow) _recordOfflineDay();
     // Fanfare à 10/10 ou en cas de montée de niveau (même moment que
     // l'haptique de l'écran Résultats, qui s'ouvre aussitôt).
     if (outcome.xp.perfect || outcome.leveledUp) _sounds.play(Sfx.fanfare);
@@ -433,6 +434,15 @@ class QuizController extends Notifier<QuizState> {
         state = state.copyWith(serverXp: xp);
       }
     }));
+  }
+
+  /// Quiz local qui vient de valider la journée (mode Supabase seulement) :
+  /// la journée sera validée par le serveur à la reconnexion, pour que le
+  /// profil serveur n'efface pas la série (ni XP ni classement).
+  void _recordOfflineDay() {
+    final sync = ref.read(progressSyncProvider);
+    if (sync == null) return;
+    unawaited(sync.recordOfflineDay(ref.read(clockProvider)()));
   }
 
   void _startQuestion() {

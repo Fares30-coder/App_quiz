@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../data/pending_offline_day_repository.dart';
 import '../data/pending_quiz_repository.dart';
 import 'supabase_provider.dart';
 
@@ -26,8 +27,8 @@ class AuthService {
   final GoTrueClient _auth;
   final LocalStorage? _sessionStorage;
 
-  /// Données locales liées au compte à effacer à la purge (file des quiz
-  /// non envoyés).
+  /// Données locales liées au compte à effacer à la purge (files des quiz
+  /// et des journées hors ligne non envoyés).
   final Future<void> Function()? _clearLocalData;
   final Duration retryDelay;
 
@@ -127,8 +128,12 @@ final authServiceProvider = Provider<AuthService?>((ref) {
   final service = AuthService(
     client.auth,
     sessionStorage: ref.watch(sessionStorageProvider),
-    // Lu seulement à la purge : quiz en attente du compte effacé.
-    clearLocalData: () => ref.read(pendingQuizRepositoryProvider).clear(),
+    // Lu seulement à la purge : quiz et journées hors ligne en attente du
+    // compte effacé.
+    clearLocalData: () async {
+      await ref.read(pendingQuizRepositoryProvider).clear();
+      await ref.read(pendingOfflineDayRepositoryProvider).clear();
+    },
   )..start();
   ref.onDispose(service.dispose);
   return service;
