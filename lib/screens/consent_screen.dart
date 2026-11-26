@@ -43,7 +43,7 @@ class ConsentScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   const _Point(
-                    icon: Icons.lock_open,
+                    icon: Icons.lock_open_outlined,
                     title: 'Tout le contenu est gratuit',
                     text:
                         'Les pubs financent l\'app. Jamais pendant une question.',
