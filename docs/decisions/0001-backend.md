@@ -73,7 +73,7 @@ Analytics : PostHog (instance UE) plutôt que Firebase Analytics, pour garder un
 
 ## Conséquences
 
-- Nouveau dossier `supabase/` (migrations SQL, fonctions, `config.toml`) versionné ; aucune clé dans le dépôt (clé `anon` injectée par `--dart-define`, clé `service_role` uniquement côté serveur).
+- Nouveau dossier `supabase/` (migrations SQL, fonctions, `config.jsonc`) versionné ; aucune clé dans le dépôt (clé `anon` injectée par `--dart-define`, clé `service_role` uniquement côté serveur).
 - `ProgressRepository` et `QuestionRepository` deviennent des interfaces avec une implémentation locale (cache) et une implémentation Supabase ; l'app reste jouable hors ligne, la sync se fait en fin de quiz et au lancement.
 - Le défi du jour n'est plus calculé sur la liste locale (qui va changer avec les mises à jour) : le serveur publie `daily_challenges(day, question_ids)` ; le calcul local actuel reste en secours hors ligne.
 - Le score « officiel » (classement) est celui renvoyé par `submit_quiz()` ; le client garde son calcul pour l'affichage immédiat.
