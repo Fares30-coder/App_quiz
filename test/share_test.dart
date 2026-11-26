@@ -50,7 +50,7 @@ void main() {
           '🟩🟩🟩🟩🟩🟩🟩🟩🟥🟥\n'
           '🔥 6\n'
           '\n'
-          'J\'ai eu 8/10 au défi du jour sur Quizzéo. Tu fais mieux ?');
+          'Tu fais mieux ?');
     });
 
     test('accroche selon le score', () {
@@ -177,7 +177,7 @@ void main() {
           '🟩🟥🟩🟩🟥🟩🟩🟩🟥🟩\n'
           '🔥 6\n'
           '\n'
-          'J\'ai eu 7/10 au défi du jour sur Quizzéo. Tu fais mieux ?');
+          'Tu fais mieux ?');
     });
   });
 

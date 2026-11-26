@@ -169,7 +169,7 @@ ShareContent scoreShareContent({
     challenge: challenge,
     cta: daily ? 'Joue le défi sur Quizzéo' : 'Joue sur Quizzéo',
     message: _withLink(
-      '$grid\n\nJ\'ai eu $score/$total $scope sur Quizzéo. $challenge',
+      '$grid\n\n$challenge',
     ),
     fileName: 'quizzeo-score-$score-sur-$total.png',
     score: score,
