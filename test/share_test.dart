@@ -147,7 +147,7 @@ void main() {
 
     test('numéro seulement pour le défi du jour', () {
       expect(lines(score(QuizMode.dailyChallenge))[0],
-          'Quizzéo · Défi n° 42 · 7/10');
+          'Quizzéo · Défi n°\u00a042 · 7/10');
       expect(lines(score(QuizMode.mix))[0], 'Quizzéo · 7/10');
       expect(lines(score(QuizMode.category))[0], 'Quizzéo · 7/10');
     });
@@ -162,6 +162,24 @@ void main() {
       expect(challengeNumber(DateTime(2020)), isNull);
     });
 
+    test('numéro du défi : passage à l\'heure d\'été sans décalage', () {
+      // 2026-12-01 → 2027-03-29 : 118 jours, le 28 mars 2027 change d'heure.
+      expect(challengeNumber(DateTime(2027, 3, 29)), 119);
+      expect(challengeNumber(DateTime(2027, 3, 29, 23, 30)), 119);
+    });
+
+    test('pas de ligne vide si aucune réponse', () {
+      final g = shareGrid(
+        mode: QuizMode.mix,
+        score: 0,
+        total: 0,
+        answers: const [],
+        streakDays: 6,
+        day: start,
+      );
+      expect(g, 'Quizzéo · 0/0\n🔥 6');
+    });
+
     test('série affichée si > 0, absente si 0', () {
       expect(lines(score(QuizMode.dailyChallenge, streak: 12))[2], '🔥 12');
       final none = score(QuizMode.dailyChallenge, streak: 0);
@@ -173,7 +191,7 @@ void main() {
       final c = score(QuizMode.dailyChallenge);
       expect(
           c.message,
-          'Quizzéo · Défi n° 42 · 7/10\n'
+          'Quizzéo · Défi n°\u00a042 · 7/10\n'
           '🟩🟥🟩🟩🟥🟩🟩🟩🟥🟩\n'
           '🔥 6\n'
           '\n'

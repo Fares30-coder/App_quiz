@@ -125,10 +125,10 @@ String shareGrid({
   return [
     [
       'Quizzéo',
-      if (number != null) 'Défi n° $number',
+      if (number != null) 'Défi n°$_nbsp$number',
       '$score/$total',
     ].join(' · '),
-    answers.map((a) => a ? '🟩' : '🟥').join(),
+    if (answers.isNotEmpty) answers.map((a) => a ? '🟩' : '🟥').join(),
     if (streakDays > 0) '🔥 $streakDays',
   ].join('\n');
 }
