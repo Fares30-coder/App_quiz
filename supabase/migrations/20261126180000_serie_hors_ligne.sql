@@ -15,8 +15,9 @@
 -- un joueur peut donc valider sa série sans jouer en appelant la RPC. Bornes :
 -- - 1 validation par jour au plus (idempotente), aujourd'hui ou la veille
 --   seulement, `played_at` jamais dans le futur ni plus de 6 h en arrière ;
--- - au plus 3 jours validés ainsi par période de 7 jours (glissante) : une
---   série ne peut pas tenir durablement sans quiz servi par le serveur ;
+-- - au plus 3 jours validés ainsi par période de 7 jours (glissante), hors
+--   jours aussi validés par un quiz servi : une série ne peut pas tenir
+--   durablement sans quiz servi par le serveur ;
 -- - la série ne rapporte ni XP ni place au classement.
 
 -- Jours validés hors ligne ---------------------------------------------------
@@ -44,6 +45,13 @@ comment on column public.profiles.last_quiz_at is
 
 -- validate_offline_day() -----------------------------------------------------
 --
+-- La logique est dans `private.validate_offline_day(uid, played_at, as_of)`,
+-- où `as_of` remplace now() : les tests fixent ainsi l'heure (rattrapage de
+-- la veille juste après minuit) sans dépendre de l'heure réelle. Le schéma
+-- `private` n'est pas exposé par l'API et n'est accessible à aucun rôle
+-- client ; seule la RPC publique ci-dessous (security definer) l'appelle,
+-- toujours avec auth.uid() et now().
+--
 -- Paramètre : played_at = fin du quiz hors ligne selon l'appareil.
 --
 -- Erreurs : 42501 non authentifié, 22023 entrée invalide (played_at manquant,
@@ -55,15 +63,27 @@ comment on column public.profiles.last_quiz_at is
 -- - `already_validated` : jour déjà validé (quiz servi, appel précédent,
 --   autre appareil) ou antérieur au dernier jour validé (on ne réécrit pas
 --   le passé) ;
--- - `limit` : 3 jours déjà validés hors ligne sur les 7 derniers jours.
+-- - `limit` : 3 jours déjà validés hors ligne sur les 7 jours précédant le
+--   jour du quiz (jour compris). Un jour hors ligne aussi validé par un quiz
+--   servi (ligne dans `quiz_results`) ne compte pas.
 --
 -- Retour : { validated, reason, day,
 --            profile: { xp, streak, freezes, last_played_day, daily_goal,
 --                       quiz_day, quiz_count, last_quiz_at } }
-create function public.validate_offline_day(played_at timestamptz)
+
+create schema private;
+comment on schema private is
+  'Fonctions internes, non exposées par l''API ; aucun accès client.';
+revoke all on schema private from public, anon, authenticated;
+
+create function private.validate_offline_day(
+  uid uuid,
+  played_at timestamptz,
+  as_of timestamptz
+)
 returns jsonb
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $$
 declare
@@ -74,9 +94,8 @@ declare
   max_offline_days constant integer := 3;
   window_days constant integer := 7;
 
-  uid uuid := (select auth.uid());
-  v_now timestamptz := now();
-  v_today date := (now() at time zone 'Europe/Paris')::date;
+  v_now timestamptz := as_of;
+  v_today date := (as_of at time zone 'Europe/Paris')::date;
   v_played timestamptz;
   v_day date;
   v_reason text;
@@ -87,6 +106,9 @@ declare
 begin
   if uid is null then
     raise exception 'non authentifié' using errcode = '42501';
+  end if;
+  if as_of is null then
+    raise exception 'heure de référence manquante' using errcode = '22023';
   end if;
   if validate_offline_day.played_at is null then
     raise exception 'jour invalide : heure du quiz manquante' using errcode = '22023';
@@ -116,7 +138,11 @@ begin
     v_reason := 'already_validated';
   elsif (select count(*) from public.offline_days od
          where od.user_id = uid
-           and od.day > v_day - window_days) >= max_offline_days then
+           and od.day > v_day - window_days
+           -- Jour aussi validé par un quiz servi : ne compte pas.
+           and not exists (select 1 from public.quiz_results qr
+                           where qr.user_id = uid and qr.day = od.day))
+        >= max_offline_days then
     v_reason := 'limit';
   end if;
 
@@ -138,8 +164,8 @@ begin
     v_streak := v_streak + 1;
 
     -- Course impossible (verrou sur le profil), gardé par prudence.
-    insert into public.offline_days (user_id, day, played_at)
-    values (uid, v_day, v_played)
+    insert into public.offline_days (user_id, day, played_at, validated_at)
+    values (uid, v_day, v_played, v_now)
     on conflict (user_id, day) do nothing;
 
     -- Purge des jours devenus inutiles au plafond.
@@ -173,6 +199,25 @@ begin
       'last_quiz_at', p.last_quiz_at
     )
   );
+end;
+$$;
+
+revoke execute on function private.validate_offline_day(uuid, timestamptz, timestamptz)
+  from public, anon, authenticated;
+
+create function public.validate_offline_day(played_at timestamptz)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+begin
+  if uid is null then
+    raise exception 'non authentifié' using errcode = '42501';
+  end if;
+  return private.validate_offline_day(uid, validate_offline_day.played_at, now());
 end;
 $$;
 

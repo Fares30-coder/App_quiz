@@ -7,7 +7,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(47);
+select plan(61);
 
 create schema tests;
 grant usage on schema tests to authenticated;
@@ -57,6 +57,7 @@ grant execute on function tests.serve(timestamptz) to authenticated;
 -- C : série perdue ; D : quiz de la veille possible (5 h avant) ;
 -- E : plafond de 3 jours sur 7 ; F : jour ancien hors plafond ;
 -- G : jour déjà validé par un quiz servi ; H : nouveau joueur.
+-- I à M (fin du fichier) : heure fixée via private.validate_offline_day.
 insert into auth.users (id, aud, role)
 values
   ('00000000-0000-0000-0000-0000000010a1', 'authenticated', 'authenticated'),
@@ -492,6 +493,178 @@ select is(
 );
 
 reset role;
+
+-- Heure fixée ---------------------------------------------------------------------
+--
+-- private.validate_offline_day(uid, played_at, as_of) : même logique que la
+-- RPC, as_of remplaçant now(). Aucun test ci-dessous ne dépend de l'heure
+-- réelle. Référence : lundi 15 juin 2026, 5 h 30 à Paris (D = 2026-06-15).
+-- I : veille (minuit − 1 min) ; J : plafond évalué pour la veille ;
+-- K : bords de la fenêtre (J-6, J-5, J-4) ; L : jour hors ligne aussi validé
+-- par un quiz servi, hors plafond ; M : last_quiz_at avancé (heure réelle).
+
+reset role;
+
+select is(
+  (select coalesce(array_agg(p.oid::regprocedure::text order by p.oid::regprocedure::text), '{}')
+     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+      and has_function_privilege('anon', p.oid, 'execute')),
+  '{}'::text[],
+  'aucune fonction security definer de public exécutable par anon'
+);
+
+select ok(
+  not has_function_privilege('anon', 'private.validate_offline_day(uuid, timestamptz, timestamptz)', 'execute')
+  and not has_function_privilege('authenticated', 'private.validate_offline_day(uuid, timestamptz, timestamptz)', 'execute'),
+  'private.validate_offline_day : non exécutable par anon ni authenticated'
+);
+
+select ok(
+  not has_schema_privilege('anon', 'private', 'usage')
+  and not has_schema_privilege('authenticated', 'private', 'usage'),
+  'schéma private : aucun usage client'
+);
+
+insert into auth.users (id, aud, role)
+values
+  ('00000000-0000-0000-0000-000000001031', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-000000001041', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-000000001051', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-000000001061', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-000000001071', 'authenticated', 'authenticated');
+
+update public.profiles
+   set streak = 4, freezes = 0, last_played_day = '2026-06-13'
+ where id = '00000000-0000-0000-0000-000000001031';
+update public.profiles
+   set streak = 3, freezes = 0, last_played_day = '2026-06-13'
+ where id = '00000000-0000-0000-0000-000000001041';
+insert into public.offline_days (user_id, day, played_at)
+select '00000000-0000-0000-0000-000000001041', d::date, d + interval '12 hours'
+from unnest(array['2026-06-08', '2026-06-09', '2026-06-10']::timestamptz[]) d;
+update public.profiles
+   set streak = 3, freezes = 0, last_played_day = '2026-06-14'
+ where id = '00000000-0000-0000-0000-000000001051';
+insert into public.offline_days (user_id, day, played_at)
+select '00000000-0000-0000-0000-000000001051', d::date, d + interval '12 hours'
+from unnest(array['2026-06-09', '2026-06-10', '2026-06-11']::timestamptz[]) d;
+update public.profiles
+   set streak = 3, freezes = 0, last_played_day = '2026-06-14'
+ where id = '00000000-0000-0000-0000-000000001061';
+insert into public.offline_days (user_id, day, played_at)
+select '00000000-0000-0000-0000-000000001061', d::date, d + interval '12 hours'
+from unnest(array['2026-06-12', '2026-06-13', '2026-06-14']::timestamptz[]) d;
+insert into public.quiz_results (id, user_id, day, played_at, score, total, xp, xp_raw)
+values (gen_random_uuid(), '00000000-0000-0000-0000-000000001061', '2026-06-13',
+        '2026-06-13 20:00:00+02', 10, 10, 0, 0);
+
+-- I : veille, quiz fini à minuit − 1 min, envoyé à 5 h 30 ------------------------
+
+select throws_ok(
+  $$select private.validate_offline_day('00000000-0000-0000-0000-000000001031',
+      '2026-06-14 23:59:00+02', '2026-06-15 06:00:00+02')$$,
+  '22023', 'jour invalide : quiz joué il y a plus de 6 h',
+  'veille : minuit − 1 min envoyé à 6 h 00 (6 h 01 plus tard) : refusé'
+);
+
+select is(
+  private.validate_offline_day('00000000-0000-0000-0000-000000001031',
+    '2026-06-14 23:59:00+02', '2026-06-15 05:30:00+02') - 'profile',
+  '{"validated": true, "reason": null, "day": "2026-06-14"}'::jsonb,
+  'veille : minuit − 1 min envoyé à 5 h 30 : jour de la veille validé'
+);
+
+select is(
+  (select jsonb_build_object('streak', streak, 'last_played_day', last_played_day,
+                             'quiz_day', quiz_day, 'quiz_count', quiz_count,
+                             'last_quiz_at', last_quiz_at)
+   from public.profiles where id = '00000000-0000-0000-0000-000000001031'),
+  jsonb_build_object('streak', 5, 'last_played_day', '2026-06-14',
+                     'quiz_day', '2026-06-14', 'quiz_count', 1,
+                     'last_quiz_at', '2026-06-14 23:59:00+02'::timestamptz),
+  'veille : série +1, compteur et last_quiz_at du jour de la veille'
+);
+
+select is(
+  private.validate_offline_day('00000000-0000-0000-0000-000000001031',
+    '2026-06-15 05:20:00+02', '2026-06-15 05:30:00+02') - 'profile',
+  '{"validated": true, "reason": null, "day": "2026-06-15"}'::jsonb,
+  'veille puis aujourd''hui : validé (série 6)'
+);
+
+select is(
+  private.validate_offline_day('00000000-0000-0000-0000-000000001031',
+    '2026-06-14 23:58:00+02', '2026-06-15 05:30:00+02') - 'profile' - 'day',
+  '{"validated": false, "reason": "already_validated"}'::jsonb,
+  'veille envoyée après le jour même : refus propre (passé non réécrit)'
+);
+
+-- J : plafond évalué pour la veille (fenêtre du 8 au 14 juin) -------------------
+
+select is(
+  private.validate_offline_day('00000000-0000-0000-0000-000000001041',
+    '2026-06-14 23:59:00+02', '2026-06-15 05:30:00+02') - 'profile',
+  '{"validated": false, "reason": "limit", "day": "2026-06-14"}'::jsonb,
+  'veille : jours hors ligne J-7 à J-5 dans sa fenêtre : plafond'
+);
+
+select is(
+  private.validate_offline_day('00000000-0000-0000-0000-000000001041',
+    '2026-06-15 05:20:00+02', '2026-06-15 05:30:00+02') ->> 'validated',
+  'true',
+  'aujourd''hui : J-7 sort de la fenêtre, 2 jours comptés : validé'
+);
+
+-- K : bords de la fenêtre (J-6, J-5, J-4 comptent) -------------------------------
+
+select is(
+  private.validate_offline_day('00000000-0000-0000-0000-000000001051',
+    '2026-06-15 05:20:00+02', '2026-06-15 05:30:00+02') - 'profile' - 'day',
+  '{"validated": false, "reason": "limit"}'::jsonb,
+  'jours hors ligne à J-6, J-5, J-4 : plafond'
+);
+
+-- L : jour hors ligne puis validé par un quiz servi : hors plafond ---------------
+
+select is(
+  private.validate_offline_day('00000000-0000-0000-0000-000000001061',
+    '2026-06-15 05:20:00+02', '2026-06-15 05:30:00+02') ->> 'validated',
+  'true',
+  '3 jours hors ligne dont 1 aussi validé par un quiz servi : 2 comptés, validé'
+);
+
+-- M : last_quiz_at avancé (heure réelle, submit_quiz utilise now()) --------------
+--
+-- Jour validé hors ligne à now(), puis quiz servi dont la dernière réponse
+-- précède (10 min avant) : submit_quiz le date de last_quiz_at, donc
+-- d'aujourd'hui, même si sa dernière réponse tombait la veille.
+
+set local role authenticated;
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-000000001071","role":"authenticated"}';
+
+do $$ begin
+  perform public.validate_offline_day(now());
+  perform public.submit_quiz(tests.serve(now() - interval '10 minutes'));
+end $$;
+
+reset role;
+
+select is(
+  (select jsonb_build_object('day', day, 'played_at', played_at)
+   from public.quiz_results where user_id = '00000000-0000-0000-0000-000000001071'),
+  jsonb_build_object('day', tests.paris_day(), 'played_at', now()),
+  'quiz servi antérieur au jour hors ligne : daté de last_quiz_at (aujourd''hui)'
+);
+
+select is(
+  (select jsonb_build_object('streak', streak, 'last_played_day', last_played_day,
+                             'quiz_count', quiz_count, 'last_quiz_at', last_quiz_at)
+   from public.profiles where id = '00000000-0000-0000-0000-000000001071'),
+  jsonb_build_object('streak', 1, 'last_played_day', tests.paris_day(),
+                     'quiz_count', 2, 'last_quiz_at', now()),
+  'quiz servi après le jour hors ligne : série non recomptée, compteur 2'
+);
 
 select finish();
 rollback;

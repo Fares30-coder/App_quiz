@@ -39,7 +39,9 @@ puis au retour au premier plan (au plus 1 fois par minute). Règle de fusion :
   hors ligne) : la progression locale est conservée telle quelle ;
 - `last_quiz_at` renseigné : le serveur remplace XP, série, gels et compteur
   de quiz du jour en local (compteur : le plus grand des deux pour un même
-  jour, car seul le 1er quiz hors ligne du jour est connu du serveur) ;
+  jour, car seul le 1er quiz hors ligne du jour est connu du serveur ; si
+  le jour local est postérieur à celui du serveur, par exemple après une
+  journée hors ligne refusée, le compteur local est gardé) ;
 - l'objectif du jour est un choix local, envoyé par `set_daily_goal` à chaque
   changement et à chaque sync s'il diffère (donc réessayé après un échec) ;
 - tant qu'un quiz ou une journée hors ligne attend d'être validé (files
@@ -233,7 +235,10 @@ abandonnée sans envoi. Sans session au moment du quiz : rien n'est mémorisé.
 inchangé.
 
 `validate_offline_day(played_at timestamptz)` : `security definer`,
-`search_path = ''`, EXECUTE pour `authenticated` seulement. Valide le jour
+`search_path = ''`, EXECUTE pour `authenticated` seulement. Elle appelle
+`private.validate_offline_day(uid, played_at, as_of)` avec `auth.uid()` et
+`now()` : schéma `private` non exposé par l'API, aucun usage ni EXECUTE
+client ; `as_of` permet aux tests de fixer l'heure. Valide le jour
 (Europe/Paris) de `played_at` avec les règles de `submit_quiz` (jours
 manqués couverts par les gels, sinon série perdue, gels conservés),
 incrémente le compteur du jour et avance `last_quiz_at`. **Aucune XP, aucune
@@ -250,7 +255,9 @@ Retour : `{ validated, reason, day, profile }` (profil au format de
   `already_validated` si le jour est déjà validé (quiz servi, appel
   précédent : idempotent) ou antérieur au dernier jour validé (le passé
   n'est pas réécrit) ; `limit` si 3 jours ont déjà été validés hors ligne
-  sur 7 jours glissants.
+  sur les 7 jours finissant au jour du quiz (la veille a donc sa propre
+  fenêtre). Un jour hors ligne aussi validé par un quiz servi (ligne dans
+  `quiz_results`, index `quiz_results_day_user_idx`) ne compte pas.
 - Table `offline_days (user_id, day)` : jours validés ainsi (idempotence,
   plafond), RLS sans policy, aucun GRANT client ; lignes de plus de 14 jours
   purgées à chaque validation.
@@ -271,6 +278,17 @@ Limites :
   consommé ou série perdue) ;
 - au-delà de 6 h sans connexion, ou au 4e jour hors ligne sur 7, la journée
   n'est plus validée et le profil serveur remplace la série locale ;
+- `last_quiz_at` avancé par la RPC : `submit_quiz` date un quiz servi de
+  `greatest(dernière réponse, last_quiz_at)`. Un quiz servi fini avant le
+  quiz hors ligne mais envoyé après (autre appareil, ou réseau revenu plus
+  tard) est donc daté de l'heure du quiz hors ligne, voire d'aujourd'hui
+  alors que sa dernière réponse date de la veille (XP du jour, classement
+  de la semaine). Effet faible aujourd'hui ; **à revoir avant les badges et
+  les ligues** (jour d'un quiz servi = jour de sa dernière réponse) ;
+- rattrapage de la veille seulement entre 0 h et 6 h (Paris) : `played_at`
+  doit dater de moins de 6 h. Une veille jouée à 23 h et envoyée à 7 h est
+  refusée (`22023`) et compte comme manquée. **À revoir avant les badges et
+  les ligues** si des séries longues deviennent un enjeu ;
 - tant que la migration n'est pas poussée, l'appel échoue (erreur
   passagère) : l'entrée est gardée jusqu'à 6 h, puis abandonnée.
 

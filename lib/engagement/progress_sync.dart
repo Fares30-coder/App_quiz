@@ -29,11 +29,18 @@ import 'progress_controller.dart';
 /// Les jours affichés de la semaine (joués / gelés) restent ceux de l'appareil.
 /// Compteur du jour : le plus grand des deux pour un même jour (les quiz
 /// hors ligne suivants du jour ne sont comptés que par l'appareil, le
-/// serveur ne valide qu'une fois la journée hors ligne).
+/// serveur ne valide qu'une fois la journée hors ligne). Si le jour local est
+/// postérieur à celui du serveur (journée hors ligne refusée, par exemple
+/// au plafond), le compteur local du jour est gardé : la jauge du jour ne
+/// retombe pas à 0.
 PlayerProgress mergeServerProgress(PlayerProgress local, ServerProfile server) {
   if (server.lastQuizAt == null) return local;
-  final serverCount = server.quizDay == null ? 0 : server.quizCount;
-  final sameDay = isSameDay(local.quizzesDay, server.quizDay);
+  final localDay = local.quizzesDay;
+  final serverDay = server.quizDay;
+  final localAhead = localDay != null &&
+      (serverDay == null || daysBetween(serverDay, localDay) > 0);
+  final serverCount = serverDay == null ? 0 : server.quizCount;
+  final sameDay = isSameDay(localDay, serverDay);
   return local.copyWith(
     totalXp: server.xp,
     streak: Streak(
@@ -43,8 +50,8 @@ PlayerProgress mergeServerProgress(PlayerProgress local, ServerProfile server) {
       playedDays: local.streak.playedDays,
       frozenDays: local.streak.frozenDays,
     ),
-    quizzesDay: server.quizDay,
-    quizzesCount: sameDay && local.quizzesCount > serverCount
+    quizzesDay: localAhead ? localDay : serverDay,
+    quizzesCount: localAhead || (sameDay && local.quizzesCount > serverCount)
         ? local.quizzesCount
         : serverCount,
   );

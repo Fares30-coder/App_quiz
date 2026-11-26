@@ -18,6 +18,7 @@ import 'package:quizzeo/models/offline_day.dart';
 import 'package:quizzeo/models/player_progress.dart';
 import 'package:quizzeo/models/question.dart';
 import 'package:quizzeo/models/quiz_submission.dart';
+import 'package:quizzeo/models/server_profile.dart';
 import 'package:quizzeo/models/streak.dart';
 import 'package:quizzeo/quiz/quiz_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,6 +43,9 @@ class _FakeServer {
 
   /// Réponse d'erreur de `validate_offline_day` (code SQLSTATE), null = succès.
   String? validateError;
+
+  /// Refus « propre » forcé de `validate_offline_day` (ex. `limit`).
+  String? validateRefusal;
 
   late final client = MockClient((request) async {
     requests.add(request);
@@ -119,7 +123,8 @@ class _FakeServer {
       final day = dayOf(DateTime.parse(playedAt).toLocal());
       final p = profile!;
       final last = p['last_played_day'] as String?;
-      final validated = last == null || daysBetween(parseDayKey(last), day) > 0;
+      final validated = validateRefusal == null &&
+          (last == null || daysBetween(parseDayKey(last), day) > 0);
       if (validated) {
         p
           ..['streak'] = (p['streak'] as int) + 1
@@ -132,7 +137,7 @@ class _FakeServer {
       return http.Response(
           jsonEncode({
             'validated': validated,
-            'reason': validated ? null : 'already_validated',
+            'reason': validated ? null : validateRefusal ?? 'already_validated',
             'day': dayKey(day),
             'profile': p,
           }),
@@ -270,7 +275,8 @@ void main() {
     expect(p.streak.count, 12);
     expect(p.streak.freezes, 2);
     expect(p.streak.lastPlayed, addDays(_today, -1));
-    expect(p.quizzesOn(_today), 0, reason: 'quiz comptés hier');
+    expect(p.quizzesOn(_today), 1,
+        reason: 'serveur à hier, local à aujourd\'hui : jauge locale gardée');
     expect(p.dailyGoal, 2, reason: 'objectif : choix local');
     // Cache local mis à jour.
     expect(c.read(progressRepositoryProvider).load().totalXp, 900);
@@ -631,6 +637,46 @@ void main() {
     });
   });
 
+  group('mergeServerProgress : compteur du jour', () {
+    final yesterday = addDays(_today, -1);
+    ServerProfile server(DateTime? quizDay, int count) => ServerProfile(
+          xp: 900,
+          streak: 12,
+          freezes: 2,
+          lastPlayedDay: yesterday,
+          dailyGoal: 2,
+          quizDay: quizDay,
+          quizCount: count,
+          lastQuizAt: DateTime.utc(2026, 11, 25, 18),
+        );
+
+    test('jour local postérieur au serveur : compteur local gardé', () {
+      final merged = mergeServerProgress(
+          _local.copyWith(quizzesCount: 2), server(yesterday, 3));
+      expect(merged.quizzesDay, _today);
+      expect(merged.quizzesOn(_today), 2);
+      expect(merged.streak.count, 12, reason: 'série : le serveur fait foi');
+    });
+
+    test('même jour : le plus grand des deux', () {
+      expect(
+          mergeServerProgress(_local, server(_today, 3)).quizzesOn(_today), 3);
+      expect(
+          mergeServerProgress(
+                  _local.copyWith(quizzesCount: 4), server(_today, 3))
+              .quizzesOn(_today),
+          4);
+    });
+
+    test('jour serveur postérieur au local : compteur du serveur', () {
+      final merged = mergeServerProgress(
+          _local.copyWith(quizzesDay: yesterday, quizzesCount: 5),
+          server(_today, 1));
+      expect(merged.quizzesDay, _today);
+      expect(merged.quizzesOn(_today), 1);
+    });
+  });
+
   group('série hors ligne (validate_offline_day)', () {
     final yesterday = addDays(_today, -1);
 
@@ -770,6 +816,22 @@ void main() {
       final p = c.read(progressControllerProvider);
       expect(p.streak.count, 13);
       expect(p.quizzesOn(_today), 1);
+      expect(c.read(pendingOfflineDayRepositoryProvider).isEmpty, isTrue);
+    });
+
+    test('refus (plafond) : jauge du jour gardée, série du serveur', () async {
+      server
+        ..profile = serverProfile()
+        ..validateRefusal = 'limit';
+      final c = await container(local: synced);
+      await started(c);
+      await playLocal(c);
+
+      expect(server.offlineDaysSent, hasLength(1));
+      final p = c.read(progressControllerProvider);
+      expect(p.streak.count, 12, reason: 'journée refusée par le serveur');
+      expect(p.quizzesOn(_today), 1,
+          reason: 'jour local postérieur au serveur : compteur gardé');
       expect(c.read(pendingOfflineDayRepositoryProvider).isEmpty, isTrue);
     });
 
