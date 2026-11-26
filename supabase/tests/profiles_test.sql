@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(17);
+select plan(24);
 
 -- Deux joueurs ; le trigger crée leurs profils.
 insert into auth.users (id, aud, role)
@@ -35,6 +35,37 @@ select ok(
 select ok(
   not has_function_privilege('authenticated', 'public.handle_new_user()', 'execute'),
   'handle_new_user non exécutable par le client'
+);
+
+-- Privilèges indépendants des données : détectent un futur GRANT accidentel.
+select ok(
+  not has_table_privilege('anon', 'public.profiles',
+    'select,insert,update,delete,truncate'),
+  'anon : aucun privilège sur profiles'
+);
+
+select ok(
+  not has_table_privilege('authenticated', 'public.profiles',
+    'insert,update,delete,truncate'),
+  'authenticated : aucune écriture directe sur profiles'
+);
+
+select ok(
+  not has_function_privilege('public', 'public.set_daily_goal(smallint)', 'execute'),
+  'public ne peut pas appeler set_daily_goal'
+);
+
+select is(
+  (select prosecdef and proconfig @> array['search_path=""']
+   from pg_proc where oid = 'public.set_daily_goal(smallint)'::regprocedure),
+  true,
+  'set_daily_goal : security definer + search_path vide'
+);
+
+select lives_ok(
+  $$insert into public.profiles (id) select id from auth.users
+    on conflict (id) do nothing$$,
+  'backfill idempotent'
 );
 
 -- Joueur A connecté.
@@ -90,6 +121,12 @@ select throws_ok(
   'set_daily_goal(0) refusé'
 );
 
+select throws_ok(
+  $$select public.set_daily_goal(null)$$,
+  '22023', null,
+  'set_daily_goal(null) refusé'
+);
+
 select lives_ok(
   $$select public.set_daily_goal(3::smallint)$$,
   'set_daily_goal(3) accepté'
@@ -99,6 +136,17 @@ select is(
   (select daily_goal::int from public.profiles),
   3,
   'objectif de A mis à jour'
+);
+
+-- Rôle authenticated sans uid dans le jeton : RPC refusée.
+reset role;
+set local role authenticated;
+set local "request.jwt.claims" to '{"role":"authenticated"}';
+
+select throws_ok(
+  $$select public.set_daily_goal(2::smallint)$$,
+  '42501', null,
+  'set_daily_goal sans uid refusé'
 );
 
 -- Visiteur non connecté (clé publishable seule) : aucun accès.
