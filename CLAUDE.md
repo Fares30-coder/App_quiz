@@ -46,6 +46,7 @@ Règles validées :
 ## Contenu
 - 500+ questions au lancement, générées puis relues à la main (faits vérifiés)
 - Champs : question, 4 réponses, bonne réponse, explication, catégorie, difficulté
+- Questions servies par le serveur : `supabase/questions/questions.json` uniquement, jamais dans `assets/` ; `assets/questions.json` = lot hors ligne, jamais servi (anti-triche)
 
 ## Hors MVP
 Multijoueur temps réel, notifications avancées, contenus par niveau scolaire.
