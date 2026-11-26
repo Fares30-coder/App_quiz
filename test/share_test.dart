@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:quizzeo/engagement/dates.dart';
 import 'package:quizzeo/quiz/quiz_controller.dart';
 import 'package:quizzeo/share/share_content.dart';
 import 'package:quizzeo/share/share_image.dart';
@@ -42,8 +43,14 @@ void main() {
       expect(c.cta, 'Joue le défi sur Quizzéo');
       expect(c.answers.where((a) => a), hasLength(8));
       expect(c.fileName, 'quizzeo-score-8-sur-10.png');
-      expect(c.message,
-          'J\'ai eu 8/10 au défi du jour sur Quizzéo. Tu fais mieux ?');
+      // 25 nov. 2026 : avant le défi n° 1, donc pas de numéro.
+      expect(
+          c.message,
+          'Quizzéo · 8/10\n'
+          '🟩🟩🟩🟩🟩🟩🟩🟩🟥🟥\n'
+          '🔥 6\n'
+          '\n'
+          'Tu fais mieux ?');
     });
 
     test('accroche selon le score', () {
@@ -94,6 +101,101 @@ void main() {
     test('pas de lien de store tant que l\'app n\'est pas publiée', () {
       expect(shareStoreLink, isNull);
       expect(daily(8).message, isNot(contains('http')));
+    });
+  });
+
+  group('grille de partage', () {
+    final start = challengeStartDay;
+    final mixed = [
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+    ];
+
+    ShareContent score(QuizMode mode,
+            {List<bool>? answers, int streak = 6, DateTime? on}) =>
+        scoreShareContent(
+          mode: mode,
+          category: mode == QuizMode.category ? 'histoire' : null,
+          score: (answers ?? mixed).where((a) => a).length,
+          total: 10,
+          answers: answers ?? mixed,
+          streakDays: streak,
+          day: on ?? addDays(start, 41),
+        );
+
+    List<String> lines(ShareContent c) => c.message.split('\n');
+
+    test('10 cases dans l\'ordre des réponses', () {
+      final grid = lines(score(QuizMode.dailyChallenge))[1];
+      expect(grid, '🟩🟥🟩🟩🟥🟩🟩🟩🟥🟩');
+      expect(grid.runes, hasLength(10));
+    });
+
+    test('temps écoulé (réponse fausse) = case rouge', () {
+      final answers = [for (var i = 0; i < 10; i++) i != 9];
+      expect(lines(score(QuizMode.mix, answers: answers))[1],
+          '🟩🟩🟩🟩🟩🟩🟩🟩🟩🟥');
+    });
+
+    test('numéro seulement pour le défi du jour', () {
+      expect(lines(score(QuizMode.dailyChallenge))[0],
+          'Quizzéo · Défi n°\u00a042 · 7/10');
+      expect(lines(score(QuizMode.mix))[0], 'Quizzéo · 7/10');
+      expect(lines(score(QuizMode.category))[0], 'Quizzéo · 7/10');
+    });
+
+    test('numéro du défi : n° 1 au départ, null avant', () {
+      expect(challengeNumber(start), 1);
+      expect(
+          challengeNumber(DateTime(start.year, start.month, start.day, 23)), 1);
+      expect(challengeNumber(addDays(start, 1)), 2);
+      expect(challengeNumber(addDays(start, 41)), 42);
+      expect(challengeNumber(addDays(start, -1)), isNull);
+      expect(challengeNumber(DateTime(2020)), isNull);
+    });
+
+    test('numéro du défi : passage à l\'heure d\'été sans décalage', () {
+      // 2026-12-01 → 2027-03-29 : 118 jours, le 28 mars 2027 change d'heure.
+      expect(challengeNumber(DateTime(2027, 3, 29)), 119);
+      expect(challengeNumber(DateTime(2027, 3, 29, 23, 30)), 119);
+    });
+
+    test('pas de ligne vide si aucune réponse', () {
+      final g = shareGrid(
+        mode: QuizMode.mix,
+        score: 0,
+        total: 0,
+        answers: const [],
+        streakDays: 6,
+        day: start,
+      );
+      expect(g, 'Quizzéo · 0/0\n🔥 6');
+    });
+
+    test('série affichée si > 0, absente si 0', () {
+      expect(lines(score(QuizMode.dailyChallenge, streak: 12))[2], '🔥 12');
+      final none = score(QuizMode.dailyChallenge, streak: 0);
+      expect(none.message, isNot(contains('🔥')));
+      expect(lines(none)[2], '');
+    });
+
+    test('aucun texte de question ni de réponse', () {
+      final c = score(QuizMode.dailyChallenge);
+      expect(
+          c.message,
+          'Quizzéo · Défi n°\u00a042 · 7/10\n'
+          '🟩🟥🟩🟩🟥🟩🟩🟩🟥🟩\n'
+          '🔥 6\n'
+          '\n'
+          'Tu fais mieux ?');
     });
   });
 

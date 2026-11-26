@@ -98,6 +98,41 @@ String _overlineTitle(QuizMode mode, String? category) => switch (mode) {
         },
     };
 
+/// Jour du défi n° 1.
+// TODO(publication): à ajuster au jour de publication de l'app (D3 : n° 1 =
+// jour de publication).
+final DateTime challengeStartDay = DateTime(2026, 12, 1);
+
+/// Numéro du défi du jour [day] (jour calendaire local) : 1 le jour de
+/// départ, puis +1 par jour. Null avant le départ.
+int? challengeNumber(DateTime day) {
+  final n = daysBetween(challengeStartDay, day) + 1;
+  return n >= 1 ? n : null;
+}
+
+/// Grille sans spoiler : « Quizzéo · Défi n° 42 · 8/10 », une case par
+/// réponse (🟩 juste, 🟥 fausse ou temps écoulé), puis « 🔥 6 » si série.
+/// Aucun texte de question ni de réponse.
+String shareGrid({
+  required QuizMode mode,
+  required int score,
+  required int total,
+  required List<bool> answers,
+  required int streakDays,
+  required DateTime day,
+}) {
+  final number = mode == QuizMode.dailyChallenge ? challengeNumber(day) : null;
+  return [
+    [
+      'Quizzéo',
+      if (number != null) 'Défi n°$_nbsp$number',
+      '$score/$total',
+    ].join(' · '),
+    if (answers.isNotEmpty) answers.map((a) => a ? '🟩' : '🟥').join(),
+    if (streakDays > 0) '🔥 $streakDays',
+  ].join('\n');
+}
+
 String _withLink(String text) =>
     shareStoreLink == null ? text : '$text\n$shareStoreLink';
 
@@ -118,6 +153,14 @@ ShareContent scoreShareContent({
           ? 'Tu as combien$_nbsp?'
           : 'Tu fais mieux$_nbsp?';
   final daily = mode == QuizMode.dailyChallenge;
+  final grid = shareGrid(
+    mode: mode,
+    score: score,
+    total: total,
+    answers: answers,
+    streakDays: streakDays,
+    day: day,
+  );
   return ShareContent(
     kind: ShareKind.score,
     overline: '${_overlineTitle(mode, category)} · ${formatDayMonth(day)}'
@@ -125,7 +168,9 @@ ShareContent scoreShareContent({
     headline: 'J\'ai eu $score/$total\n$scope',
     challenge: challenge,
     cta: daily ? 'Joue le défi sur Quizzéo' : 'Joue sur Quizzéo',
-    message: _withLink('J\'ai eu $score/$total $scope sur Quizzéo. $challenge'),
+    message: _withLink(
+      '$grid\n\n$challenge',
+    ),
     fileName: 'quizzeo-score-$score-sur-$total.png',
     score: score,
     total: total,
