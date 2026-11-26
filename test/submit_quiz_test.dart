@@ -1,11 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quizzeo/backend/supabase_progress_source.dart';
 import 'package:quizzeo/data/pending_quiz_repository.dart';
-import 'package:quizzeo/models/question.dart';
 import 'package:quizzeo/models/quiz_submission.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,22 +13,14 @@ import '../tool/generate_seed.dart';
 QuizSubmission _submission(String id) => QuizSubmission(
       id: id,
       userId: 'joueur-1',
-      questionIds: [for (var i = 1; i <= 10; i++) 'q-$i'],
-      choices: [0, null, 2, 3, 0, 0, 0, 0, 0, 1],
-      timesMs: [for (var i = 1; i <= 10; i++) i * 1000],
       playedAt: DateTime.utc(2026, 11, 26, 19, 30),
     );
 
 void main() {
   group('QuizSubmission', () {
-    test('paramètres de la RPC submit_quiz', () {
-      expect(_submission('abc').toRpcParams(), {
-        'quiz_id': 'abc',
-        'question_ids': [for (var i = 1; i <= 10; i++) 'q-$i'],
-        'choices': [0, null, 2, 3, 0, 0, 0, 0, 0, 1],
-        'times_ms': [for (var i = 1; i <= 10; i++) i * 1000],
-        'played_at': '2026-11-26T19:30:00.000Z',
-      });
+    test('paramètres de la RPC submit_quiz : identifiant de session seul', () {
+      expect(_submission('abc').toRpcParams(), {'quiz_id': 'abc'},
+          reason: 'questions, réponses et heure : enregistrées par le serveur');
     });
 
     test('aller-retour JSON (file locale)', () {
@@ -39,6 +29,7 @@ void main() {
           jsonDecode(jsonEncode(s.toJson())) as Map<String, dynamic>);
       expect(back.toRpcParams(), s.toRpcParams());
       expect(back.userId, 'joueur-1');
+      expect(back.playedAt, s.playedAt);
       expect(s.toRpcParams().containsKey('user_id'), isFalse,
           reason: 'le serveur prend auth.uid()');
     });
@@ -61,14 +52,6 @@ void main() {
       expect(submittedMs(const Duration(milliseconds: 100)), 500);
       expect(submittedMs(const Duration(seconds: 30, milliseconds: 40)),
           QuizSubmission.maxMs);
-    });
-
-    test('identifiant au format UUID v4, différent à chaque quiz', () {
-      final v4 = RegExp(
-          r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
-      final ids = {for (var i = 0; i < 100; i++) randomUuid()};
-      expect(ids, hasLength(100));
-      expect(ids.every(v4.hasMatch), isTrue);
     });
 
     test('réponse du serveur', () {
@@ -111,27 +94,6 @@ void main() {
     });
   });
 
-  test('Question.originalIndex suit les mélanges successifs', () {
-    const q = Question(
-      id: 'q',
-      category: 'divers',
-      question: '?',
-      answers: ['a', 'b', 'c', 'd'],
-      correctIndex: 2,
-      explanation: '',
-      difficulty: 1,
-    );
-    expect(q.originalIndex(3), 3);
-    final once = q.shuffled(Random(1));
-    final twice = once.shuffled(Random(2));
-    for (final s in [once, twice]) {
-      for (var i = 0; i < 4; i++) {
-        expect(q.answers[s.originalIndex(i)], s.answers[i]);
-      }
-      expect(s.originalIndex(s.correctIndex), q.correctIndex);
-    }
-  });
-
   group('PendingQuizRepository', () {
     late PendingQuizRepository repo;
 
@@ -157,6 +119,18 @@ void main() {
       expect([for (final s in repo.load()) s.id], ['b']);
       await repo.clear();
       expect(repo.isEmpty, isTrue);
+    });
+
+    test('ancienne file (v1, réponses choisies par l\'app) : ignorée, effacée',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'pending_quizzes_v1': '[{"id":"ancien","userId":"joueur-1"}]',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final legacy = PendingQuizRepository(prefs);
+      expect(legacy.isEmpty, isTrue, reason: 'jamais renvoyée au serveur');
+      await legacy.clear();
+      expect(prefs.getString('pending_quizzes_v1'), isNull);
     });
 
     test('taille plafonnée : les plus anciens sont abandonnés', () async {

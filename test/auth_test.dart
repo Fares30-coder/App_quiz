@@ -160,9 +160,6 @@ void main() {
       await queue.add(QuizSubmission(
         id: 'quiz-1',
         userId: 'existant',
-        questionIds: const ['q-1'],
-        choices: const [0],
-        timesMs: const [2000],
         playedAt: DateTime.utc(2026, 11, 26),
       ));
       final server = _FakeServer();

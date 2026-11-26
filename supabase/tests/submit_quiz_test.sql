@@ -1,9 +1,11 @@
--- Tests pgTAP de submit_quiz(), questions et quiz_results.
+-- Tests pgTAP de submit_quiz(quiz_id) : barème, série, plafonds, dates,
+-- questions et quiz_results. Le service des quiz (start_quiz,
+-- answer_question) est testé dans start_quiz_test.sql.
 -- Lancer en local : `supabase start` puis `supabase test db`.
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(76);
+select plan(69);
 
 -- Données de test (propriétaire) -------------------------------------------
 
@@ -13,6 +15,41 @@ insert into public.questions
 select 'zz-' || lpad(i::text, 2, '0'), 'divers', 1, 'Question ' || i,
        array['a', 'b', 'c', 'd'], 0, 'Explication ' || i
 from generate_series(1, 12) i;
+
+-- Aide de test (annulée avec la transaction) : quiz servi au joueur connecté
+-- et entièrement répondu, comme après start_quiz() + 10 answer_question(),
+-- dernière réponse à `last_at`. Réponses dans l'ordre d'origine (answer_order
+-- identité) : 0 = bonne réponse. Renvoie l'identifiant du quiz.
+create schema tests;
+create function tests.serve(
+  choices integer[],
+  times integer[],
+  last_at timestamptz default now(),
+  question_ids text[] default '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
+  id uuid default gen_random_uuid()
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_start timestamptz :=
+    last_at - make_interval(secs => (select sum(t) from unnest(times) t) / 1000.0 + 1);
+begin
+  insert into public.quiz_sessions (id, user_id, mode, started_at, expires_at)
+  values (serve.id, (select auth.uid()), 'mix', v_start, v_start + interval '30 minutes');
+  insert into public.quiz_session_questions
+    (quiz_id, position, question_id, answer_order, choice, time_ms, answered_at)
+  select serve.id, q.n, q.qid, '{0,1,2,3}', choices[q.n], times[q.n],
+         v_start + make_interval(secs => 1 + (select sum(t) from unnest(times[1:q.n]) t) / 1000.0)
+    from unnest(question_ids) with ordinality as q (qid, n);
+  return serve.id;
+end;
+$$;
+grant usage on schema tests to authenticated;
+grant execute on function tests.serve(integer[], integer[], timestamptz, text[], uuid)
+  to authenticated;
 
 -- A : calcul XP ; B : limite de débit ; C : plafond du jour ; D : date jouée ;
 -- E : antidatage (série, plafonds) ; F : profil absent.
@@ -70,26 +107,26 @@ select is(
 
 select ok(
   not has_function_privilege('anon',
-    'public.submit_quiz(uuid, text[], integer[], integer[], timestamptz)', 'execute'),
+    'public.submit_quiz(uuid)', 'execute'),
   'anon ne peut pas appeler submit_quiz'
 );
 
 select ok(
   not has_function_privilege('public',
-    'public.submit_quiz(uuid, text[], integer[], integer[], timestamptz)', 'execute'),
+    'public.submit_quiz(uuid)', 'execute'),
   'public ne peut pas appeler submit_quiz'
 );
 
 select ok(
   has_function_privilege('authenticated',
-    'public.submit_quiz(uuid, text[], integer[], integer[], timestamptz)', 'execute'),
+    'public.submit_quiz(uuid)', 'execute'),
   'authenticated peut appeler submit_quiz'
 );
 
 select is(
   (select prosecdef and proconfig @> array['search_path=""']
    from pg_proc
-   where oid = 'public.submit_quiz(uuid, text[], integer[], integer[], timestamptz)'::regprocedure),
+   where oid = 'public.submit_quiz(uuid)'::regprocedure),
   true,
   'submit_quiz : security definer + search_path vide'
 );
@@ -151,12 +188,7 @@ select throws_ok(
 
 -- Sans-faute rapide : 10×10 + 10×5 (rapidité) + 8×5 (combo) + 20 + 30 = 240.
 select is(
-  public.submit_quiz(
-    '11111111-1111-1111-1111-111111111111',
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) - 'profile' - 'quiz_id',
+  public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}', id => '11111111-1111-1111-1111-111111111111')) - 'profile' - 'quiz_id',
   '{"duplicate": false, "score": 10, "total": 10, "xp_gained": 240, "xp_capped": false}'::jsonb,
   'sans-faute rapide : 240 XP'
 );
@@ -181,12 +213,7 @@ select isnt(
 
 -- Double soumission : résultat renvoyé, rien n'est recompté.
 select is(
-  (public.submit_quiz(
-    '11111111-1111-1111-1111-111111111111',
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) ->> 'duplicate')::boolean,
+  (public.submit_quiz('11111111-1111-1111-1111-111111111111') ->> 'duplicate')::boolean,
   true,
   'double soumission détectée'
 );
@@ -205,12 +232,7 @@ select is(
 
 -- Combo coupé, réponses lentes : 9×10 + combo (3e, puis 7e à 10e) 5×5 + 20 = 135.
 select is(
-  (public.submit_quiz(
-    gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,1,0,0,0,0,0,0}',
-    '{15000,15000,15000,15000,15000,15000,15000,15000,15000,15000}'
-  ) ->> 'xp_gained')::int,
+  (public.submit_quiz(tests.serve('{0,0,0,1,0,0,0,0,0,0}', '{15000,15000,15000,15000,15000,15000,15000,15000,15000,15000}')) ->> 'xp_gained')::int,
   135,
   'combo coupé, sans bonus rapidité : 135 XP'
 );
@@ -223,12 +245,7 @@ select is(
 
 -- Temps écoulés (null) : seul le bonus « quiz terminé ».
 select is(
-  public.submit_quiz(
-    gen_random_uuid(),
-    '{zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10,zz-11,zz-12}',
-    '{null,null,null,null,null,null,null,null,null,null}',
-    '{30000,30000,30000,30000,30000,30000,30000,30000,30000,30000}'
-  ) -> 'score',
+  public.submit_quiz(tests.serve('{null,null,null,null,null,null,null,null,null,null}', '{30000,30000,30000,30000,30000,30000,30000,30000,30000,30000}', now(), '{zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10,zz-11,zz-12}')) -> 'score',
   '0'::jsonb,
   'temps écoulés : score 0'
 );
@@ -241,134 +258,59 @@ select is(
 
 -- Limite du bonus rapidité : 9 999 ms oui, 10 000 ms non → 15 + 10 + 20 = 45.
 select is(
-  (public.submit_quiz(
-    gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,3,3,3,3,3,3,3,3}',
-    '{9999,10000,500,500,500,500,500,500,500,500}'
-  ) ->> 'xp_gained')::int,
+  (public.submit_quiz(tests.serve('{0,0,3,3,3,3,3,3,3,3}', '{9999,10000,500,500,500,500,500,500,500,500}')) ->> 'xp_gained')::int,
   45,
   'bonus rapidité strictement sous 10 s'
 );
 
--- Entrées invalides ------------------------------------------------------------
+-- Quiz refusés -------------------------------------------------------------------
+-- (forme des réponses et temps par question : voir start_quiz_test.sql,
+-- contrôlés par answer_question.)
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09}',
-    '{0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz(gen_random_uuid())$$,
   '22023', null,
-  '9 questions refusées'
+  'quiz non servi refusé'
 );
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-01,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
-  '22023', null,
-  'question en double refusée'
-);
-
-select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,inconnue}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
-  '22023', null,
-  'question inconnue refusée'
-);
-
-select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,null}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
-  '22023', null,
-  'question vide refusée'
-);
-
-select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{499,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
-  '22023', null,
-  'réponse en moins de 0,5 s refusée'
-);
-
-select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{30001,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
-  '22023', null,
-  'réponse au-delà de 30 s refusée'
-);
-
-select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{null,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
-  '22023', null,
-  'temps manquant refusé'
-);
-
-select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{4,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
-  '22023', null,
-  'réponse hors de 0 à 3 refusée'
-);
-
-select throws_ok(
-  $$select public.submit_quiz(null,
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz(null)$$,
   '22023', null,
   'identifiant de quiz manquant refusé'
 );
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}',
-    now() - interval '3 days')$$,
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000}', now(), '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09}'))$$,
   '22023', null,
-  'quiz joué il y a 3 jours refusé'
+  'quiz incomplet (9 réponses) refusé'
 );
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}', now() - interval '3 days'))$$,
   '22023', null,
-  'tableaux de tailles différentes refusés'
+  'quiz terminé il y a 3 jours refusé'
 );
 
-select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{{zz-01,zz-02,zz-03,zz-04,zz-05},{zz-06,zz-07,zz-08,zz-09,zz-10}}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
-  '22023', null,
-  'tableau à 2 dimensions refusé'
-);
+-- Durée déclarée (10 × 2 s) supérieure à la durée serveur (10 s).
+reset role;
+insert into public.quiz_sessions (id, user_id, mode, started_at, expires_at)
+values ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-0000000000a1',
+        'mix', now() - interval '10 seconds', now() + interval '30 minutes');
+insert into public.quiz_session_questions
+  (quiz_id, position, question_id, answer_order, choice, time_ms, answered_at)
+select '33333333-3333-3333-3333-333333333333', i, 'zz-' || lpad(i::text, 2, '0'),
+       '{0,1,2,3}', 0, 2000, now()
+from generate_series(1, 10) i;
+-- Quiz servi à A, encore non soumis (essai de B plus bas).
+insert into public.quiz_sessions (id, user_id, mode, started_at, expires_at)
+values ('44444444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-0000000000a1',
+        'mix', now() - interval '1 minute', now() + interval '29 minutes');
+set local role authenticated;
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{-1,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz('33333333-3333-3333-3333-333333333333')$$,
   '22023', null,
-  'réponse négative refusée'
+  'durée totale supérieure à la durée serveur refusée'
 );
 
 select is(
@@ -388,11 +330,7 @@ where id = '00000000-0000-0000-0000-0000000000a1';
 set local role authenticated;
 
 select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) -> 'profile' ->> 'streak')::int,
+  (public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')) -> 'profile' ->> 'streak')::int,
   6,
   '2 jours manqués + 2 gels : série continue (6)'
 );
@@ -412,11 +350,7 @@ where id = '00000000-0000-0000-0000-0000000000a1';
 set local role authenticated;
 
 select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) -> 'profile' ->> 'streak')::int,
+  (public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')) -> 'profile' ->> 'streak')::int,
   1,
   '2 jours manqués + 1 gel : série repart à 1'
 );
@@ -437,11 +371,7 @@ where id = '00000000-0000-0000-0000-0000000000a1';
 set local role authenticated;
 
 select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) -> 'profile') - 'xp' - 'last_quiz_at' - 'daily_goal',
+  (public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')) -> 'profile') - 'xp' - 'last_quiz_at' - 'daily_goal',
   jsonb_build_object(
     'streak', 6, 'freezes', 2,
     'last_played_day', (now() at time zone 'Europe/Paris')::date,
@@ -460,11 +390,7 @@ where id = '00000000-0000-0000-0000-0000000000a1';
 set local role authenticated;
 
 select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) -> 'profile') - 'xp' - 'last_quiz_at' - 'daily_goal' - 'quiz_day' - 'quiz_count'
+  (public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')) -> 'profile') - 'xp' - 'last_quiz_at' - 'daily_goal' - 'quiz_day' - 'quiz_count'
     - 'last_played_day',
   '{"streak": 1, "freezes": 2}'::jsonb,
   'série à 0 : nouvelle série, gels non consommés'
@@ -477,29 +403,25 @@ set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}';
 
 select throws_ok(
-  $$select public.submit_quiz('11111111-1111-1111-1111-111111111111',
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz('11111111-1111-1111-1111-111111111111')$$,
   '22023', null,
   'identifiant de quiz d''un autre joueur refusé'
 );
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz('44444444-4444-4444-4444-444444444444')$$,
+  '22023', null,
+  'quiz servi à un autre joueur refusé'
+);
+
+select throws_ok(
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'))$$,
   'PT429', null,
   '21e quiz dans l''heure refusé'
 );
 
 select is(
-  (public.submit_quiz('22222222-2222-2222-2222-222222222222',
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) ->> 'duplicate')::boolean,
+  (public.submit_quiz('22222222-2222-2222-2222-222222222222') ->> 'duplicate')::boolean,
   true,
   'doublon renvoyé malgré la limite (non compté)'
 );
@@ -523,10 +445,7 @@ set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000000a1","role":"authenticated"}';
 
 select lives_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'))$$,
   'limite par joueur : A peut encore jouer'
 );
 
@@ -537,21 +456,13 @@ set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000000c1","role":"authenticated"}';
 
 select is(
-  public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) - 'profile' - 'quiz_id',
+  public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')) - 'profile' - 'quiz_id',
   '{"duplicate": false, "score": 10, "total": 10, "xp_gained": 100, "xp_capped": true}'::jsonb,
   'plafond du jour : 100 XP sur 240'
 );
 
 select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) ->> 'xp_gained')::int,
+  (public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')) ->> 'xp_gained')::int,
   0,
   'plafond atteint : 0 XP'
 );
@@ -563,10 +474,7 @@ select is(
 );
 
 select lives_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{500,30000,500,30000,500,30000,500,30000,500,30000}')$$,
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{500,30000,500,30000,500,30000,500,30000,500,30000}'))$$,
   'bornes exactes 500 et 30 000 ms acceptées'
 );
 
@@ -579,33 +487,19 @@ set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000000d1","role":"authenticated"}';
 
 select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}',
-    now() - interval '5 hours'
-  ) -> 'profile' ->> 'last_played_day')::date,
+  (public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}', now() - interval '5 hours')) -> 'profile' ->> 'last_played_day')::date,
   ((now() - interval '5 hours') at time zone 'Europe/Paris')::date,
   'quiz joué il y a 5 h hors ligne : compté à son jour'
 );
 
 select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'
-  ) -> 'profile' ->> 'streak')::int,
+  (public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')) -> 'profile' ->> 'streak')::int,
   1 + ((now() at time zone 'Europe/Paris')::date - ((now() - interval '5 hours') at time zone 'Europe/Paris')::date),
   'puis maintenant : série 2 si le premier était hier, sinon 1'
 );
 
 select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}',
-    now() - interval '5 hours'
-  ) -> 'profile') - 'xp' - 'last_quiz_at' - 'daily_goal' - 'freezes' - 'streak',
+  (public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}', now() - interval '5 hours')) -> 'profile') - 'xp' - 'last_quiz_at' - 'daily_goal' - 'freezes' - 'streak',
   jsonb_build_object(
     'last_played_day', (now() at time zone 'Europe/Paris')::date,
     'quiz_day', (now() at time zone 'Europe/Paris')::date,
@@ -625,23 +519,8 @@ select ok(
   'played_at jamais dans le futur'
 );
 
-select is(
-  (public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}',
-    now() + interval '2 days'
-  ) -> 'profile' ->> 'quiz_day')::date,
-  (now() at time zone 'Europe/Paris')::date,
-  'date future ramenée à maintenant'
-);
-
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}',
-    now() - interval '6 hours 1 minute')$$,
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}', now() - interval '6 hours 1 minute'))$$,
   '22023', null,
   'retard de plus de 6 h refusé'
 );
@@ -653,12 +532,7 @@ set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000000e1","role":"authenticated"}';
 
 select is(
-  public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}',
-    now() - interval '5 hours 59 minutes'
-  ) - 'quiz_id' - 'duplicate' - 'score' - 'total' - 'profile',
+  public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}', now() - interval '5 hours 59 minutes')) - 'quiz_id' - 'duplicate' - 'score' - 'total' - 'profile',
   '{"xp_gained": 100, "xp_capped": true}'::jsonb,
   'antidaté (5 h 59) : plafond de son jour seulement (100 XP)'
 );
@@ -670,21 +544,14 @@ select is(
 );
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}',
-    ((((now() at time zone 'Europe/Paris')::date - 2) + time '23:00')
-      at time zone 'Europe/Paris'))$$,
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}', ((((now() at time zone 'Europe/Paris')::date - 2) + time '23:00')
+      at time zone 'Europe/Paris')))$$,
   '22023', null,
   'quiz rattaché à J-2 refusé'
 );
 
 select lives_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'))$$,
   'E : quiz du jour accepté'
 );
 
@@ -712,10 +579,7 @@ set local role authenticated;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}';
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz(tests.serve('{0,0,0,0,0,0,0,0,0,0}', '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}'))$$,
   'P0002', null,
   'profil absent : P0002'
 );
@@ -727,10 +591,7 @@ set local role authenticated;
 set local "request.jwt.claims" to '{"role":"authenticated"}';
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz(gen_random_uuid())$$,
   '42501', null,
   'submit_quiz sans uid refusé'
 );
@@ -740,10 +601,7 @@ set local role anon;
 set local "request.jwt.claims" to '{"role":"anon"}';
 
 select throws_ok(
-  $$select public.submit_quiz(gen_random_uuid(),
-    '{zz-01,zz-02,zz-03,zz-04,zz-05,zz-06,zz-07,zz-08,zz-09,zz-10}',
-    '{0,0,0,0,0,0,0,0,0,0}',
-    '{2000,2000,2000,2000,2000,2000,2000,2000,2000,2000}')$$,
+  $$select public.submit_quiz(gen_random_uuid())$$,
   '42501', null,
   'anon ne peut pas appeler submit_quiz'
 );
@@ -784,6 +642,15 @@ select is(
    where user_id = '00000000-0000-0000-0000-0000000000b1'),
   20,
   'B : aucun quiz ajouté'
+);
+
+select is(
+  (select array_agg(id order by id) from public.quiz_sessions
+   where user_id = '00000000-0000-0000-0000-0000000000a1'
+     and submitted_at is null),
+  array['33333333-3333-3333-3333-333333333333',
+        '44444444-4444-4444-4444-444444444444']::uuid[],
+  'A : sessions validées marquées soumises, sauf les refusées'
 );
 
 select * from finish();

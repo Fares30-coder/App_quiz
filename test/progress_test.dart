@@ -153,16 +153,16 @@ void main() {
           difficulty: 1,
         );
 
-    test('quiz complet : XP, combo, série et persistance', () {
+    test('quiz complet : XP, combo, série et persistance', () async {
       final quiz = container.read(quizControllerProvider.notifier);
       quiz.start([q('1'), q('2'), q('3')], mode: QuizMode.dailyChallenge);
 
-      expect(quiz.answer(0), isTrue);
+      expect(await quiz.answer(0), isTrue);
       expect(container.read(quizControllerProvider).lastAnswerXp.total, 15);
       expect(quiz.next(), isTrue);
-      expect(quiz.answer(0), isTrue);
+      expect(await quiz.answer(0), isTrue);
       expect(quiz.next(), isTrue);
-      expect(quiz.answer(0), isTrue);
+      expect(await quiz.answer(0), isTrue);
       final s = container.read(quizControllerProvider);
       expect(s.combo, 3);
       expect(s.lastAnswerXp.total, 20); // 10 + 5 rapidité + 5 combo x3
@@ -184,11 +184,11 @@ void main() {
       expect(reloaded.streak.count, 1);
     });
 
-    test('une seule réponse par question', () {
+    test('une seule réponse par question', () async {
       final quiz = container.read(quizControllerProvider.notifier);
       quiz.start([q('1'), q('2')], mode: QuizMode.mix);
-      expect(quiz.answer(1), isFalse);
-      expect(quiz.answer(0), isFalse);
+      expect(await quiz.answer(1), isFalse);
+      expect(await quiz.answer(0), isFalse);
       expect(container.read(quizControllerProvider).answers, hasLength(1));
     });
 

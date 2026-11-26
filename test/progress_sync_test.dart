@@ -24,8 +24,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final _now = DateTime(2026, 11, 26, 10);
 final _today = dayOf(_now);
 
-/// Faux serveur PostgREST : `profiles` en lecture, RPC `set_daily_goal` et
-/// `submit_quiz`.
+/// Faux serveur PostgREST : `profiles` en lecture, RPC `set_daily_goal`,
+/// `answer_question` (bonne réponse : position 0) et `submit_quiz`.
 class _FakeServer {
   final requests = <http.Request>[];
   bool offline = false;
@@ -51,6 +51,22 @@ class _FakeServer {
       final goal = (jsonDecode(request.body) as Map)['goal'] as int;
       profile?['daily_goal'] = goal;
       return http.Response('', 204, request: request);
+    }
+    if (path == '/rest/v1/rpc/answer_question' && request.method == 'POST') {
+      if (rpcOffline) throw const SocketException('hors ligne');
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      return http.Response(
+          jsonEncode({
+            'quiz_id': body['quiz_id'],
+            'question_id': body['question_id'],
+            'choice': body['choice'],
+            'correct': body['choice'] == 0,
+            'correct_choice': 0,
+            'explanation': 'Explication ${body['question_id']}',
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+          request: request);
     }
     if (path == '/rest/v1/rpc/submit_quiz' && request.method == 'POST') {
       if (rpcOffline) throw const SocketException('hors ligne');
@@ -89,6 +105,12 @@ class _FakeServer {
   List<Map<String, dynamic>> get quizzesSent => [
         for (final r in requests)
           if (r.url.path.endsWith('/rpc/submit_quiz'))
+            jsonDecode(r.body) as Map<String, dynamic>,
+      ];
+
+  List<Map<String, dynamic>> get answersSent => [
+        for (final r in requests)
+          if (r.url.path.endsWith('/rpc/answer_question'))
             jsonDecode(r.body) as Map<String, dynamic>,
       ];
 
@@ -300,9 +322,6 @@ void main() {
         QuizSubmission(
           id: id,
           userId: userId,
-          questionIds: [for (var i = 1; i <= 10; i++) 'q-$i'],
-          choices: [0, 1, null, 0, 0, 0, 0, 0, 0, 0],
-          timesMs: List.filled(10, 2000),
           playedAt: playedAt ?? _now,
         );
 
@@ -318,13 +337,7 @@ void main() {
       await (await started(c)).submitQuiz(submission());
 
       expect(server.quizzesSent, hasLength(1));
-      final body = server.quizzesSent.single;
-      expect(body['quiz_id'], 'quiz-1');
-      expect(body['question_ids'], hasLength(10));
-      expect(body['choices'], [0, 1, null, 0, 0, 0, 0, 0, 0, 0]);
-      expect(body['times_ms'], List.filled(10, 2000));
-      expect(DateTime.parse(body['played_at'] as String).isAtSameMomentAs(_now),
-          isTrue);
+      expect(server.quizzesSent.single, {'quiz_id': 'quiz-1'});
 
       final p = c.read(progressControllerProvider);
       expect(p.totalXp, 1000, reason: 'XP du serveur');
@@ -450,62 +463,100 @@ void main() {
     }
 
     group('fin de quiz (QuizController)', () {
-      // 10 questions dont la bonne réponse d'origine est l'index 0, mélangées.
-      final questions = [
+      // Quiz servi : questions sans bonne réponse, corrigées par le serveur.
+      final served = [
         for (var i = 1; i <= 10; i++)
-          Question(
-            id: 'q-$i',
-            category: 'divers',
-            question: 'Question $i',
-            answers: const ['a', 'b', 'c', 'd'],
-            correctIndex: 0,
-            explanation: '',
-            difficulty: 1,
-          ).shuffled(Random(i)),
+          Question.fromServerJson({
+            'id': 'q-$i',
+            'category': 'divers',
+            'question': 'Question $i',
+            'answers': ['a', 'b', 'c', 'd'],
+            'difficulty': 1,
+          }),
       ];
 
-      void play(ProviderContainer c, {required int count}) {
+      /// Bonne réponse (position 0) partout, sauf à la 2e question.
+      Future<void> play(ProviderContainer c, List<Question> questions,
+          {String? quizId}) async {
         final quiz = c.read(quizControllerProvider.notifier)
-          ..start(questions.take(count).toList(), mode: QuizMode.mix);
-        for (var i = 0; i < count; i++) {
+          ..start(questions,
+              mode: QuizMode.mix,
+              quizId: quizId,
+              userId: quizId == null ? null : 'joueur-1');
+        for (var i = 0; i < questions.length; i++) {
           final q = c.read(quizControllerProvider).current;
-          // Bonne réponse, sauf à la 2e question (première mauvaise affichée).
-          quiz.answer(i == 1 ? (q.correctIndex + 1) % 4 : q.correctIndex);
-          quiz.next();
+          final good = quizId == null ? q.correctIndex : 0;
+          await quiz.answer(i == 1 ? (good + 1) % 4 : good);
+          expect(quiz.next(), i < questions.length - 1);
         }
       }
 
-      test('quiz de 10 questions : soumis en arrière-plan', () async {
+      test('quiz servi : réponses corrigées puis quiz soumis', () async {
         final c = await container();
         await started(c);
-        play(c, count: 10);
-        expect(c.read(quizControllerProvider).isFinished, isTrue);
+        await play(c, served, quizId: 'quiz-servi');
+        final state = c.read(quizControllerProvider);
+        expect(state.isFinished, isTrue);
+        expect(state.score, 9);
+        expect(state.questions.every((q) => q.isRevealed), isTrue,
+            reason: 'corrections gardées pour l\'écran Résultats');
+        expect(state.questions.first.explanation, 'Explication q-1');
         await pumpEventQueue();
 
-        final body = server.quizzesSent.single;
-        expect(body['question_ids'], [for (final q in questions) q.id]);
-        final wrong =
-            questions[1].originalIndex((questions[1].correctIndex + 1) % 4);
-        expect(body['choices'], [0, wrong, 0, 0, 0, 0, 0, 0, 0, 0],
-            reason: 'index d\'origine, pas l\'ordre affiché');
-        expect(
-            (body['times_ms'] as List)
-                .every((t) => t is int && t >= 0 && t <= 30000),
+        expect(server.answersSent, hasLength(10));
+        expect(server.answersSent[1]['choice'], 1);
+        expect(server.answersSent.every((a) => a['quiz_id'] == 'quiz-servi'),
             isTrue);
+        expect(
+            server.answersSent.every((a) =>
+                a['time_ms'] is int &&
+                (a['time_ms'] as int) >= QuizSubmission.minMs &&
+                (a['time_ms'] as int) <= QuizSubmission.maxMs),
+            isTrue);
+        expect(server.quizzesSent.single, {'quiz_id': 'quiz-servi'});
         expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
       });
 
-      test('quiz incomplet (moins de 10 questions) : non soumis', () async {
+      test('quiz local en mode Supabase : jamais soumis (hors classement)',
+          () async {
         final c = await container();
-        play(c, count: 3);
+        await started(c);
+        final local = [
+          for (var i = 1; i <= 10; i++)
+            Question(
+              id: 'q-$i',
+              category: 'divers',
+              question: 'Question $i',
+              answers: const ['a', 'b', 'c', 'd'],
+              correctIndex: 0,
+              explanation: '',
+              difficulty: 1,
+            ).shuffled(Random(i)),
+        ];
+        await play(c, local);
         await pumpEventQueue();
+        expect(c.read(quizControllerProvider).isFinished, isTrue);
+        expect(server.answersSent, isEmpty);
         expect(server.quizzesSent, isEmpty);
         expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+        expect(c.read(progressControllerProvider).totalXp, greaterThan(150),
+            reason: 'calcul local affiché quand même');
       });
 
       test('mode local : aucun appel, rien en file', () async {
         final c = await container(withClient: false, userId: null);
-        play(c, count: 10);
+        await play(c, [
+          for (var i = 1; i <= 10; i++)
+            Question(
+              id: 'q-$i',
+              category: 'divers',
+              question: 'Question $i',
+              answers: const ['a', 'b', 'c', 'd'],
+              correctIndex: 0,
+              explanation: '',
+              difficulty: 1,
+            ),
+        ]);
         await pumpEventQueue();
         expect(server.requests, isEmpty);
         expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
