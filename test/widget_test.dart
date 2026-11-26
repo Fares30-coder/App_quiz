@@ -9,9 +9,11 @@ import 'package:quizzeo/data/progress_repository.dart';
 import 'package:quizzeo/data/question_repository.dart';
 import 'package:quizzeo/models/question.dart';
 import 'package:quizzeo/main.dart';
+import 'package:quizzeo/reminder/notification_service.dart';
 import 'package:quizzeo/sound/sound_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'fake_notifications.dart';
 import 'fakes.dart';
 
 /// Charge les vraies polices (sinon la police de test, plus large, fausse les mesures).
@@ -40,6 +42,7 @@ Future<void> pumpApp(
   Map<String, Object> prefs, {
   double height = 1100,
   SoundService sounds = const SilentSoundService(),
+  FakeNotificationService? notifications,
 }) async {
   // Format téléphone des maquettes (390×844), assez haut pour tout l'écran objectif.
   tester.view.physicalSize = Size(390, height);
@@ -53,6 +56,8 @@ Future<void> pumpApp(
       questionRepositoryProvider
           .overrideWithValue(QuestionRepository(questions: questions)),
       soundServiceProvider.overrideWithValue(sounds),
+      notificationServiceProvider
+          .overrideWithValue(notifications ?? FakeNotificationService()),
     ],
     child: const QuizzeoApp(),
   ));
@@ -79,6 +84,36 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Jouer le défi'), findsOneWidget);
+  });
+
+  testWidgets('premier lancement : autorisation demandée après le choix',
+      (tester) async {
+    final notifications = FakeNotificationService(grant: false);
+    await pumpApp(tester, {}, notifications: notifications);
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
+    expect(notifications.permissionRequests, 0);
+    await tester.tap(find.text('C\'est parti'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(notifications.permissionRequests, 1);
+    expect(notifications.scheduled.first.when.hour, 20);
+    // Refus : l'app continue normalement.
+    expect(find.text('Jouer le défi'), findsOneWidget);
+  });
+
+  testWidgets('« Pas de rappel » : aucune demande d\'autorisation',
+      (tester) async {
+    final notifications = FakeNotificationService();
+    await pumpApp(tester, {}, notifications: notifications);
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pas de rappel'));
+    await tester.tap(find.text('C\'est parti'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(notifications.permissionRequests, 0);
+    expect(notifications.scheduled, isEmpty);
   });
 
   testWidgets('accueil après le premier lancement', (tester) async {

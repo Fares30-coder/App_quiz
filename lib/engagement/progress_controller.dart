@@ -121,7 +121,7 @@ class ProgressController extends Notifier<PlayerProgress> {
       dailyGoal: dailyGoal.clamp(1, 3),
       reminderMinutes: () => reminder,
     ));
-    // TODO(etape-1b): programmer le rappel (flutter_local_notifications + timezone).
+    // Le rappel est programmé par reminderSchedulerProvider (lib/reminder/).
   }
 
   void setGoalAndReminder({required int dailyGoal, required int? reminder}) {
@@ -130,6 +130,10 @@ class ProgressController extends Notifier<PlayerProgress> {
       reminderMinutes: () => reminder,
     ));
   }
+
+  /// Heure du rappel (minutes depuis minuit) ; null = pas de rappel.
+  void setReminder(int? minutes) =>
+      _set(state.copyWith(reminderMinutes: () => minutes));
 
   QuizOutcome completeQuiz(
     QuizXp xp, {

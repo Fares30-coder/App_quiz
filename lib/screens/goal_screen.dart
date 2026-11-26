@@ -5,7 +5,22 @@ import 'package:material_ui/material_ui.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../models/player_progress.dart';
+import '../reminder/reminder_scheduler.dart';
 import '../theme/app_theme.dart';
+
+/// Sélecteur d'heure (format 24 h) ; renvoie des minutes depuis minuit.
+Future<int?> pickReminderMinutes(BuildContext context, int initial) async {
+  final picked = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay(hour: initial ~/ 60, minute: initial % 60),
+    helpText: 'Heure du rappel',
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+      child: child!,
+    ),
+  );
+  return picked == null ? null : picked.hour * 60 + picked.minute;
+}
 
 /// Objectif du jour + heure du rappel (maquette objectif.html).
 /// [onboarding] : premier lancement ; sinon modification depuis le Profil.
@@ -39,22 +54,15 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
   }
 
   Future<void> _pickOtherHour() async {
-    final initial = _reminder ?? defaultReminderMinutes;
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: initial ~/ 60, minute: initial % 60),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
-    );
-    if (picked != null) {
-      setState(() => _reminder = picked.hour * 60 + picked.minute);
-    }
+    final picked =
+        await pickReminderMinutes(context, _reminder ?? defaultReminderMinutes);
+    if (picked != null) setState(() => _reminder = picked);
   }
 
   void _save() {
     final controller = ref.read(progressControllerProvider.notifier);
+    // Lu avant la navigation : l'écran est démonté juste après.
+    final scheduler = ref.read(reminderSchedulerProvider);
     if (widget.onboarding) {
       controller.finishOnboarding(dailyGoal: _goal, reminder: _reminder);
       // L'accueil remplace la racine (voir main.dart) : on ferme l'onboarding.
@@ -63,8 +71,9 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
       controller.setGoalAndReminder(dailyGoal: _goal, reminder: _reminder);
       Navigator.of(context).pop();
     }
-    // TODO(etape-1b): demander l'autorisation des notifications (iOS / Android 13+)
-    // et programmer le rappel ; un refus ne bloque rien.
+    // Autorisation demandée juste après le choix de l'heure (iOS / Android 13+).
+    // Un refus ne bloque rien : l'app marche sans rappel.
+    if (_reminder != null) scheduler.requestPermission();
   }
 
   @override
