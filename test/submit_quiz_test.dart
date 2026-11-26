@@ -14,6 +14,7 @@ import '../tool/generate_seed.dart';
 
 QuizSubmission _submission(String id) => QuizSubmission(
       id: id,
+      userId: 'joueur-1',
       questionIds: [for (var i = 1; i <= 10; i++) 'q-$i'],
       choices: [0, null, 2, 3, 0, 0, 0, 0, 0, 1],
       timesMs: [for (var i = 1; i <= 10; i++) i * 1000],
@@ -37,10 +38,27 @@ void main() {
       final back = QuizSubmission.fromJson(
           jsonDecode(jsonEncode(s.toJson())) as Map<String, dynamic>);
       expect(back.toRpcParams(), s.toRpcParams());
+      expect(back.userId, 'joueur-1');
+      expect(s.toRpcParams().containsKey('user_id'), isFalse,
+          reason: 'le serveur prend auth.uid()');
     });
 
-    test('temps envoyé borné à 30 s', () {
+    test('ancien format sans compte : compte vide (jamais envoyé)', () {
+      final json = _submission('abc').toJson()..remove('userId');
+      expect(QuizSubmission.fromJson(json).userId, isEmpty);
+    });
+
+    test('expiré au-delà de 6 h', () {
+      final s = _submission('abc');
+      expect(s.isExpiredAt(s.playedAt.add(const Duration(hours: 6))), isFalse);
+      expect(
+          s.isExpiredAt(s.playedAt.add(const Duration(hours: 6, minutes: 1))),
+          isTrue);
+    });
+
+    test('temps envoyé borné de 0,5 à 30 s', () {
       expect(submittedMs(const Duration(milliseconds: 1234)), 1234);
+      expect(submittedMs(const Duration(milliseconds: 100)), 500);
       expect(submittedMs(const Duration(seconds: 30, milliseconds: 40)),
           QuizSubmission.maxMs);
     });
@@ -77,10 +95,15 @@ void main() {
       expect(result.profile.lastQuizAt, isNotNull);
     });
 
-    test('seul le code 22023 est un refus définitif', () {
+    test('refus définitifs : 22023, 22P02, 22003, 23505, P0002', () {
+      for (final code in ['22023', '22P02', '22003', '23505', 'P0002']) {
+        expect(
+            isRejectedQuiz(PostgrestException(message: '', code: code)), isTrue,
+            reason: code);
+      }
       expect(
-          isRejectedQuiz(const PostgrestException(message: '', code: '22023')),
-          isTrue);
+          isRejectedQuiz(const PostgrestException(message: '', code: '42501')),
+          isFalse);
       expect(
           isRejectedQuiz(const PostgrestException(message: '', code: 'PT429')),
           isFalse);
@@ -124,6 +147,15 @@ void main() {
       await repo.remove('a');
       expect([for (final s in repo.load()) s.id], ['b']);
       await repo.remove('b');
+      expect(repo.isEmpty, isTrue);
+    });
+
+    test('removeWhere et clear', () async {
+      await repo.add(_submission('a'));
+      await repo.add(_submission('b'));
+      await repo.removeWhere((s) => s.id == 'a');
+      expect([for (final s in repo.load()) s.id], ['b']);
+      await repo.clear();
       expect(repo.isEmpty, isTrue);
     });
 

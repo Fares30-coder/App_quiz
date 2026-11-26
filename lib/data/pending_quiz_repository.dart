@@ -7,15 +7,16 @@ import '../models/quiz_submission.dart';
 import 'progress_repository.dart';
 
 /// File d'attente locale des quiz pas encore validés par le serveur
-/// (hors ligne, pas encore de session, erreur passagère). Vidée par
-/// `ProgressSync`, dans l'ordre joué.
+/// (hors ligne, erreur passagère). Chaque quiz porte le compte qui l'a joué.
+/// Vidée par `ProgressSync`, dans l'ordre joué ; effacée par
+/// `AuthService.purgeLocalSession()`.
 class PendingQuizRepository {
   PendingQuizRepository(this._prefs);
 
   static const _key = 'pending_quizzes_v1';
 
   /// Au-delà, les plus anciens sont abandonnés (le serveur refuse de toute
-  /// façon les quiz de plus de 48 h et plus de 20 quiz par heure).
+  /// façon les quiz de plus de 6 h et plus de 20 quiz par heure).
   static const maxPending = 30;
 
   final SharedPreferences _prefs;
@@ -41,6 +42,19 @@ class PendingQuizRepository {
         ? list.sublist(list.length - maxPending)
         : list);
   }
+
+  /// Retire les quiz qui vérifient [test] (autre compte, trop anciens).
+  Future<void> removeWhere(bool Function(QuizSubmission) test) async {
+    final list = load();
+    final kept = [
+      for (final s in list)
+        if (!test(s)) s
+    ];
+    if (kept.length != list.length) await _save(kept);
+  }
+
+  /// Vide la file (purge locale de la session).
+  Future<void> clear() => _prefs.remove(_key);
 
   Future<void> remove(String id) => _save([
         for (final s in load())

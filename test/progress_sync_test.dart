@@ -293,12 +293,17 @@ void main() {
   });
 
   group('submit_quiz', () {
-    QuizSubmission submission([String id = 'quiz-1']) => QuizSubmission(
+    QuizSubmission submission(
+            [String id = 'quiz-1',
+            String userId = 'joueur-1',
+            DateTime? playedAt]) =>
+        QuizSubmission(
           id: id,
+          userId: userId,
           questionIds: [for (var i = 1; i <= 10; i++) 'q-$i'],
           choices: [0, 1, null, 0, 0, 0, 0, 0, 0, 0],
           timesMs: List.filled(10, 2000),
-          playedAt: _now,
+          playedAt: playedAt ?? _now,
         );
 
     /// Sync créé et sync initial (lancement) terminé.
@@ -392,12 +397,57 @@ void main() {
       expect(c.read(progressControllerProvider).totalXp, 1100);
     });
 
-    test('sans session : mis en file, aucun appel', () async {
+    test('sans session : ni appel ni mise en file', () async {
       final c = await container(userId: null);
       await (await started(c)).submitQuiz(submission());
       expect(server.requests, isEmpty);
-      expect(c.read(pendingQuizRepositoryProvider).load(), hasLength(1));
+      expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
     });
+
+    test('quiz d\'un autre compte : ignoré', () async {
+      final c = await container();
+      await (await started(c)).submitQuiz(submission('quiz-1', 'autre'));
+      expect(server.quizzesSent, isEmpty);
+      expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+    });
+
+    test('file : quiz d\'un autre compte abandonné sans envoi', () async {
+      final c = await container();
+      final queue = c.read(pendingQuizRepositoryProvider);
+      await queue.add(submission('ancien-compte', 'autre'));
+      await queue.add(submission('quiz-1'));
+      await (await started(c)).sync(force: true);
+
+      expect(server.accepted, ['quiz-1']);
+      expect(queue.isEmpty, isTrue);
+    });
+
+    test('file : quiz de plus de 6 h abandonné sans envoi', () async {
+      final c = await container();
+      final queue = c.read(pendingQuizRepositoryProvider);
+      await queue.add(submission(
+          'trop-vieux', 'joueur-1', _now.subtract(const Duration(hours: 7))));
+      await queue.add(submission(
+          'recent', 'joueur-1', _now.subtract(const Duration(hours: 5))));
+      await (await started(c)).sync(force: true);
+
+      expect(server.accepted, ['recent']);
+      expect(queue.isEmpty, isTrue);
+    });
+
+    for (final code in ['22P02', '22003', '23505', 'P0002']) {
+      test('refus définitif ($code) : la file n\'est pas bloquée', () async {
+        server.submitError = code;
+        final c = await container();
+        final sync = await started(c);
+        await sync.submitQuiz(submission('quiz-1'));
+        server.submitError = null;
+        await sync.submitQuiz(submission('quiz-2'));
+
+        expect(server.accepted, ['quiz-2']);
+        expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+      });
+    }
 
     group('fin de quiz (QuizController)', () {
       // 10 questions dont la bonne réponse d'origine est l'index 0, mélangées.

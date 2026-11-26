@@ -85,8 +85,18 @@ grant select on table public.quiz_results to authenticated;
 -- - choices      : index choisi dans l'ordre d'origine des réponses (0 à 3),
 --                  null si le temps est écoulé ;
 -- - times_ms     : temps de réponse en millisecondes (500 à 30 000) ;
--- - played_at    : fin du quiz selon l'appareil (quiz joué hors ligne), borné
---                  entre le dernier quiz validé et maintenant, 48 h au plus.
+-- - played_at    : fin du quiz selon l'appareil (quiz joué hors ligne), ramené
+--                  entre le dernier quiz validé et maintenant ; refusé s'il
+--                  date de plus de 6 h.
+--
+-- Quiz joué hors ligne (antidatage) : avec 6 h de retard au plus, le jour du
+-- quiz (Europe/Paris) ne peut être qu'aujourd'hui ou la veille, sinon refus
+-- 22023 (vérifié aussi explicitement). Un quiz rattaché à la veille suit les
+-- règles normales : il ne valide que la veille, les jours manqués avant elle
+-- consomment des gels ou cassent la série, et il ne compte que dans le
+-- plafond d'XP de la veille. Il ne peut donc ni rattraper une série déjà
+-- manquée, ni ouvrir le plafond d'un jour antérieur à hier. Après 6 h, la
+-- veille ne peut plus être validée hors ligne (accepté).
 --
 -- Erreurs : 42501 non authentifié, 22023 entrée invalide (définitif : l'app
 -- abandonne la soumission), PT429 trop de quiz en une heure (HTTP 429,
@@ -119,12 +129,13 @@ declare
   max_xp_per_quiz constant integer := 240; -- 10×10 + 10×5 + 8×5 + 20 + 30
   max_xp_per_day constant integer := 3000;
   max_quizzes_per_hour constant integer := 20;
-  max_delay constant interval := interval '48 hours';
+  max_delay constant interval := interval '6 hours';
 
   uid uuid := (select auth.uid());
   v_now timestamptz := now();
   v_played timestamptz;
   v_day date;
+  v_today date := (now() at time zone 'Europe/Paris')::date;
   p public.profiles%rowtype;
   r public.quiz_results%rowtype;
   v_correct boolean[];
@@ -195,11 +206,17 @@ begin
     -- Date du quiz : jamais dans le futur, jamais avant le dernier quiz validé.
     v_played := least(coalesce(submit_quiz.played_at, v_now), v_now);
     if v_played < v_now - max_delay then
-      raise exception 'quiz invalide : joué il y a plus de 48 h'
+      raise exception 'quiz invalide : joué il y a plus de 6 h'
         using errcode = '22023';
     end if;
     v_played := greatest(v_played, coalesce(p.last_quiz_at, v_played));
     v_day := (v_played at time zone 'Europe/Paris')::date;
+    -- Aujourd'hui ou la veille seulement (garde explicite, indépendante de
+    -- max_delay).
+    if v_day < v_today - 1 or v_day > v_today then
+      raise exception 'quiz invalide : jour hors de la veille et d''aujourd''hui'
+        using errcode = '22023';
+    end if;
 
     -- Correction : réponses comparées aux bonnes réponses du serveur.
     select array_agg(a.choice is not null and a.choice = q.correct_index
@@ -260,6 +277,19 @@ begin
       v_streak := v_streak + 1;
     end if;
 
+    -- Course sur quiz_id (même id envoyé par un autre joueur au même
+    -- moment) : aucune écriture, refus définitif.
+    insert into public.quiz_results
+      (id, user_id, day, played_at, score, total, xp, xp_raw)
+    values
+      (submit_quiz.quiz_id, uid, v_day, v_played, v_score, quiz_length, v_xp, v_xp_raw)
+    on conflict (id) do nothing
+    returning * into r;
+    if not found then
+      raise exception 'quiz invalide : identifiant déjà utilisé'
+        using errcode = '22023';
+    end if;
+
     update public.profiles
     set xp = p.xp + v_xp,
         streak = v_streak,
@@ -271,12 +301,6 @@ begin
         updated_at = v_now
     where id = uid
     returning * into p;
-
-    insert into public.quiz_results
-      (id, user_id, day, played_at, score, total, xp, xp_raw)
-    values
-      (submit_quiz.quiz_id, uid, v_day, v_played, v_score, quiz_length, v_xp, v_xp_raw)
-    returning * into r;
   end if;
 
   return jsonb_build_object(

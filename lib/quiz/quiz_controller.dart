@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../backend/auth_service.dart';
 import '../data/question_repository.dart';
 import '../engagement/progress_controller.dart';
 import '../engagement/progress_sync.dart';
@@ -196,11 +197,15 @@ class QuizController extends Notifier<QuizState> {
   /// Validation serveur en arrière-plan (mode Supabase seulement, jamais
   /// bloquant) : le calcul local ci-dessus reste celui affiché. Seuls les
   /// quiz complets de [quizLength] questions sont acceptés par le serveur.
+  /// Sans session (premier lancement hors ligne), le quiz reste local.
   void _submit() {
     final sync = ref.read(progressSyncProvider);
-    if (sync == null || state.questions.length != quizLength) return;
+    final userId = ref.read(authUserIdProvider);
+    if (sync == null || userId == null) return;
+    if (state.questions.length != quizLength) return;
     unawaited(sync.submitQuiz(QuizSubmission(
       id: randomUuid(),
+      userId: userId,
       questionIds: [for (final q in state.questions) q.id],
       choices: state.choices,
       timesMs: [for (final a in state.answers) submittedMs(a.elapsed)],

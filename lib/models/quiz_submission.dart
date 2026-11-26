@@ -9,6 +9,7 @@ import 'server_profile.dart';
 class QuizSubmission {
   const QuizSubmission({
     required this.id,
+    required this.userId,
     required this.questionIds,
     required this.choices,
     required this.timesMs,
@@ -19,7 +20,13 @@ class QuizSubmission {
   static const minMs = 500;
   static const maxMs = 30000;
 
+  /// Retard maximal accepté par le serveur entre la fin du quiz et son envoi.
+  static const maxDelay = Duration(hours: 6);
+
   final String id;
+
+  /// Compte qui a joué le quiz : jamais envoyé sous un autre compte.
+  final String userId;
   final List<String> questionIds;
 
   /// Réponse choisie, index dans l'ordre d'origine ; `null` = temps écoulé.
@@ -28,6 +35,9 @@ class QuizSubmission {
 
   /// Fin du quiz (heure de l'appareil, bornée par le serveur).
   final DateTime playedAt;
+
+  /// Trop ancien pour le serveur (refus certain) : à abandonner.
+  bool isExpiredAt(DateTime now) => now.difference(playedAt) > maxDelay;
 
   /// Paramètres de la RPC `submit_quiz`.
   Map<String, dynamic> toRpcParams() => {
@@ -41,6 +51,7 @@ class QuizSubmission {
   /// Stockage local (file d'attente hors ligne).
   Map<String, dynamic> toJson() => {
         'id': id,
+        'userId': userId,
         'questionIds': questionIds,
         'choices': choices,
         'timesMs': timesMs,
@@ -49,6 +60,8 @@ class QuizSubmission {
 
   factory QuizSubmission.fromJson(Map<String, dynamic> json) => QuizSubmission(
         id: json['id'] as String,
+        // Ancien format sans compte : jamais envoyé (compte inconnu).
+        userId: json['userId'] as String? ?? '',
         questionIds: List<String>.from(json['questionIds'] as List),
         choices: [for (final c in json['choices'] as List) c as int?],
         timesMs: List<int>.from(json['timesMs'] as List),
@@ -56,10 +69,11 @@ class QuizSubmission {
       );
 }
 
-/// Temps envoyé au serveur pour une réponse : borné à [QuizSubmission.maxMs]
-/// (le minuteur peut dépasser 30 s de quelques millisecondes).
+/// Temps envoyé au serveur pour une réponse, borné à l'intervalle accepté :
+/// le minuteur peut dépasser 30 s de quelques millisecondes, et un toucher
+/// très rapide (< 0,5 s) ne doit pas faire refuser tout le quiz.
 int submittedMs(Duration elapsed) =>
-    elapsed.inMilliseconds.clamp(0, QuizSubmission.maxMs);
+    elapsed.inMilliseconds.clamp(QuizSubmission.minMs, QuizSubmission.maxMs);
 
 /// Identifiant aléatoire au format UUID v4 (identifiant de quiz).
 String randomUuid([Random? random]) {

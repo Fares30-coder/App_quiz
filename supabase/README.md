@@ -52,9 +52,19 @@ arrière-plan `submit_quiz(quiz_id, question_ids, choices, times_ms, played_at)`
   résultat déjà enregistré (`duplicate: true`) sans rien recompter ;
 - `choices` : index de la réponse choisie **dans l'ordre de
   `assets/questions.json`** (avant mélange), `null` si temps écoulé ;
-- `times_ms` : 500 à 30 000 ms par question ;
+- `times_ms` : 500 à 30 000 ms par question (l'app borne ses mesures à cet
+  intervalle) ;
 - `played_at` : fin du quiz selon l'appareil (quiz joué hors ligne), ramené
-  entre le dernier quiz validé et maintenant ; refusé au-delà de 48 h.
+  entre le dernier quiz validé et maintenant ; refusé (`22023`) au-delà de
+  **6 h** de retard.
+
+Quiz joué hors ligne : avec 6 h de retard au plus, le jour du quiz
+(Europe/Paris) est aujourd'hui ou la veille, jamais avant (garde explicite,
+sinon `22023`). Un quiz rattaché à la veille ne valide que la veille et ne
+compte que dans le plafond d'XP de la veille ; les jours manqués avant elle
+consomment des gels ou cassent la série. Il ne peut donc ni rattraper une
+série déjà manquée, ni ouvrir le plafond d'un jour antérieur à hier. Après
+6 h, la veille ne peut plus être validée hors ligne (choix accepté).
 
 Le serveur recalcule score, XP (barème de `CLAUDE.md`), série et gels
 (jour calendaire **Europe/Paris** ; l'app utilise l'heure de l'appareil, même
@@ -65,12 +75,19 @@ renvoyé remplace la progression locale (règle de fusion ci-dessus).
 Anti-triche : 10 questions distinctes existantes, temps plausibles, XP
 plafonnée à 240 par quiz (maximum du barème) et à 3 000 par jour (au-delà le
 quiz compte pour la série et l'objectif, sans XP), 20 quiz par heure glissante.
-Erreurs : `22023` entrée invalide (l'app abandonne ce quiz), `PT429` trop de
-quiz (HTTP 429, réessai plus tard), `42501` non authentifié.
+Erreurs : `22023` entrée invalide (y compris `quiz_id` déjà pris par un
+autre joueur, même en cas de course : `on conflict do nothing`), `P0002`
+profil absent, `PT429` trop de quiz (HTTP 429, réessai plus tard), `42501`
+non authentifié. L'app traite `22023`, `22P02`, `22003`, `23505` et `P0002`
+comme définitifs (quiz abandonné, la file n'est jamais bloquée) ; les autres
+erreurs sont réessayées.
 
-Hors ligne ou sans session : le quiz va dans une file locale
+Hors ligne : le quiz va dans une file locale
 (`lib/data/pending_quiz_repository.dart`, 30 au plus), renvoyée dans l'ordre
-au sync suivant ou à la fin du quiz suivant.
+au sync suivant ou à la fin du quiz suivant. Chaque quiz porte l'uid du
+compte qui l'a joué : les quiz d'un autre compte sont abandonnés sans envoi,
+comme ceux de plus de 6 h ; `AuthService.purgeLocalSession()` vide la file.
+Sans session (premier lancement hors ligne), le quiz reste local.
 
 Tables :
 - `questions` : contenu et bonne réponse, RLS sans policy et **aucun GRANT**

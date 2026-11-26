@@ -38,8 +38,13 @@ class SupabaseProgressSource {
   }
 }
 
-/// Quiz refusé définitivement par `submit_quiz` (entrée invalide, code
-/// 22023) : inutile de le renvoyer. Les autres erreurs (réseau, trop de
-/// quiz dans l'heure, migration pas encore appliquée…) sont passagères.
+/// Codes SQLSTATE d'un refus définitif de `submit_quiz` : entrée invalide
+/// (22023), valeur mal formée (22P02), hors limites (22003), identifiant de
+/// quiz déjà pris (23505), profil absent (P0002).
+const rejectedQuizCodes = {'22023', '22P02', '22003', '23505', 'P0002'};
+
+/// Quiz refusé définitivement : inutile de le renvoyer (il bloquerait la
+/// file). Les autres erreurs (réseau, trop de quiz dans l'heure `PT429`,
+/// migration pas encore appliquée…) sont passagères.
 bool isRejectedQuiz(Object error) =>
-    error is PostgrestException && error.code == '22023';
+    error is PostgrestException && rejectedQuizCodes.contains(error.code);

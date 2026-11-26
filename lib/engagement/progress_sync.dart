@@ -105,9 +105,10 @@ class ProgressSync {
   /// Quiz terminé (mode Supabase) : mis en file puis envoyé en arrière-plan.
   /// La réponse du serveur remplace la progression locale (règle de fusion).
   /// Sans session ou hors ligne : réessai au prochain [sync].
+  /// Un quiz joué sous un autre compte (ou sans compte) est ignoré.
   Future<void> submitQuiz(QuizSubmission submission) async {
+    if (submission.userId != _ref.read(authUserIdProvider)) return;
     await _queue.add(submission);
-    if (_ref.read(authUserIdProvider) == null) return;
     try {
       await _flush();
     } catch (e) {
@@ -121,9 +122,17 @@ class ProgressSync {
 
   /// Envoie la file dans l'ordre joué. Un quiz refusé définitivement est
   /// abandonné ; une erreur passagère arrête l'envoi (file conservée).
+  /// Les quiz d'un autre compte et ceux trop anciens pour le serveur
+  /// (plus de [QuizSubmission.maxDelay]) sont abandonnés sans envoi.
   Future<void> _flushQueue() async {
+    final userId = _ref.read(authUserIdProvider);
+    if (userId == null) return;
     ServerProfile? last;
-    for (var queue = _queue.load(); queue.isNotEmpty; queue = _queue.load()) {
+    while (true) {
+      final now = _ref.read(clockProvider)();
+      await _queue.removeWhere((s) => s.userId != userId || s.isExpiredAt(now));
+      final queue = _queue.load();
+      if (queue.isEmpty) break;
       final next = queue.first;
       try {
         last = (await _source.submitQuiz(next)).profile;
