@@ -17,10 +17,14 @@ class SecureSessionStorage extends LocalStorage {
   SecureSessionStorage.forUrl(String url, {FlutterSecureStorage? storage})
       : this(key: sessionKeyFor(url), storage: storage);
 
-  /// `first_unlock` : lisible en arrière-plan après le premier déverrouillage
-  /// (rafraîchissement du jeton), jamais synchronisé via iCloud.
+  /// `first_unlock_this_device` : lisible en arrière-plan après le premier
+  /// déverrouillage (rafraîchissement du jeton), jamais copié vers un autre
+  /// appareil (ni trousseau iCloud, ni sauvegarde restaurée ailleurs), comme
+  /// les exclusions de sauvegarde Android.
   static const defaultStorage = FlutterSecureStorage(
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+    ),
   );
 
   static String sessionKeyFor(String url) =>
@@ -52,13 +56,17 @@ class SecureSessionStorage extends LocalStorage {
   @override
   Future<bool> hasAccessToken() async => await accessToken() != null;
 
+  /// Une erreur de lecture (Keychain verrouillé, Keystore défaillant) n'est
+  /// pas une absence de session : elle remonte jusqu'à `initBackend`, qui
+  /// passe en mode local pour ce lancement au lieu de créer un nouveau compte
+  /// anonyme (qui écraserait l'ancien).
   @override
   Future<String?> accessToken() async {
     try {
       return await _storage.read(key: key);
     } catch (e) {
       _log('lecture de la session impossible', e);
-      return null;
+      rethrow;
     }
   }
 

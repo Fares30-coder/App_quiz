@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:quizzeo/backend/auth_service.dart';
+import 'package:quizzeo/backend/backend_config.dart';
 import 'package:quizzeo/backend/secure_session_storage.dart';
 import 'package:quizzeo/backend/supabase_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,6 +54,23 @@ class _FakeServer {
 
   int get signUps =>
       requests.where((r) => r.url.path.endsWith('/signup')).length;
+}
+
+/// Stockage sécurisé en panne (Keychain verrouillé, Keystore défaillant).
+class _BrokenStorage extends FlutterSecureStorage {
+  const _BrokenStorage();
+
+  @override
+  Future<String?> read({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) =>
+      throw Exception('stockage sécurisé indisponible');
 }
 
 GoTrueClient _auth(_FakeServer server) => GoTrueClient(
@@ -163,6 +181,26 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.containsKey(_key), isFalse);
       expect(prefs.getInt('xp'), 120, reason: 'progression intacte');
+    });
+
+    test('lecture en erreur : l’erreur remonte, pas de session vide', () async {
+      final storage =
+          SecureSessionStorage(key: _key, storage: const _BrokenStorage());
+
+      await expectLater(storage.accessToken(), throwsA(isA<Exception>()));
+      await expectLater(storage.hasAccessToken(), throwsA(isA<Exception>()));
+    });
+
+    test('lecture en erreur : mode local (aucun client, donc aucun /signup)',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      final client = await initBackend(
+        const BackendConfig(url: _url, publishableKey: 'sb_publishable_test'),
+        sessionStorage:
+            SecureSessionStorage(key: _key, storage: const _BrokenStorage()),
+      );
+
+      expect(client, isNull);
     });
 
     test('migration : session sécurisée déjà présente conservée', () async {
