@@ -13,21 +13,28 @@ final backendAvailableProvider = Provider<bool>(
   (ref) => ref.watch(supabaseClientProvider) != null,
 );
 
-/// Initialise Supabase si [config] est renseignée.
+/// Initialise Supabase si [config] est renseignée, avec la session dans
+/// [sessionStorage] (stockage sécurisé, voir `SecureSessionStorage`).
 ///
 /// Aucun appel réseau bloquant : seule la session locale est lue (la
 /// restauration éventuelle se fait en arrière-plan). Retourne `null` sans
 /// config ou en cas d'erreur : l'app démarre alors en mode local.
-Future<SupabaseClient?> initBackend(BackendConfig config) async {
+Future<SupabaseClient?> initBackend(
+  BackendConfig config, {
+  required LocalStorage sessionStorage,
+}) async {
   if (!config.isConfigured) return null;
   try {
     final supabase = await Supabase.initialize(
       url: config.url.trim(),
       publishableKey: config.publishableKey.trim(),
+      authOptions: FlutterAuthClientOptions(localStorage: sessionStorage),
     );
     return supabase.client;
   } catch (e) {
-    if (kDebugMode) debugPrint('Supabase indisponible, mode local : $e');
+    if (kDebugMode) {
+      debugPrint('Supabase indisponible, mode local (${e.runtimeType})');
+    }
     return null;
   }
 }

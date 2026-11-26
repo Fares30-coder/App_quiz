@@ -14,6 +14,17 @@ Structure générée par le CLI Supabase 3.x (`config.jsonc`, `migrations/`).
 
 Sans `config/dev.json`, l'app démarre en mode 100 % local.
 
+## Connexion anonyme
+
+Au démarrage, l'app réutilise la session enregistrée ou crée un compte anonyme
+(`signInAnonymously`), en arrière-plan ; hors ligne, elle reste jouable en
+local et réessaie au retour au premier plan. Session dans le Keychain / Keystore
+(`lib/backend/secure_session_storage.dart`), purge locale :
+`AuthService.purgeLocalSession()` (`lib/backend/auth_service.dart`).
+
+Dashboard (projet Paris) : Authentication > Sign In / Providers > « Allow
+anonymous sign-ins » activé ; limites de débit dans Authentication > Rate Limits.
+
 ## Commandes à lancer soi-même
 
 CLI : `brew install supabase/tap/supabase` (ou `npx supabase ...`).

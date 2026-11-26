@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quizzeo/backend/backend_config.dart';
+import 'package:quizzeo/backend/secure_session_storage.dart';
 import 'package:quizzeo/backend/supabase_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -53,6 +55,7 @@ void main() {
     test('sans config : null, sans initialiser Supabase', () async {
       final client = await initBackend(
         const BackendConfig(url: '', publishableKey: ''),
+        sessionStorage: const EmptyLocalStorage(),
       );
       expect(client, isNull);
     });
@@ -60,10 +63,14 @@ void main() {
     test('avec config : client créé sans appel réseau', () async {
       TestWidgetsFlutterBinding.ensureInitialized();
       SharedPreferences.setMockInitialValues({});
+      FlutterSecureStorage.setMockInitialValues({});
       final client = await initBackend(
         const BackendConfig(
           url: 'https://exemple.supabase.co',
           publishableKey: 'sb_publishable_test',
+        ),
+        sessionStorage: SecureSessionStorage.forUrl(
+          'https://exemple.supabase.co',
         ),
       );
       expect(client, isA<SupabaseClient>());

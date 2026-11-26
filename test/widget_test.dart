@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:quizzeo/backend/auth_service.dart';
 import 'package:quizzeo/backend/backend_config.dart';
 import 'package:quizzeo/backend/supabase_provider.dart';
 import 'package:quizzeo/data/progress_repository.dart';
@@ -15,6 +16,7 @@ import 'package:quizzeo/share/share_content.dart';
 import 'package:quizzeo/share/share_service.dart';
 import 'package:quizzeo/sound/sound_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show EmptyLocalStorage;
 
 import 'fake_notifications.dart';
 import 'fakes.dart';
@@ -67,12 +69,17 @@ void main() {
   testWidgets('sans config Supabase : démarrage en mode local', (tester) async {
     const config = BackendConfig.fromEnvironment();
     expect(config.isConfigured, isFalse);
-    expect(await initBackend(config), isNull);
+    expect(
+      await initBackend(config, sessionStorage: const EmptyLocalStorage()),
+      isNull,
+    );
     await pumpApp(tester, {});
     final container = ProviderScope.containerOf(
       tester.element(find.byType(QuizzeoApp)),
     );
     expect(container.read(backendAvailableProvider), isFalse);
+    expect(container.read(authServiceProvider), isNull);
+    expect(container.read(authUserIdProvider), isNull);
     expect(find.text('Avant de jouer'), findsOneWidget);
   });
 
