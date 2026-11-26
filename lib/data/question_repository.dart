@@ -10,6 +10,7 @@ import '../backend/auth_service.dart';
 import '../backend/supabase_provider.dart';
 import '../backend/supabase_quiz_source.dart';
 import '../engagement/daily_challenge.dart';
+import '../engagement/dates.dart';
 import '../models/question.dart';
 import '../models/quiz_session.dart';
 
@@ -95,6 +96,7 @@ class QuestionRepository {
             answered: served.answered,
             total: served.total,
             secondsLeft: served.secondsLeft,
+            day: served.day ?? dayOf(today),
           );
         } catch (e) {
           final played = mode == QuizMode.dailyChallenge
@@ -116,7 +118,8 @@ class QuestionRepository {
       QuizMode.mix => await pickQuiz(random: random),
       QuizMode.category => await pickQuiz(category: category, random: random),
     };
-    return QuizStart(questions: questions, unranked: unranked);
+    return QuizStart(
+        questions: questions, unranked: unranked, day: dayOf(today));
   }
 
   /// Question suivante d'un quiz servi. Lève une erreur (réseau, refus) : le

@@ -23,6 +23,9 @@ String quizModeParam(QuizMode mode) => switch (mode) {
 ///
 /// [secondsLeft] : chrono restant de la question en cours, calculé par le
 /// serveur depuis son heure d'envoi (moins de 30 s à la reprise du défi).
+///
+/// [day] : jour du défi selon le serveur (`challenge_day`, jour de Paris au
+/// début de la session), `null` hors défi du jour.
 class ServedQuiz {
   const ServedQuiz({
     required this.id,
@@ -31,6 +34,7 @@ class ServedQuiz {
     this.answered = const [],
     this.resumed = false,
     this.secondsLeft,
+    this.day,
   }) : total = total ?? questions.length;
 
   final String id;
@@ -39,6 +43,7 @@ class ServedQuiz {
   final List<ServedAnswer> answered;
   final bool resumed;
   final int? secondsLeft;
+  final DateTime? day;
 
   factory ServedQuiz.fromJson(Map<String, dynamic> json) {
     final questions = <Question>[];
@@ -63,8 +68,25 @@ class ServedQuiz {
       answered: answered,
       resumed: json['resumed'] as bool? ?? false,
       secondsLeft: (json['seconds_left'] as num?)?.toInt(),
+      day: parseServerDay(json['day']),
     );
   }
+}
+
+/// Jour calendaire `AAAA-MM-JJ` envoyé par le serveur (colonne `date`), en
+/// minuit local, sans conversion de fuseau : « 2026-11-26 » reste le 26
+/// partout. `null` si absent ou illisible.
+DateTime? parseServerDay(Object? value) {
+  if (value is! String) return null;
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
+  if (match == null) return null;
+  final y = int.parse(match[1]!);
+  final m = int.parse(match[2]!);
+  final d = int.parse(match[3]!);
+  final day = DateTime(y, m, d);
+  // Refuse les dates impossibles (« 2026-02-30 »).
+  if (day.year != y || day.month != m || day.day != d) return null;
+  return day;
 }
 
 /// Question suivante d'un quiz servi (RPC `next_question`), sans bonne
@@ -176,8 +198,14 @@ class QuizStart {
     this.unranked,
     this.answered = const [],
     this.secondsLeft,
+    this.day,
     int? total,
   }) : total = total ?? questions.length;
+
+  /// Jour du quiz, figé au début : jour du défi selon le serveur (quiz
+  /// servi) ou jour du téléphone au lancement (quiz local, ou serveur muet).
+  /// Sert au numéro du défi et à la date de l'image de partage.
+  final DateTime? day;
 
   /// Quiz servi : chrono restant de la question en cours (serveur) ; `null`
   /// = 30 s.
