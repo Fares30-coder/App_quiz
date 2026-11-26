@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/question_report.dart';
 import '../models/quiz_session.dart';
 
 /// Accès Supabase aux quiz servis : `start_quiz` (première question, sans
@@ -55,7 +56,29 @@ class SupabaseQuizSource {
     );
     return AnswerCorrection.fromJson(json);
   }
+
+  /// Signale la question [position] (déjà répondue) du quiz [quizId]. Le
+  /// serveur retrouve la question lui-même : aucun identifiant n'est envoyé
+  /// ni reçu. Un doublon est accepté sans effet.
+  Future<void> reportQuestion({
+    required String quizId,
+    required int position,
+    required ReportReason reason,
+  }) async {
+    await _client.rpc<dynamic>(
+      'report_question',
+      params: {
+        'p_quiz_id': quizId,
+        'p_position': position,
+        'p_reason': reason.param,
+      },
+    );
+  }
 }
+
+/// Trop de requêtes (`PT429`) : limite du serveur atteinte.
+bool isRateLimited(Object error) =>
+    error is PostgrestException && error.code == 'PT429';
 
 /// Le serveur n'a pas assez de questions pour ce mode (`P0002`).
 bool isNotEnoughQuestions(Object error) =>

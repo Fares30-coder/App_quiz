@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../quiz/quiz_controller.dart';
+import '../quiz/report_controller.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
 import '../widgets/engagement_widgets.dart';
@@ -434,7 +435,9 @@ class _FeedbackSheet extends StatelessWidget {
                         ),
                       ),
                     Container(
-                      margin: const EdgeInsets.fromLTRB(0, 12, 0, 14),
+                      // Quiz servi : lien « Signaler » juste en dessous.
+                      margin: EdgeInsets.fromLTRB(
+                          0, 12, 0, state.isServed ? 0 : 14),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
@@ -453,6 +456,7 @@ class _FeedbackSheet extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (state.isServed) _ReportLink(state: state),
                   ],
                 ),
               ),
@@ -486,6 +490,121 @@ class _FeedbackSheet extends StatelessWidget {
       builder: (context, offset, child) =>
           FractionalTranslation(translation: offset, child: child),
       child: sheet,
+    );
+  }
+}
+
+/// Lien discret « Signaler » sous l'explication (quiz servi seulement :
+/// jamais en quiz local). Le chrono est déjà arrêté (question corrigée) ;
+/// l'envoi part en arrière-plan sans bloquer « Question suivante ».
+class _ReportLink extends ConsumerWidget {
+  const _ReportLink({required this.state});
+
+  final QuizState state;
+
+  Future<void> _report(BuildContext context, WidgetRef ref) async {
+    final quizId = state.quizId;
+    if (quizId == null) return;
+    final position = state.index + 1;
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = ref.read(reportControllerProvider.notifier);
+    final reason = await showModalBottomSheet<ReportReason>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => const _ReportSheet(),
+    );
+    if (reason == null) return;
+    final result = await controller.report(
+        quizId: quizId, position: position, reason: reason);
+    final message = switch (result) {
+      ReportResult.sent => 'Merci, on vérifie.',
+      ReportResult.ignored => null,
+      ReportResult.tooMany =>
+        'Trop de signalements aujourd\'hui. Réessaie demain.',
+      ReportResult.failed => 'Signalement non envoyé. Réessaie plus tard.',
+    };
+    if (message == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reports = ref.watch(reportControllerProvider);
+    final quizId = state.quizId;
+    if (quizId == null) return const SizedBox(height: 14);
+    final status = reports.statusOf(quizId, state.index + 1);
+    final color = context.colors.onSurfaceVariant;
+    if (status != null) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Row(
+          children: [
+            const SizedBox(width: AppSpacing.s),
+            Icon(Icons.flag, size: 18, color: color),
+            const SizedBox(width: AppSpacing.s),
+            Expanded(
+              child: Text(
+                status == ReportStatus.sending
+                    ? 'Envoi du signalement…'
+                    : 'Question signalée',
+                style: context.text.labelMedium?.copyWith(color: color),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (!canReport(state, reports)) return const SizedBox(height: 14);
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: TextButton.icon(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+          foregroundColor: color,
+          textStyle: context.text.labelMedium,
+        ),
+        onPressed: () => _report(context, ref),
+        icon: const Icon(Icons.flag_outlined, size: 18),
+        label:
+            const Text('Signaler', semanticsLabel: 'Signaler cette question'),
+      ),
+    );
+  }
+}
+
+/// Feuille des 4 motifs de signalement (pas de texte libre).
+class _ReportSheet extends StatelessWidget {
+  const _ReportSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screen, 0, AppSpacing.screen, AppSpacing.s),
+              child: Text('Signaler cette question',
+                  style: context.text.titleMedium),
+            ),
+            for (final reason in ReportReason.values)
+              ListTile(
+                minTileHeight: 56,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                title: Text(reason.label, style: context.text.bodyLarge),
+                onTap: () => Navigator.of(context).pop(reason),
+              ),
+            const SizedBox(height: AppSpacing.s),
+          ],
+        ),
+      ),
     );
   }
 }
