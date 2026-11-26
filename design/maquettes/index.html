@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quizzéo · Maquettes MVP</title>
+<!-- Vue d'ensemble : chaque écran est un fichier autonome chargé dans une iframe 390×844.
+     Le bouton « Mode sombre » ajoute #sombre à l'URL de chaque écran.
+     Variantes d'un même écran : ?etat=parfait (résultats 10/10), ?etat=danger (série en danger). -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ECE6DC;color:#1A1B3A;font:400 16px/1.45 'Atkinson Hyperlegible',system-ui,sans-serif;padding:32px}
+body.sombre{background:#0B0C1E;color:#F5F1EA}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin-bottom:28px}
+h1{font:800 32px/1 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.03em}
+h1 b{color:#D63A1F}
+.sombre h1 b{color:#FF7A5C}
+header p{flex:1;min-width:260px;color:#4A4C6B}
+.sombre header p{color:#B4B6D0}
+.outils{display:flex;gap:8px}
+.outils button{min-height:44px;padding:0 18px;border-radius:999px;border:2px solid currentColor;background:transparent;color:inherit;font:700 15px/1 inherit;font-family:inherit;cursor:pointer}
+.outils button[aria-pressed=true]{background:#1A1B3A;color:#FFF7EE;border-color:#1A1B3A}
+.sombre .outils button[aria-pressed=true]{background:#F5F1EA;color:#12132A;border-color:#F5F1EA}
+.ecrans{display:flex;gap:32px;overflow-x:auto;padding-bottom:24px;align-items:flex-start}
+figure{flex:none;display:flex;flex-direction:column;gap:12px}
+.tel{width:390px;height:844px;border-radius:44px;overflow:hidden;box-shadow:0 18px 50px rgba(26,27,58,.22);background:#FFF7EE;outline:10px solid #1A1B3A}
+.sombre .tel{outline-color:#34365E}
+iframe{width:390px;height:844px;border:0;display:block}
+figcaption{font:700 16px/1.3 'Atkinson Hyperlegible',system-ui,sans-serif;margin-top:10px}
+figcaption a{color:inherit}
+figcaption span{display:block;font-weight:400;font-size:14px;opacity:.8}
+.zoom .ecrans{gap:20px}
+.zoom figure{width:273px}
+.zoom .tel{width:273px;height:591px;border-radius:31px;outline-width:7px}
+.zoom iframe{transform:scale(.7);transform-origin:0 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>quizz<b>é</b>o · maquettes MVP</h1>
+  <p>Format 390×844. Mécaniques d'engagement (série, gel, XP, objectif) : barème et courbe proposés, à valider. Données réelles de <code>assets/questions.json</code>, sauf les pseudos et scores, fictifs. Charte : <code>design/charte.md</code>.</p>
+  <div class="outils">
+    <button id="b-sombre" aria-pressed="false">Mode sombre</button>
+    <button id="b-zoom" aria-pressed="false">Réduire (70 %)</button>
+  </div>
+</header>
+<div class="ecrans" id="ecrans"></div>
+<script>
+var ecrans=[
+ ["consentement.html","0. Consentement","Premier lancement, avant toute pub (UMP puis ATT)"],
+ ["objectif.html","0b. Objectif du jour","1, 2 ou 3 quiz/jour + heure du rappel"],
+ ["accueil.html","1. Accueil","Série, gel, objectif 1/2, niveau/XP, défi, bannière"],
+ ["question.html","2. Question","Timer 30 s, combo x3, bonus rapidité, sans pub"],
+ ["feedback-mauvaise.html","3a. Feedback : raté","Bonne réponse + explication"],
+ ["feedback-bonne.html","3b. Feedback : bien vu","+15 XP (bonne réponse + rapidité)"],
+ ["resultats.html","4a. Résultats","7/10, XP, barre de niveau, objectif atteint"],
+ ["resultats.html?etat=parfait","4b. Résultats : 10/10","Confettis, montée de niveau"],
+ ["serie.html","5a. Série validée","Animation de la flamme, semaine en cours"],
+ ["serie.html?etat=danger","5b. Série en danger","Gel via pub récompensée facultative"],
+ ["classement.html","6. Classement hebdo","Amis / Global, données fictives"],
+ ["sans-pub.html","7. Supprimer les pubs","Achat unique, prix à définir"]
+];
+var zone=document.getElementById('ecrans'),sombre=false;
+function rendre(){
+  zone.innerHTML='';
+  ecrans.forEach(function(e){
+    var f=document.createElement('figure');
+    f.innerHTML='<div class="tel"><iframe loading="lazy" title="'+e[1]+'" src="'+e[0]+(e[0].indexOf('?')>-1?'&':'?')+'cadre=nu'+(sombre?'#sombre':'')+'"></iframe></div>'+
+      '<figcaption><a href="'+e[0]+(sombre?'#sombre':'')+'">'+e[1]+'</a><span>'+e[2]+'</span></figcaption>';
+    zone.appendChild(f);
+  });
+}
+document.getElementById('b-sombre').onclick=function(){sombre=!sombre;this.setAttribute('aria-pressed',sombre);document.body.classList.toggle('sombre',sombre);rendre();};
+document.getElementById('b-zoom').onclick=function(){var z=document.body.classList.toggle('zoom');this.setAttribute('aria-pressed',z);};
+rendre();
+</script>
+</body>
+</html>

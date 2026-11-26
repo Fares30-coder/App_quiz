@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quizzéo · Miniature TikTok « Tu as X/10 ? »</title>
+<!--
+  Miniature / couverture TikTok 9:16. Zone logique 360×640, rendu à l'échelle 3 = 1080×1920.
+  Dégradé corail → safran autorisé par la charte pour les visuels TikTok uniquement.
+  Zones sûres TikTok : textes clés hors des ~15 % du bas et de la bande droite (boutons j'aime / commentaires).
+  Question réelle : geo-001 (assets/questions.json). Paramètre ?q=0|1|2 pour changer de question (liste Q ci-dessous, à compléter
+  depuis assets/questions.json) : réutilisable pour toute la série.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#D9D4CC}
+.v{width:360px;height:640px;position:relative;overflow:hidden;background:linear-gradient(180deg,#D63A1F 0%,#E8642A 45%,#FFC23D 100%);color:#1A1B3A;font-family:'Atkinson Hyperlegible',system-ui,sans-serif;padding:58px 56px 0 24px}
+.e{position:absolute;right:-40px;top:-70px;font:800 330px/1 'Bricolage Grotesque',system-ui,sans-serif;color:#FFFFFF;opacity:.12}
+.pil{display:inline-block;background:#FFFFFF;color:#1A1B3A;border-radius:999px;padding:8px 14px;font:700 13px/1 'Atkinson Hyperlegible',sans-serif;letter-spacing:.08em}
+h1{font:800 58px/.98 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.035em;color:#FFFFFF;margin-top:16px}  /* blanc sur corail : 4,7:1, très grand texte */
+h1 b{display:inline-block;background:#1A1B3A;color:#FFC23D;padding:0 10px;border-radius:12px;margin-top:6px}
+.carte{background:#FFFFFF;border-radius:20px;padding:16px;margin-top:22px}
+.carte .q{font:700 19px/1.25 'Bricolage Grotesque',system-ui,sans-serif}
+.carte ol{list-style:none;margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.carte li{border:2px solid #8A8CA6;border-radius:12px;min-height:40px;display:flex;align-items:center;gap:8px;padding:6px 8px;font:700 14px/1.2 'Atkinson Hyperlegible',sans-serif}
+.carte li span{width:22px;height:22px;border-radius:7px;background:#F6EEE3;display:flex;align-items:center;justify-content:center;font:800 12px/1 'Bricolage Grotesque',sans-serif;flex:none}
+.cta{margin-top:16px;font:800 22px/1.15 'Bricolage Grotesque',system-ui,sans-serif}
+.logo{display:inline-block;margin-top:14px;background:#FFFFFF;border-radius:14px;padding:8px 14px 10px;font:800 30px/1 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.03em;color:#1A1B3A}
+.logo i{font-style:normal;color:#D63A1F}  /* logo conforme charte : lettres encre, é corail, sur blanc */
+</style>
+</head>
+<body>
+<div class="v" id="v">
+  <div class="e" aria-hidden="true">é</div>
+  <span class="pil">CULTURE G · 10 QUESTIONS</span>
+  <h1>Tu as combien<br><b>sur 10 ?</b></h1>
+  <div class="carte"><p class="q" id="q"></p><ol id="r"></ol></div>
+  <p class="cta">Réponds en commentaire.</p>
+  <div class="logo">quizz<i>é</i>o</div>
+</div>
+<script>
+// Extraits de assets/questions.json (ordre des réponses mélangé à l'affichage, comme dans l'app)
+var Q=[["Quelle est la capitale de l'Australie ?",["Sydney","Canberra","Melbourne","Perth"]],
+ ["Combien de symphonies Beethoven a-t-il composées ?",["5","12","9","7"]],
+ ["Combien d'os compte le squelette d'un adulte humain ?",["186","206","226","306"]]];
+var i=+(new URLSearchParams(location.search).get('q')||0),x=Q[i]||Q[0];
+document.getElementById('q').textContent=x[0].replace(' ?',' ?');
+document.getElementById('r').innerHTML=x[1].map(function(a,k){return '<li><span>'+'ABCD'[k]+'</span>'+a+'</li>';}).join('');
+</script>
+</body>
+</html>

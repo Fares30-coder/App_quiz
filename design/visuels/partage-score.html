@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quizzéo · Image de partage du score</title>
+<!--
+  Image de partage 9:16 (TikTok / Stories). Zone logique 360×640, rendu à l'échelle 3 = 1080×1920.
+  C'est aussi le gabarit du widget Flutter à capturer (RepaintBoundary.toImage(pixelRatio: 3)) au moment du partage.
+  Paramètres : ?s=8 (score) &serie=6 &date=25%20nov.  Pastilles : s vertes puis 10-s roses (l'ordre réel viendra de la partie).
+  Rien de personnel dessus (pas de pseudo) : à confirmer par Fares.
+  Couleurs : crème #FFF7EE, encre #1A1B3A, corail #D63A1F, safran #FFC23D, vert #17784A / #DDF3E6, rouge #C42B3A / #FCE3E5.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#D9D4CC}
+.v{width:360px;height:640px;position:relative;overflow:hidden;background:#FFF7EE;color:#1A1B3A;font-family:'Atkinson Hyperlegible',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:40px 28px 0;text-align:center}
+.logo{font:800 40px/1 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.03em}
+.logo b{color:#D63A1F}
+.sur{font:700 13px/1 'Atkinson Hyperlegible',sans-serif;letter-spacing:.08em;margin-top:14px}
+.anneau{position:relative;width:200px;height:200px;margin-top:14px}
+.anneau svg{width:200px;height:200px;transform:rotate(-90deg)}
+.anneau .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.anneau b{font:800 92px/1 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.04em}
+.anneau span{font:700 18px/1 'Atkinson Hyperlegible',sans-serif;color:#4A4C6B;margin-top:2px}
+h1{font:800 30px/1.1 'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.02em;margin-top:16px}
+.past{display:flex;gap:5px;margin-top:18px}
+.past i{width:25px;height:25px;border-radius:7px;display:flex;align-items:center;justify-content:center}
+.past i.ok{background:#DDF3E6;color:#17784A}
+.past i.ko{background:#FCE3E5;color:#C42B3A}
+.past svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.serie{display:inline-flex;align-items:center;gap:6px;background:#FFC23D;border-radius:999px;padding:8px 14px 8px 10px;margin-top:18px;font:800 16px/1 'Bricolage Grotesque',sans-serif}
+.serie svg{width:18px;height:18px}
+.defi{font:800 34px/1.05 'Bricolage Grotesque',system-ui,sans-serif;margin-top:auto;padding-top:20px}
+.cta{background:#D63A1F;color:#FFFFFF;border-radius:999px;padding:14px 22px;font:700 17px/1 'Atkinson Hyperlegible',sans-serif;margin:16px 0 44px}
+</style>
+</head>
+<body>
+<div class="v">
+  <div class="logo">quizz<b>é</b>o</div>
+  <p class="sur" id="date">DÉFI DU JOUR · 25 NOV.</p>
+  <div class="anneau" role="img" id="anneau">
+    <svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="84" fill="none" stroke="#E6DED2" stroke-width="16"/><circle id="arc" cx="100" cy="100" r="84" fill="none" stroke="#D63A1F" stroke-width="16" stroke-linecap="round" stroke-dasharray="527.8" stroke-dashoffset="105.6"/></svg>
+    <div class="val"><b id="s">8</b><span>sur 10</span></div>
+  </div>
+  <h1 id="titre">J'ai eu 8/10<br>au défi du jour</h1>
+  <div class="past" id="past" aria-hidden="true"></div>
+  <div class="serie" id="serie"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#D63A1F" d="M12 2.5c.8 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.3 1-3.8 2.2-4.9.1 2 .9 3.1 2 3.4-.4-3.4.1-6.6 1.3-9.5z"/></svg><span>6 jours de série</span></div>
+  <p class="defi">Tu fais mieux&nbsp;?</p>
+  <p class="cta">Joue le défi sur Quizzéo</p>
+</div>
+<script>
+var p=new URLSearchParams(location.search),s=Math.max(0,Math.min(10,+(p.get('s')||8))),se=p.get('serie')||'6',d=p.get('date')||'25 nov.';
+var OK='<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',KO='<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+document.getElementById('s').textContent=s;
+document.getElementById('titre').innerHTML="J'ai eu "+s+"/10<br>au défi du jour";
+document.getElementById('date').textContent=('Défi du jour · '+d).toUpperCase();
+document.getElementById('arc').setAttribute('stroke-dashoffset',(527.8*(1-s/10)).toFixed(1));
+document.getElementById('anneau').setAttribute('aria-label','Score : '+s+' sur 10');
+document.getElementById('serie').querySelector('span').textContent=se+(se=='1'?' jour':' jours')+' de série';
+var h='';for(var i=0;i<10;i++)h+=i<s?'<i class="ok">'+OK+'</i>':'<i class="ko">'+KO+'</i>';
+document.getElementById('past').innerHTML=h;
+</script>
+</body>
+</html>

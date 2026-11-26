@@ -1,0 +1,191 @@
+[
+  {
+    "id": "his-001",
+    "category": "histoire",
+    "question": "En quelle année a eu lieu la prise de la Bastille ?",
+    "answers": ["1789", "1792", "1776", "1804"],
+    "correctIndex": 0,
+    "explanation": "La Bastille a été prise le 14 juillet 1789, date devenue la fête nationale française.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-002",
+    "category": "histoire",
+    "question": "Qui a été le premier président de la Ve République ?",
+    "answers": ["Charles de Gaulle", "Georges Pompidou", "René Coty", "François Mitterrand"],
+    "correctIndex": 0,
+    "explanation": "Charles de Gaulle a été élu en décembre 1958 et a pris ses fonctions en janvier 1959. René Coty était le dernier président de la IVe République.",
+    "difficulty": 1
+  },
+  {
+    "id": "his-003",
+    "category": "histoire",
+    "question": "En quelle année le mur de Berlin est-il tombé ?",
+    "answers": ["1989", "1991", "1985", "1961"],
+    "correctIndex": 0,
+    "explanation": "Le mur est tombé le 9 novembre 1989. Il avait été construit en 1961.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-001",
+    "category": "geo",
+    "question": "Quelle est la capitale de l'Australie ?",
+    "answers": ["Canberra", "Sydney", "Melbourne", "Perth"],
+    "correctIndex": 0,
+    "explanation": "Canberra a été choisie comme capitale, en compromis entre Sydney et Melbourne.",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-002",
+    "category": "geo",
+    "question": "Quel est le plus long fleuve de France ?",
+    "answers": ["La Loire", "La Seine", "Le Rhône", "La Garonne"],
+    "correctIndex": 0,
+    "explanation": "La Loire mesure environ 1 000 km et coule entièrement en France.",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-003",
+    "category": "geo",
+    "question": "Quel est le plus grand océan du monde ?",
+    "answers": ["L'océan Pacifique", "L'océan Atlantique", "L'océan Indien", "L'océan Arctique"],
+    "correctIndex": 0,
+    "explanation": "Le Pacifique couvre environ un tiers de la surface de la Terre.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-001",
+    "category": "sciences",
+    "question": "Quel est le symbole chimique de l'or ?",
+    "answers": ["Au", "Ag", "Or", "Go"],
+    "correctIndex": 0,
+    "explanation": "Au vient du latin « aurum ». Ag est le symbole de l'argent.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-002",
+    "category": "sciences",
+    "question": "Combien de planètes compte le système solaire ?",
+    "answers": ["8", "9", "7", "10"],
+    "correctIndex": 0,
+    "explanation": "Depuis 2006, Pluton est classée planète naine : il reste 8 planètes.",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-003",
+    "category": "sciences",
+    "question": "Quel gaz est le plus abondant dans l'atmosphère terrestre ?",
+    "answers": ["L'azote", "L'oxygène", "Le dioxyde de carbone", "L'argon"],
+    "correctIndex": 0,
+    "explanation": "L'azote représente environ 78 % de l'air, l'oxygène environ 21 %.",
+    "difficulty": 2
+  },
+  {
+    "id": "art-001",
+    "category": "arts",
+    "question": "Qui a peint La Joconde ?",
+    "answers": ["Léonard de Vinci", "Michel-Ange", "Raphaël", "Botticelli"],
+    "correctIndex": 0,
+    "explanation": "Léonard de Vinci l'a peinte au début du XVIe siècle. Elle est exposée au Louvre.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-002",
+    "category": "arts",
+    "question": "Qui a écrit Les Misérables ?",
+    "answers": ["Victor Hugo", "Émile Zola", "Honoré de Balzac", "Alexandre Dumas"],
+    "correctIndex": 0,
+    "explanation": "Victor Hugo a publié Les Misérables en 1862.",
+    "difficulty": 1
+  },
+  {
+    "id": "art-003",
+    "category": "arts",
+    "question": "Combien de symphonies Beethoven a-t-il composées ?",
+    "answers": ["9", "5", "12", "7"],
+    "correctIndex": 0,
+    "explanation": "Beethoven a composé 9 symphonies. La 9e contient l'« Ode à la joie », hymne de l'Union européenne.",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-001",
+    "category": "sport",
+    "question": "Combien de joueurs par équipe sont sur le terrain au football ?",
+    "answers": ["11", "10", "9", "12"],
+    "correctIndex": 0,
+    "explanation": "Chaque équipe aligne 11 joueurs, dont le gardien de but.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-002",
+    "category": "sport",
+    "question": "Quelle ville a accueilli les Jeux olympiques d'été 2024 ?",
+    "answers": ["Paris", "Los Angeles", "Tokyo", "Londres"],
+    "correctIndex": 0,
+    "explanation": "Paris a accueilli les JO 2024, un siècle après ceux de 1924. Los Angeles organise ceux de 2028.",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-003",
+    "category": "sport",
+    "question": "Sur le Tour de France, quelle est la couleur du maillot du leader du classement général ?",
+    "answers": ["Jaune", "Vert", "Blanc", "À pois rouges"],
+    "correctIndex": 0,
+    "explanation": "Le maillot jaune récompense le leader du classement général. Le vert est pour les points, le blanc pour le meilleur jeune, les pois pour la montagne.",
+    "difficulty": 1
+  },
+  {
+    "id": "act-001",
+    "category": "actu",
+    "question": "Quel pays a accueilli les Jeux olympiques d'hiver 2026 ?",
+    "answers": ["L'Italie", "La Suisse", "La Chine", "Le Japon"],
+    "correctIndex": 0,
+    "explanation": "Les JO d'hiver 2026 se sont tenus à Milan et Cortina d'Ampezzo, en Italie.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-002",
+    "category": "actu",
+    "question": "Combien de pays ont co-organisé la Coupe du monde de football 2026 ?",
+    "answers": ["3", "1", "2", "4"],
+    "correctIndex": 0,
+    "explanation": "Les États-Unis, le Canada et le Mexique l'ont organisée ensemble, une première à trois pays.",
+    "difficulty": 2
+  },
+  {
+    "id": "act-003",
+    "category": "actu",
+    "question": "En quelle année la cathédrale Notre-Dame de Paris a-t-elle rouvert après l'incendie de 2019 ?",
+    "answers": ["2024", "2023", "2025", "2022"],
+    "correctIndex": 0,
+    "explanation": "Notre-Dame a rouvert ses portes en décembre 2024, plus de cinq ans après l'incendie.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-001",
+    "category": "divers",
+    "question": "Combien de côtés a un hexagone ?",
+    "answers": ["6", "5", "7", "8"],
+    "correctIndex": 0,
+    "explanation": "« Hexa » signifie six en grec. La France est surnommée l'Hexagone pour sa forme.",
+    "difficulty": 1
+  },
+  {
+    "id": "div-002",
+    "category": "divers",
+    "question": "Combien de touches compte un piano standard ?",
+    "answers": ["88", "76", "92", "64"],
+    "correctIndex": 0,
+    "explanation": "Un piano standard a 88 touches : 52 blanches et 36 noires.",
+    "difficulty": 2
+  },
+  {
+    "id": "div-003",
+    "category": "divers",
+    "question": "Combien d'os compte le squelette d'un adulte humain ?",
+    "answers": ["206", "186", "226", "306"],
+    "correctIndex": 0,
+    "explanation": "Un adulte a 206 os. Un nouveau-né en a davantage, certains fusionnant pendant la croissance.",
+    "difficulty": 2
+  }
+]
