@@ -4,6 +4,9 @@ import 'package:material_ui/material_ui.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../engagement/xp.dart';
+import '../models/player_progress.dart';
+import '../reminder/reminder_scheduler.dart';
+import '../reminder/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/engagement_widgets.dart';
 import 'goal_screen.dart';
@@ -68,13 +71,37 @@ class ProfileScreen extends ConsumerWidget {
                 ListTile(
                   minTileHeight: 56,
                   leading: const Icon(Icons.track_changes),
-                  title: const Text('Objectif et rappel'),
-                  subtitle: Text(
-                    '${p.dailyGoal} quiz par jour · '
-                    '${reminder == null ? 'pas de rappel' : 'rappel à ${formatHour(reminder)}'}',
-                  ),
+                  title: const Text('Objectif du jour'),
+                  subtitle: Text('${p.dailyGoal} quiz par jour'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => open(const GoalScreen()),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const Icon(Icons.notifications_none),
+                  title: const Text('Rappel quotidien'),
+                  subtitle: const Text(
+                      'Un seul par jour, seulement si tu n\'as pas encore joué'),
+                  value: reminder != null,
+                  onChanged: (on) => _setReminder(
+                      context, ref, on ? defaultReminderMinutes : null),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  minTileHeight: 56,
+                  enabled: reminder != null,
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('Heure du rappel'),
+                  subtitle: Text(
+                      reminder == null ? 'Désactivé' : formatHour(reminder)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
+                    final picked =
+                        await pickReminderMinutes(context, reminder!);
+                    if (picked != null && context.mounted) {
+                      _setReminder(context, ref, picked);
+                    }
+                  },
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -110,5 +137,26 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Enregistre le rappel (replanifié automatiquement) et, s'il est actif,
+  /// demande l'autorisation. Refus : message discret, l'app marche sans.
+  Future<void> _setReminder(
+      BuildContext context, WidgetRef ref, int? minutes) async {
+    ref.read(progressControllerProvider.notifier).setReminder(minutes);
+    if (minutes == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final service = ref.read(notificationServiceProvider);
+    final granted =
+        await ref.read(reminderSchedulerProvider).requestPermission();
+    if (granted) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: const Text(
+            'Les notifications sont désactivées pour Quizzéo. Autorise-les dans les réglages pour recevoir le rappel.'),
+        action:
+            SnackBarAction(label: 'Réglages', onPressed: service.openSettings),
+      ));
   }
 }

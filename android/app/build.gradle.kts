@@ -6,10 +6,13 @@ plugins {
 
 android {
     namespace = "com.quizzeo.quizzeo"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_local_notifications 23 exige compileSdk 37 minimum.
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Requis par flutter_local_notifications (notifications programmées).
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -46,4 +49,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

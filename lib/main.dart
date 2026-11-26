@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'data/progress_repository.dart';
 import 'engagement/progress_controller.dart';
+import 'reminder/reminder_scheduler.dart';
 import 'screens/consent_screen.dart';
 import 'screens/shell_screen.dart';
 import 'sound/sound_service.dart';
@@ -46,6 +47,8 @@ class RootGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Programme le rappel au démarrage puis à chaque changement utile.
+    ref.watch(reminderSchedulerProvider);
     final onboardingDone = ref.watch(
       progressControllerProvider.select((p) => p.onboardingDone),
     );
