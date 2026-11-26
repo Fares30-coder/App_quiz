@@ -58,9 +58,11 @@ class Question {
 
   /// Question servie par `start_quiz` : sans bonne réponse ni explication,
   /// réponses déjà mélangées par le serveur (à ne pas remélanger : le choix
-  /// envoyé est la position affichée).
+  /// envoyé est la position affichée). Le serveur n'envoie pas l'identifiant
+  /// de la question : [id] vaut `serveur-<position>` (position 1 à 10 dans
+  /// le quiz), la réponse est envoyée par position.
   factory Question.fromServerJson(Map<String, dynamic> json) => Question(
-        id: json['id'] as String,
+        id: 'serveur-${(json['position'] as num).toInt()}',
         category: json['category'] as String,
         question: json['question'] as String,
         answers: List<String>.from(json['answers'] as List),

@@ -79,11 +79,11 @@ declare
 begin
   perform tests.served_ago(s, 1, p_ago);
   perform public.answer_question((s ->> 'quiz_id')::uuid,
-    s -> 'questions' -> 0 ->> 'id', tests.good(s -> 'questions' -> 0), 9000);
+    1, tests.good(s -> 'questions' -> 0), 9000);
   for i in 2 .. 10 loop
     v := public.next_question((s ->> 'quiz_id')::uuid);
     perform public.answer_question((s ->> 'quiz_id')::uuid,
-      v -> 'question' ->> 'id', tests.good(v -> 'question'), 500);
+      (v ->> 'position')::int, tests.good(v -> 'question'), 500);
   end loop;
   perform tests.started_ago(s, interval '2 minutes');
   return public.submit_quiz((s ->> 'quiz_id')::uuid) - 'profile' - 'quiz_id';
@@ -180,7 +180,7 @@ select throws_ok(
 select is(
   public.answer_question(
     (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.s')::jsonb -> 'questions' -> 0 ->> 'id',
+    1,
     tests.good(current_setting('t.s')::jsonb -> 'questions' -> 0), 500) ->> 'correct',
   'true',
   'Q1 : réponse juste enregistrée'
@@ -242,7 +242,7 @@ set local role authenticated;
 do $$ begin
   perform set_config('t.a2', public.answer_question(
     (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.n2')::jsonb -> 'question' ->> 'id',
+    (current_setting('t.n2')::jsonb ->> 'position')::int,
     tests.good(current_setting('t.n2')::jsonb -> 'question'), 500)::text, true);
 end $$;
 
@@ -255,7 +255,7 @@ select is(
 select is(
   public.answer_question(
     (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.n2')::jsonb -> 'question' ->> 'id',
+    (current_setting('t.n2')::jsonb ->> 'position')::int,
     tests.good(current_setting('t.n2')::jsonb -> 'question'), 500),
   current_setting('t.a2')::jsonb,
   'réessai : temps écoulé conservé'
@@ -274,7 +274,7 @@ set local role authenticated;
 select is(
   public.answer_question(
     (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.n3')::jsonb -> 'question' ->> 'id',
+    (current_setting('t.n3')::jsonb ->> 'position')::int,
     tests.good(current_setting('t.n3')::jsonb -> 'question'), 1000)
     - 'quiz_id' - 'question_id' - 'explanation' - 'correct_choice' - 'choice',
   '{"position": 3, "correct": true, "timed_out": false, "time_ms": 1000}'::jsonb,
@@ -302,7 +302,7 @@ set local role authenticated;
 select is(
   public.answer_question(
     (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.n4')::jsonb -> 'question' ->> 'id',
+    (current_setting('t.n4')::jsonb ->> 'position')::int,
     tests.good(current_setting('t.n4')::jsonb -> 'question'), 9000) ->> 'time_ms',
   '9000',
   'temps déclaré sous le temps serveur : gardé'
@@ -327,7 +327,7 @@ select is(
 select is(
   public.answer_question(
     (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.n5')::jsonb -> 'question' ->> 'id',
+    (current_setting('t.n5')::jsonb ->> 'position')::int,
     tests.good(current_setting('t.n5')::jsonb -> 'question'), 8000) ->> 'time_ms',
   '5000',
   'temps déclaré au-dessus du temps serveur : ramené au temps serveur'
@@ -343,7 +343,7 @@ select lives_ok(
       v := public.next_question((current_setting('t.s')::jsonb ->> 'quiz_id')::uuid);
       perform public.answer_question(
         (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
-        v -> 'question' ->> 'id', tests.good(v -> 'question'), 500);
+        (v ->> 'position')::int, tests.good(v -> 'question'), 500);
     end loop;
   end $d$$q$,
   'questions 6 à 10 servies et répondues une à une'
@@ -398,7 +398,7 @@ do $$ begin
   perform set_config('t.e', public.start_quiz('mix')::text, true);
   perform public.answer_question(
     (current_setting('t.e')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.e')::jsonb -> 'questions' -> 0 ->> 'id', 0, 500);
+    1, 0, 500);
   perform set_config('t.e2', public.next_question(
     (current_setting('t.e')::jsonb ->> 'quiz_id')::uuid)::text, true);
 end $$;
@@ -418,7 +418,7 @@ select throws_ok(
 select throws_ok(
   format($$select public.answer_question(%L, %L, 0, 500)$$,
          current_setting('t.e')::jsonb ->> 'quiz_id',
-         current_setting('t.e2')::jsonb -> 'question' ->> 'id'),
+         (current_setting('t.e2')::jsonb ->> 'position')::int),
   '22023', 'quiz expiré',
   'réponse à la question en cours d''un quiz expiré refusée'
 );
@@ -455,7 +455,7 @@ begin
   perform set_config('t.d', public.start_quiz('daily')::text, true);
   perform public.answer_question(
     (current_setting('t.d')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.d')::jsonb -> 'questions' -> 0 ->> 'id',
+    1,
     tests.good(current_setting('t.d')::jsonb -> 'questions' -> 0), 500);
   v := public.next_question((current_setting('t.d')::jsonb ->> 'quiz_id')::uuid);
   perform set_config('t.d2', v::text, true);
@@ -513,7 +513,7 @@ set local role authenticated;
 select is(
   public.answer_question(
     (current_setting('t.d')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.d2')::jsonb -> 'question' ->> 'id',
+    (current_setting('t.d2')::jsonb ->> 'position')::int,
     tests.good(current_setting('t.d2')::jsonb -> 'question'), 500) ->> 'timed_out',
   'true',
   'reprise : question en cours depuis plus de 33 s comptée en temps écoulé'
@@ -529,7 +529,7 @@ select lives_ok(
       v := public.next_question((current_setting('t.d')::jsonb ->> 'quiz_id')::uuid);
       perform public.answer_question(
         (current_setting('t.d')::jsonb ->> 'quiz_id')::uuid,
-        v -> 'question' ->> 'id', 0, 500);
+        (v ->> 'position')::int, 0, 500);
     end loop;
     perform set_config('t.r2', public.start_quiz('daily')::text, true);
   end $d$$q$,
@@ -580,7 +580,7 @@ do $$ begin
   perform set_config('t.pd', public.start_quiz('daily')::text, true);
   perform public.answer_question(
     (current_setting('t.pd')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.pd')::jsonb -> 'questions' -> 0 ->> 'id', 0, 500);
+    1, 0, 500);
   perform set_config('t.pm', public.start_quiz('mix')::text, true);
 end $$;
 
@@ -595,17 +595,15 @@ do $$ begin
     (current_setting('t.pd')::jsonb ->> 'quiz_id')::uuid)::text, true);
   perform public.answer_question(
     (current_setting('t.pm')::jsonb ->> 'quiz_id')::uuid,
-    current_setting('t.pm')::jsonb -> 'questions' -> 0 ->> 'id', 0, 500);
+    1, 0, 500);
   perform set_config('t.pm2', public.next_question(
     (current_setting('t.pm')::jsonb ->> 'quiz_id')::uuid)::text, true);
 end $$;
 
 reset role;
 select is(
-  (current_setting('t.pm2')::jsonb ->> 'quiz_id') || '/'
-    || (current_setting('t.pm2')::jsonb -> 'question' ->> 'id'),
-  (current_setting('t.pm')::jsonb ->> 'quiz_id') || '/'
-    || (public.served_question_json((current_setting('t.pm')::jsonb ->> 'quiz_id')::uuid, 2) ->> 'id'),
+  current_setting('t.pm2')::jsonb -> 'question',
+  public.served_question_json((current_setting('t.pm')::jsonb ->> 'quiz_id')::uuid, 2),
   'mix parallèle : next_question renvoie la question 2 du mix'
 );
 

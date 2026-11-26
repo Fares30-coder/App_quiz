@@ -58,11 +58,11 @@ class _FakeServer {
       return http.Response(
           jsonEncode({
             'quiz_id': body['quiz_id'],
-            'question_id': body['question_id'],
+            'position': body['position'],
             'choice': body['choice'],
             'correct': body['choice'] == 0,
             'correct_choice': 0,
-            'explanation': 'Explication ${body['question_id']}',
+            'explanation': 'Explication ${body['position']}',
           }),
           200,
           headers: {'content-type': 'application/json'},
@@ -469,7 +469,7 @@ void main() {
       final served = [
         for (var i = 1; i <= 10; i++)
           Question.fromServerJson({
-            'id': 'q-$i',
+            'position': i,
             'category': 'divers',
             'question': 'Question $i',
             'answers': ['a', 'b', 'c', 'd'],
@@ -502,11 +502,18 @@ void main() {
         expect(state.score, 9);
         expect(state.questions.every((q) => q.isRevealed), isTrue,
             reason: 'corrections gardées pour l\'écran Résultats');
-        expect(state.questions.first.explanation, 'Explication q-1');
+        expect(state.questions.first.explanation, 'Explication 1');
         await pumpEventQueue();
 
         expect(server.answersSent, hasLength(10));
         expect(server.answersSent[1]['choice'], 1);
+        expect([
+          for (final a in server.answersSent) a['position']
+        ], [
+          for (var i = 1; i <= 10; i++) i
+        ], reason: 'réponse envoyée par position, jamais par identifiant');
+        expect(server.answersSent.every((a) => !a.containsKey('question_id')),
+            isTrue);
         expect(server.answersSent.every((a) => a['quiz_id'] == 'quiz-servi'),
             isTrue);
         expect(

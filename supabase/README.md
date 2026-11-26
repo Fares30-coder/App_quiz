@@ -46,16 +46,20 @@ puis au retour au premier plan (au plus 1 fois par minute). Règle de fusion :
 ## Quiz servis par le serveur (`start_quiz`, `next_question`, `answer_question`, `submit_quiz`)
 
 Migrations `*_start_quiz.sql` (remplace l'ancienne signature à 5 paramètres
-de `submit_quiz`) et `*_temps_serveur.sql` (questions servies une à une,
-temps de réponse mesuré par le serveur). En mode Supabase avec une session,
+de `submit_quiz`), `*_temps_serveur.sql` (questions servies une à une,
+temps de réponse mesuré par le serveur) et `*_questions_serveur.sql`
+(questions actives seulement, identifiants jamais envoyés, réponse par
+position). En mode Supabase avec une session,
 un quiz se joue ainsi :
 
 1. `start_quiz(mode, category default null)` : `mode` = `daily` (défi du
-   jour), `category` (catégorie obligatoire) ou `mix`. Tire 10 questions,
+   jour), `category` (catégorie obligatoire) ou `mix`. Tire 10 questions
+   **actives** (`questions.active`),
    réponses mélangées par le serveur (pour chaque joueur et chaque
    question), mais ne renvoie que **la question 1** (`questions: [q1]`,
-   `total: 10`, `position: 1`, `seconds_left: 30`), **sans bonne réponse ni
-   explication**, et
+   `total: 10`, `position: 1`, `seconds_left: 30`), **sans bonne réponse,
+   ni explication, ni identifiant** (chaque question porte sa `position`),
+   et
    note son heure d'envoi (`served_at`). Enregistre la session (questions
    tirées, heure de départ serveur), valable **30 min**.
    Limites (`PT429`) : 30 quiz commencés par heure (soumis ou non) et
@@ -86,12 +90,12 @@ un quiz se joue ainsi :
    `served_at` (`seconds_left` diminue). `security definer`, EXECUTE pour
    `authenticated` seulement. Si la position reçue n'est pas celle attendue
    (quiz avancé sur un autre appareil), l'app propose seulement « Quitter ».
-3. `answer_question(quiz_id, question_id, choice, time_ms)` : `choice` =
-   position affichée (0 à 3, `null` si temps écoulé). Questions dans l'ordre
+3. `answer_question(quiz_id, position, choice, time_ms)` : `position` =
+   numéro de la question en cours (1 à 10), `choice` = position affichée
+   de la réponse (0 à 3, `null` si temps écoulé). Questions dans l'ordre
    et déjà servies : la question n'est cherchée que parmi les questions
-   servies, donc un identifiant absent du quiz et une question pas encore
-   servie donnent **la même erreur** (`22023` « question non servie ») ; on
-   ne peut pas deviner les questions à venir. Réponse horodatée par le serveur et définitive (un
+   servies, donc une position hors du quiz et une question pas encore
+   servie donnent **la même erreur** (`22023` « question non servie »). Réponse horodatée par le serveur et définitive (un
    réessai renvoie la correction déjà enregistrée, même avec un autre
    `choice` ; refusé une fois le quiz soumis). **Temps mesuré par le
    serveur** : temps serveur = `now() - served_at` (gardé dans
@@ -127,18 +131,18 @@ objectif sans XP), 20 quiz validés par heure (`PT429`).
 
 Défi du jour : table `daily_challenges(day, question_ids)`, créée à la
 demande par `ensure_daily_challenge(day)` (fonction interne, idempotente,
-évite si possible les questions des 7 derniers jours). Identique pour tous.
-Si une question du défi a disparu, elle est remplacée (tirage au hasard, en
+questions actives seulement, évite si possible les questions des 7 derniers
+jours). Identique pour tous. Si une question du défi a disparu ou est
+devenue inactive, elle est remplacée (question active tirée au hasard, en
 fin de liste) au prochain appel ; les sessions déjà commencées gardent la
 leur.
 
-**Ne jamais supprimer une question en base** : la corriger (`update`) à la
-place. Une question servie dans les 2 derniers jours est référencée par
-`quiz_session_questions` (clé étrangère, index `question_id`) et sa
-suppression échoue ; une suppression réussie fausserait le défi du jour
-(remplacement ci-dessus) et l'historique. Pour retirer une question, ajouter
-plus tard une colonne `active` (filtrée par `start_quiz` et
-`ensure_daily_challenge`) plutôt que de la supprimer.
+**Ne jamais supprimer une question en base** : la corriger (`update`) ou la
+**désactiver** (`active = false`, plus jamais tirée par `start_quiz` ni
+`ensure_daily_challenge`). Une question servie dans les 2 derniers jours est
+référencée par `quiz_session_questions` (clé étrangère, index
+`question_id`) et sa suppression échoue ; une suppression réussie
+fausserait le défi du jour et l'historique.
 
 Purge : `purge_quiz_sessions()` (fonction interne) efface les sessions de
 plus de 2 jours, réponses comprises ; lancée chaque jour à 03:30 UTC par
@@ -156,7 +160,9 @@ joué (`start_quiz`), `42501` non authentifié. L'app traite
 abandonné, la file n'est jamais bloquée) ; les autres erreurs sont réessayées.
 
 Repli local : hors ligne, serveur lent (plus de 6 s), `PT429`, `P0002` ou
-sans session, l'app joue les questions de `assets/questions.json` ; après un
+sans session, l'app joue le **lot hors ligne** (`assets/questions.json`,
+jamais servi par le serveur ; 3 questions par catégorie : un quiz local par
+catégorie n'en a que 3) ; après un
 échec (délai, réseau, `PT429`), elle ne rappelle pas `start_quiz` pendant
 1 min. Défi déjà joué (`23505`) : pas de repli, l'app affiche « Tu as déjà
 joué le défi du jour » et marque le défi comme joué sur l'accueil (avec le
@@ -186,8 +192,9 @@ Limites connues :
 - le défi du jour ne se joue qu'une fois par compte et par jour, mais un
   nouveau compte anonyme peut le rejouer (effet borné par les plafonds
   d'XP et le classement) ;
-- les bonnes réponses restent lisibles dans l'APK tant que toutes les
-  questions du serveur y sont aussi ;
+- les bonnes réponses du lot hors ligne restent lisibles dans l'APK (sans
+  effet : ces quiz ne sont jamais soumis et ces questions ne sont jamais
+  servies) ;
 - un quiz dont la dernière réponse arrive après 30 min est perdu (défi du
   jour : après minuit) ;
 - défi du jour entièrement répondu mais jamais soumis (app fermée avant
@@ -268,26 +275,43 @@ classement chargé avec un bandeau, sinon message et « Réessayer ».
 
 ## Questions (`seed.sql`)
 
-`supabase/seed.sql` est **généré** depuis `assets/questions.json` (upsert sur
-`id`, `updated_at` modifié seulement si la question change, aucune
-suppression) :
+Deux lots **disjoints** :
+- **questions du serveur** : `supabase/questions/questions.json`, hors
+  bundle (jamais déclaré dans `pubspec.yaml`, jamais copié dans `assets/`).
+  Seules elles sont servies (`start_quiz`, défi du jour, classement) ;
+- **lot hors ligne** : `assets/questions.json`, embarqué dans l'app (bonnes
+  réponses lisibles dans l'APK), joué seulement en local (hors ligne, sans
+  session, `P0002`), jamais soumis, hors classement. Ses identifiants sont
+  désactivés en base (`active = false`) s'ils y sont encore.
+
+`supabase/seed.sql` est **généré** depuis `supabase/questions/questions.json`
+(upsert sur `id`, `active = true`, `updated_at` modifié seulement si la
+question change ; toute question absente du fichier est désactivée, jamais
+supprimée) :
 
 ```sh
 dart run tool/generate_seed.dart   # après chaque modification des questions
 ```
 
-Un test Flutter (`test/submit_quiz_test.dart`) échoue si `seed.sql` n'est
-plus à jour. Appliqué automatiquement par `supabase db reset` en local ; en
-distant avec `supabase db push --include-seed`. Les identifiants de
-`assets/questions.json` doivent rester stables (référencés par les sessions
-et les défis du jour). Avec 3 questions par catégorie (21 au total), le défi
-du jour et le mix sont servis par le serveur, les quiz par catégorie
-retombent en local (`P0002`) jusqu'à 10 questions par catégorie. Sans seed
-en distant, tout est joué en local (hors classement).
+Ajouter une question serveur : l'ajouter à `supabase/questions/questions.json`
+(nouvel `id` stable, ex. `his-014`, champs `category`, `question`, 4
+`answers`, `correctIndex`, `explanation`, `difficulty`), régénérer le seed,
+puis `supabase db push --include-seed`. Retirer une question : l'enlever du
+fichier puis régénérer (le seed la désactive). Ne jamais copier une question
+du serveur dans `assets/`.
+
+Tests Flutter : `test/submit_quiz_test.dart` échoue si `seed.sql` n'est plus
+à jour ; `test/questions_test.dart` échoue si un identifiant ou un énoncé est
+dans les deux lots, si une question du serveur apparaît dans `assets/`, ou
+s'il y a moins de 10 questions serveur par catégorie. Seed appliqué
+automatiquement par `supabase db reset` en local ; en distant avec
+`supabase db push --include-seed`. Sans seed en distant, tout est joué en
+local (hors classement).
 
 Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
 `tests/start_quiz_test.sql`, `tests/submit_quiz_test.sql`,
-`tests/temps_serveur_test.sql`, `tests/weekly_leaderboard_test.sql`).
+`tests/temps_serveur_test.sql`, `tests/questions_serveur_test.sql`,
+`tests/weekly_leaderboard_test.sql`).
 
 ## Commandes à lancer soi-même
 
