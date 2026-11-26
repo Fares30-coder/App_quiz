@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:quizzeo/backend/backend_config.dart';
+import 'package:quizzeo/backend/supabase_provider.dart';
 import 'package:quizzeo/data/progress_repository.dart';
 import 'package:quizzeo/data/question_repository.dart';
 import 'package:quizzeo/models/question.dart';
@@ -60,6 +62,18 @@ void main() {
     await pumpApp(tester, {});
     expect(find.text('Avant de jouer'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
+  });
+
+  testWidgets('sans config Supabase : démarrage en mode local', (tester) async {
+    const config = BackendConfig.fromEnvironment();
+    expect(config.isConfigured, isFalse);
+    expect(await initBackend(config), isNull);
+    await pumpApp(tester, {});
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(QuizzeoApp)),
+    );
+    expect(container.read(backendAvailableProvider), isFalse);
+    expect(find.text('Avant de jouer'), findsOneWidget);
   });
 
   testWidgets('premier lancement : objectif 2 quiz et 20 h 30 par défaut',

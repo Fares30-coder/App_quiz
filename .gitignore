@@ -44,6 +44,9 @@ key.properties
 .env.*
 **/GoogleService-Info.plist
 **/google-services.json
+# Config --dart-define-from-file (seuls les exemples sont versionnés)
+config/*.json
+!config/*.example.json
 
 # Claude Code (local)
 .claude/settings.local.json

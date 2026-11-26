@@ -1,0 +1,13 @@
+-- Migration initiale Quizzéo : point de départ, ne crée rien.
+--
+-- Les tables (profiles, questions, daily_challenges, weekly_scores…) arriveront
+-- dans des migrations dédiées des tâches suivantes de l'étape 2, chacune avec
+-- RLS activé dès sa création.
+--
+-- Rappels :
+-- - toute table du schéma public est exposée par l'API : activer RLS
+--   (`alter table ... enable row level security;`) et écrire les policies ;
+-- - écritures sensibles (score, XP) via fonctions `security definer`
+--   (ex. `submit_quiz()`), jamais en écriture directe depuis l'app ;
+-- - extensions éventuelles dans le schéma `extensions`, par exemple :
+--   create extension if not exists pg_cron with schema extensions;
