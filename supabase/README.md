@@ -95,11 +95,72 @@ Tables :
   lecture distante des questions passera par une RPC/vue sans la réponse.
 - `quiz_results` : un quiz validé par ligne (jour, score, XP comptée et
   avant plafond) ; lecture de ses propres lignes, aucune écriture client.
-  Servira au classement hebdo.
+  Alimente le classement hebdo.
 
 Les bonnes réponses sont aussi dans l'app (`assets/questions.json`) : la
 validation serveur empêche surtout d'écrire XP/série à volonté, pas de
 tricher en lisant l'APK. À revoir quand les questions viendront du serveur.
+
+## Classement hebdo (`weekly_leaderboard`)
+
+Migration `*_weekly_leaderboard.sql`. Classement **global** de la semaine en
+cours, du lundi 00:00 au dimanche 23:59 (Europe/Paris, changement d'heure
+compris), calculé uniquement sur l'XP **comptée** de `quiz_results` (après
+plafonds) : le score officiel du serveur, jamais une valeur du client.
+**Plafond propre au classement** : 1 000 XP par joueur et par jour au plus
+(`least(sum(xp), 1000)` par jour, puis somme sur la semaine) ; l'XP du profil
+n'est pas touchée (plafond de `submit_quiz` : 3 000 par jour).
+
+`weekly_leaderboard(max_entries default 50)` (1 à 100, ramené dans
+l'intervalle), `security definer`, EXECUTE pour `authenticated` seulement
+(`anon` refusé, `42501`). Retour :
+
+```json
+{ "week_start": "2026-11-23", "week_end": "2026-11-29",
+  "ends_at": "2026-11-29T23:00:00+00:00",
+  "entries": [{ "rank": 1, "display_name": "Joueur482913", "xp": 630, "is_me": false }],
+  "me": { "rank": 12, "xp": 380, "display_name": "Joueur000123" } }
+```
+
+- `me` est renvoyé même hors du top ; `rank` y vaut `null` sans XP cette
+  semaine. Seuls les joueurs avec au moins 1 XP sont classés.
+- Ex-aequo : même rang (1, 2, 2, 4) ; ordre d'affichage stable : XP
+  décroissante, puis le premier à avoir atteint ce total (heure serveur du
+  dernier quiz rapportant de l'XP), puis identifiant (jamais exposé).
+- Aucune donnée personnelle : ni identifiant, ni série, ni date de jeu ;
+  `profiles` reste lisible uniquement par son propriétaire.
+- `profiles.display_name` : pseudo public **unique** (index unique sur
+  `lower(display_name)`, casse ignorée), généré à l'inscription par
+  `generate_display_name()` (`Joueur` + 6 chiffres aléatoires, sans lien avec
+  l'uid ; 10 essais, puis 10 à 9 chiffres, sinon erreur ; `handle_new_user()`
+  réessaie 3 fois en cas de course entre deux inscriptions). Comptes existants
+  remplis ligne par ligne par la migration, sans doublon. 3 à 20 caractères : lettres (accents compris),
+  chiffres, espace, `_`, `-`, `.`, sans espace au bord. Pas encore
+  modifiable par le joueur (future RPC, avec modération).
+- Index `quiz_results (day, user_id) include (xp, submitted_at)` : agrégation
+  de la semaine en parcours d'index seul. Calcul à chaque appel (suffisant au
+  lancement ; à mettre en cache ou matérialiser si le volume grossit).
+- `leaderboard_week_start(at)` et `generate_display_name()` : fonctions
+  internes, non exposées aux clients.
+
+App (`lib/leaderboard/leaderboard_controller.dart`) : chargé à l'ouverture de
+session, rechargé après chaque quiz validé par `submit_quiz` (toujours), par
+tirage (ignoré moins de 10 s après un chargement réussi) et à l'ouverture de
+l'onglet (s'il date de plus d'une minute). Mode local : message
+« Classement indisponible », aucun faux classement. Hors ligne : dernier
+classement chargé avec un bandeau, sinon message et « Réessayer ».
+
+### À faire avant la publication
+
+- `start_quiz()` / `served_at` côté serveur : questions servies et horodatées
+  par le serveur, pour qu'un script ne puisse pas soumettre des quiz sans les
+  avoir joués (anti-script).
+- Comptes anonymes en prod : captcha (Dashboard > Authentication > Attack
+  Protection) et limite de créations par IP.
+- Classement en cache (table remplie par `pg_cron`, par exemple chaque
+  minute) quand le volume de `quiz_results` grossit.
+- Politique de confidentialité : indiquer que le classement révèle
+  l'activité (pseudo et XP de la semaine) des joueurs du top.
 
 ## Questions (`seed.sql`)
 
@@ -118,7 +179,7 @@ distant avec `supabase db push --include-seed`. Les identifiants de
 question absente du serveur est refusé (`22023`).
 
 Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
-`tests/submit_quiz_test.sql`).
+`tests/submit_quiz_test.sql`, `tests/weekly_leaderboard_test.sql`).
 
 ## Commandes à lancer soi-même
 

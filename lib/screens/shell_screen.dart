@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../engagement/progress_controller.dart';
+import '../leaderboard/leaderboard_controller.dart';
 import 'home_screen.dart';
 import 'leaderboard_screen.dart';
 import 'profile_screen.dart';
@@ -48,7 +49,11 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
+        onDestinationSelected: (i) {
+          // Onglet Classement : rechargé s'il date de plus d'une minute.
+          if (i == 1) ref.read(leaderboardProvider.notifier).refreshIfStale();
+          setState(() => _tab = i);
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
