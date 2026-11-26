@@ -29,8 +29,8 @@ anonymous sign-ins » activé ; limites de débit dans Authentication > Rate Lim
 
 Une ligne par utilisateur, créée par trigger à l'inscription (migration
 `*_profiles.sql`). Le client la **lit** seulement (RLS + GRANT select) ;
-XP, série, gels et compteur de quiz seront écrits par `submit_quiz()`.
-Seule écriture client : `set_daily_goal(goal)` (1 à 3).
+XP, série, gels et compteur de quiz sont écrits uniquement par
+`submit_quiz()`. Autre écriture client : `set_daily_goal(goal)` (1 à 3).
 
 Sync (`lib/engagement/progress_sync.dart`) : en arrière-plan après connexion,
 puis au retour au premier plan (au plus 1 fois par minute). Règle de fusion :
@@ -39,9 +39,69 @@ puis au retour au premier plan (au plus 1 fois par minute). Règle de fusion :
 - `last_quiz_at` renseigné : le serveur remplace XP, série, gels et compteur
   de quiz du jour en local ;
 - l'objectif du jour est un choix local, envoyé par `set_daily_goal` à chaque
-  changement et à chaque sync s'il diffère (donc réessayé après un échec).
+  changement et à chaque sync s'il diffère (donc réessayé après un échec) ;
+- tant qu'un quiz attend d'être validé (file locale non vide), la progression
+  locale, en avance, n'est pas remplacée.
 
-Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`).
+## Validation des quiz (`submit_quiz`)
+
+Migration `*_submit_quiz.sql`. En fin de quiz (mode Supabase, quiz de 10
+questions), l'app affiche tout de suite son calcul local, puis envoie en
+arrière-plan `submit_quiz(quiz_id, question_ids, choices, times_ms, played_at)` :
+- `quiz_id` : uuid généré par l'app ; une double soumission renvoie le
+  résultat déjà enregistré (`duplicate: true`) sans rien recompter ;
+- `choices` : index de la réponse choisie **dans l'ordre de
+  `assets/questions.json`** (avant mélange), `null` si temps écoulé ;
+- `times_ms` : 500 à 30 000 ms par question ;
+- `played_at` : fin du quiz selon l'appareil (quiz joué hors ligne), ramené
+  entre le dernier quiz validé et maintenant ; refusé au-delà de 48 h.
+
+Le serveur recalcule score, XP (barème de `CLAUDE.md`), série et gels
+(jour calendaire **Europe/Paris** ; l'app utilise l'heure de l'appareil, même
+résultat en France), compteur du jour et `last_quiz_at`, puis renvoie
+`{ score, total, xp_gained, xp_capped, duplicate, profile }`. Le profil
+renvoyé remplace la progression locale (règle de fusion ci-dessus).
+
+Anti-triche : 10 questions distinctes existantes, temps plausibles, XP
+plafonnée à 240 par quiz (maximum du barème) et à 3 000 par jour (au-delà le
+quiz compte pour la série et l'objectif, sans XP), 20 quiz par heure glissante.
+Erreurs : `22023` entrée invalide (l'app abandonne ce quiz), `PT429` trop de
+quiz (HTTP 429, réessai plus tard), `42501` non authentifié.
+
+Hors ligne ou sans session : le quiz va dans une file locale
+(`lib/data/pending_quiz_repository.dart`, 30 au plus), renvoyée dans l'ordre
+au sync suivant ou à la fin du quiz suivant.
+
+Tables :
+- `questions` : contenu et bonne réponse, RLS sans policy et **aucun GRANT**
+  client (ni `anon` ni `authenticated` ne lisent `correct_index`). Une future
+  lecture distante des questions passera par une RPC/vue sans la réponse.
+- `quiz_results` : un quiz validé par ligne (jour, score, XP comptée et
+  avant plafond) ; lecture de ses propres lignes, aucune écriture client.
+  Servira au classement hebdo.
+
+Les bonnes réponses sont aussi dans l'app (`assets/questions.json`) : la
+validation serveur empêche surtout d'écrire XP/série à volonté, pas de
+tricher en lisant l'APK. À revoir quand les questions viendront du serveur.
+
+## Questions (`seed.sql`)
+
+`supabase/seed.sql` est **généré** depuis `assets/questions.json` (upsert sur
+`id`, `updated_at` modifié seulement si la question change, aucune
+suppression) :
+
+```sh
+dart run tool/generate_seed.dart   # après chaque modification des questions
+```
+
+Un test Flutter (`test/submit_quiz_test.dart`) échoue si `seed.sql` n'est
+plus à jour. Appliqué automatiquement par `supabase db reset` en local ; en
+distant avec `supabase db push --include-seed`. Les identifiants de
+`assets/questions.json` doivent rester stables : un quiz contenant une
+question absente du serveur est refusé (`22023`).
+
+Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
+`tests/submit_quiz_test.sql`).
 
 ## Commandes à lancer soi-même
 
@@ -52,6 +112,7 @@ supabase login                              # ouvre le navigateur
 supabase link --project-ref <ref-projet>    # ref = sous-domaine de SUPABASE_URL
 supabase db push --dry-run                  # vérifier ce qui sera appliqué
 supabase db push                            # appliquer les migrations au projet distant
+supabase db push --include-seed             # idem + questions (seed.sql)
 ```
 
 En local (Docker requis) : `supabase start`, `supabase db reset`, `supabase stop`.
