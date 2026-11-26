@@ -104,7 +104,7 @@
     "question": "En quelle année Henri IV a-t-il signé l'édit de Nantes ?",
     "answers": ["1685", "1598", "1572", "1610"],
     "correctIndex": 1,
-    "explanation": "L'édit de Nantes (1598) accordait la liberté de culte aux protestants. Louis XIV l'a révoqué en 1685.",
+    "explanation": "L'édit de Nantes (1598) accordait aux protestants la liberté de conscience et un droit de culte limité à certains lieux. Louis XIV l'a révoqué en 1685.",
     "difficulty": 3
   },
   {
@@ -158,7 +158,7 @@
     "question": "Quel est le plus haut sommet des Alpes ?",
     "answers": ["Le Cervin", "Le mont Rose", "Le mont Blanc", "La Barre des Écrins"],
     "correctIndex": 2,
-    "explanation": "Le mont Blanc culmine à environ 4 800 m, à la frontière entre la France et l'Italie.",
+    "explanation": "Le mont Blanc culmine à environ 4 800 m, dans le massif du Mont-Blanc, entre la France et l'Italie.",
     "difficulty": 1
   },
   {
@@ -329,7 +329,7 @@
     "question": "Qui a découvert la pénicilline en 1928 ?",
     "answers": ["Louis Pasteur", "Marie Curie", "Alexander Fleming", "Robert Koch"],
     "correctIndex": 2,
-    "explanation": "Le Britannique Alexander Fleming a remarqué qu'une moisissure tuait des bactéries : c'est le premier antibiotique.",
+    "explanation": "Le Britannique Alexander Fleming a remarqué qu'une moisissure empêchait la croissance des bactéries : cette découverte a ouvert l'ère des antibiotiques.",
     "difficulty": 2
   },
   {
@@ -383,7 +383,7 @@
     "question": "Qui a peint La Nuit étoilée ?",
     "answers": ["Claude Monet", "Paul Gauguin", "Paul Cézanne", "Vincent van Gogh"],
     "correctIndex": 3,
-    "explanation": "Van Gogh l'a peinte en 1889, depuis sa chambre de l'asile de Saint-Rémy-de-Provence.",
+    "explanation": "Van Gogh l'a peinte en 1889 à l'asile de Saint-Rémy-de-Provence, d'après la vue depuis la fenêtre de sa chambre.",
     "difficulty": 1
   },
   {
@@ -455,7 +455,7 @@
     "question": "Dans quel musée est exposée La Naissance de Vénus de Botticelli ?",
     "answers": ["Le musée du Louvre", "Le musée du Prado", "La National Gallery", "La galerie des Offices"],
     "correctIndex": 3,
-    "explanation": "Le tableau est conservé à la galerie des Offices, à Florence, ville où Botticelli a passé sa vie.",
+    "explanation": "Le tableau est conservé à la galerie des Offices, à Florence, ville où Botticelli a passé l'essentiel de sa vie.",
     "difficulty": 3
   },
   {
@@ -534,9 +534,9 @@
     "id": "spo-008",
     "category": "sport",
     "question": "Combien de points rapporte un essai au rugby à XV ?",
-    "answers": ["3", "5", "4", "7"],
+    "answers": ["3", "5", "4", "6"],
     "correctIndex": 1,
-    "explanation": "Un essai vaut 5 points, et la transformation qui suit peut en ajouter 2.",
+    "explanation": "Un essai vaut 5 points, et la transformation qui suit peut en ajouter 2. L'essai de pénalité, lui, vaut 7 points.",
     "difficulty": 2
   },
   {
