@@ -2,9 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../backend/auth_service.dart';
+import '../data/question_repository.dart';
 import '../engagement/progress_controller.dart';
+import '../engagement/progress_sync.dart';
 import '../engagement/xp.dart';
 import '../models/question.dart';
+import '../models/quiz_submission.dart';
 import '../sound/sound_service.dart';
 
 const questionSeconds = 30;
@@ -21,6 +25,7 @@ class QuizState {
     this.timedOut = false,
     this.secondsLeft = questionSeconds,
     this.answers = const [],
+    this.choices = const [],
     this.outcome,
   });
 
@@ -38,6 +43,10 @@ class QuizState {
 
   /// Réponses déjà données, dans l'ordre.
   final List<AnswerResult> answers;
+
+  /// Réponses choisies, index dans l'ordre d'origine (`null` = temps écoulé),
+  /// pour la validation serveur.
+  final List<int?> choices;
 
   /// Renseigné quand le quiz est terminé.
   final QuizOutcome? outcome;
@@ -76,6 +85,7 @@ class QuizState {
     bool? timedOut,
     int? secondsLeft,
     List<AnswerResult>? answers,
+    List<int?>? choices,
     QuizOutcome? outcome,
   }) =>
       QuizState(
@@ -87,6 +97,7 @@ class QuizState {
         timedOut: timedOut ?? this.timedOut,
         secondsLeft: secondsLeft ?? this.secondsLeft,
         answers: answers ?? this.answers,
+        choices: choices ?? this.choices,
         outcome: outcome ?? this.outcome,
       );
 }
@@ -120,6 +131,7 @@ class QuizController extends Notifier<QuizState> {
         ...state.answers,
         AnswerResult(correct: correct, elapsed: _stopwatch.elapsed),
       ],
+      choices: [...state.choices, state.current.originalIndex(choice)],
     );
     _sounds.play(correct ? Sfx.correct : Sfx.wrong);
     return correct;
@@ -138,6 +150,7 @@ class QuizController extends Notifier<QuizState> {
           elapsed: Duration(seconds: questionSeconds),
         ),
       ],
+      choices: [...state.choices, null],
     );
     _sounds.play(Sfx.wrong);
   }
@@ -175,9 +188,29 @@ class QuizController extends Notifier<QuizState> {
           total: state.questions.length,
         );
     state = state.copyWith(outcome: outcome);
+    _submit();
     // Fanfare à 10/10 ou en cas de montée de niveau (même moment que
     // l'haptique de l'écran Résultats, qui s'ouvre aussitôt).
     if (outcome.xp.perfect || outcome.leveledUp) _sounds.play(Sfx.fanfare);
+  }
+
+  /// Validation serveur en arrière-plan (mode Supabase seulement, jamais
+  /// bloquant) : le calcul local ci-dessus reste celui affiché. Seuls les
+  /// quiz complets de [quizLength] questions sont acceptés par le serveur.
+  /// Sans session (premier lancement hors ligne), le quiz reste local.
+  void _submit() {
+    final sync = ref.read(progressSyncProvider);
+    final userId = ref.read(authUserIdProvider);
+    if (sync == null || userId == null) return;
+    if (state.questions.length != quizLength) return;
+    unawaited(sync.submitQuiz(QuizSubmission(
+      id: randomUuid(),
+      userId: userId,
+      questionIds: [for (final q in state.questions) q.id],
+      choices: state.choices,
+      timesMs: [for (final a in state.answers) submittedMs(a.elapsed)],
+      playedAt: ref.read(clockProvider)(),
+    )));
   }
 
   void _startQuestion() {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,24 +8,35 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:quizzeo/backend/auth_service.dart';
 import 'package:quizzeo/backend/supabase_provider.dart';
+import 'package:quizzeo/data/pending_quiz_repository.dart';
 import 'package:quizzeo/data/progress_repository.dart';
 import 'package:quizzeo/engagement/dates.dart';
 import 'package:quizzeo/engagement/progress_controller.dart';
 import 'package:quizzeo/engagement/progress_sync.dart';
 import 'package:quizzeo/models/player_progress.dart';
+import 'package:quizzeo/models/question.dart';
+import 'package:quizzeo/models/quiz_submission.dart';
 import 'package:quizzeo/models/streak.dart';
+import 'package:quizzeo/quiz/quiz_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final _now = DateTime(2026, 11, 26, 10);
 final _today = dayOf(_now);
 
-/// Faux serveur PostgREST : `profiles` en lecture, RPC `set_daily_goal`.
+/// Faux serveur PostgREST : `profiles` en lecture, RPC `set_daily_goal` et
+/// `submit_quiz`.
 class _FakeServer {
   final requests = <http.Request>[];
   bool offline = false;
   bool rpcOffline = false;
   Map<String, dynamic>? profile = _profile();
+
+  /// Réponse d'erreur de `submit_quiz` (code SQLSTATE), null = succès.
+  String? submitError;
+
+  /// Quiz validés (réponse 200), dans l'ordre.
+  final accepted = <String>[];
 
   late final client = MockClient((request) async {
     requests.add(request);
@@ -40,8 +52,45 @@ class _FakeServer {
       profile?['daily_goal'] = goal;
       return http.Response('', 204, request: request);
     }
+    if (path == '/rest/v1/rpc/submit_quiz' && request.method == 'POST') {
+      if (rpcOffline) throw const SocketException('hors ligne');
+      final error = submitError;
+      if (error != null) {
+        return http.Response(jsonEncode({'code': error, 'message': 'refusé'}),
+            error == 'PT429' ? 429 : 400,
+            headers: {'content-type': 'application/json'}, request: request);
+      }
+      accepted.add((jsonDecode(request.body) as Map)['quiz_id'] as String);
+      // Le serveur ajoute 100 XP par quiz et valide la série du jour.
+      final p = profile!
+        ..['xp'] = (profile!['xp'] as int) + 100
+        ..['streak'] = 13
+        ..['last_played_day'] = dayKey(_today)
+        ..['quiz_day'] = dayKey(_today)
+        ..['quiz_count'] = 1
+        ..['last_quiz_at'] = '2026-11-26T09:00:00+00:00';
+      return http.Response(
+          jsonEncode({
+            'quiz_id': (jsonDecode(request.body) as Map)['quiz_id'],
+            'duplicate': false,
+            'score': 10,
+            'total': 10,
+            'xp_gained': 100,
+            'xp_capped': false,
+            'profile': p,
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+          request: request);
+    }
     return http.Response('{"message":"interdit"}', 403, request: request);
   });
+
+  List<Map<String, dynamic>> get quizzesSent => [
+        for (final r in requests)
+          if (r.url.path.endsWith('/rpc/submit_quiz'))
+            jsonDecode(r.body) as Map<String, dynamic>,
+      ];
 
   List<int> get goalsSent => [
         for (final r in requests)
@@ -241,5 +290,228 @@ void main() {
         expect(write.hasMatch(chain), isFalse, reason: file.path);
       }
     }
+  });
+
+  group('submit_quiz', () {
+    QuizSubmission submission(
+            [String id = 'quiz-1',
+            String userId = 'joueur-1',
+            DateTime? playedAt]) =>
+        QuizSubmission(
+          id: id,
+          userId: userId,
+          questionIds: [for (var i = 1; i <= 10; i++) 'q-$i'],
+          choices: [0, 1, null, 0, 0, 0, 0, 0, 0, 0],
+          timesMs: List.filled(10, 2000),
+          playedAt: playedAt ?? _now,
+        );
+
+    /// Sync créé et sync initial (lancement) terminé.
+    Future<ProgressSync> started(ProviderContainer c) async {
+      final sync = c.read(progressSyncProvider)!;
+      await pumpEventQueue();
+      return sync;
+    }
+
+    test('quiz terminé : envoyé, profil serveur appliqué', () async {
+      final c = await container();
+      await (await started(c)).submitQuiz(submission());
+
+      expect(server.quizzesSent, hasLength(1));
+      final body = server.quizzesSent.single;
+      expect(body['quiz_id'], 'quiz-1');
+      expect(body['question_ids'], hasLength(10));
+      expect(body['choices'], [0, 1, null, 0, 0, 0, 0, 0, 0, 0]);
+      expect(body['times_ms'], List.filled(10, 2000));
+      expect(DateTime.parse(body['played_at'] as String).isAtSameMomentAs(_now),
+          isTrue);
+
+      final p = c.read(progressControllerProvider);
+      expect(p.totalXp, 1000, reason: 'XP du serveur');
+      expect(p.streak.count, 13);
+      expect(p.quizzesOn(_today), 1);
+      expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+    });
+
+    test('hors ligne : mis en file, envoyé au sync suivant', () async {
+      server.rpcOffline = true;
+      final c = await container();
+      final sync = await started(c);
+      await sync.submitQuiz(submission());
+
+      expect(c.read(progressControllerProvider).totalXp, 150,
+          reason: 'calcul local conservé');
+      expect(c.read(pendingQuizRepositoryProvider).load().single.id, 'quiz-1');
+
+      server.rpcOffline = false;
+      await sync.sync(force: true);
+      expect(server.accepted, ['quiz-1'],
+          reason: 'même identifiant (idempotence)');
+      expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+      expect(c.read(progressControllerProvider).totalXp, 1000);
+    });
+
+    test('file non vide : la progression locale n\'est pas remplacée',
+        () async {
+      server
+        ..profile = _profile(lastQuizAt: '2026-11-25T18:00:00+00:00')
+        ..submitError = 'PT429';
+      final c = await container();
+      final sync = await started(c);
+      expect(c.read(progressControllerProvider).totalXp, 900);
+
+      server.profile!['xp'] = 5000;
+      await sync.submitQuiz(submission());
+      await sync.sync(force: true);
+
+      expect(server.quizzesSent, hasLength(2), reason: 'réessayé au sync');
+      expect(c.read(pendingQuizRepositoryProvider).load(), hasLength(1));
+      expect(c.read(progressControllerProvider).totalXp, 900,
+          reason: 'quiz en attente : local en avance, pas remplacé');
+    });
+
+    test('quiz refusé (22023) : abandonné, profil serveur appliqué', () async {
+      server
+        ..profile = _profile(lastQuizAt: '2026-11-25T18:00:00+00:00')
+        ..submitError = '22023';
+      final c = await container();
+      final sync = await started(c);
+      await sync.submitQuiz(submission());
+      expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+
+      await sync.sync(force: true);
+      expect(server.quizzesSent, hasLength(1), reason: 'pas renvoyé');
+      expect(c.read(progressControllerProvider).totalXp, 900);
+    });
+
+    test('plusieurs quiz en attente : envoyés dans l\'ordre', () async {
+      server.rpcOffline = true;
+      final c = await container();
+      final sync = await started(c);
+      await sync.submitQuiz(submission('quiz-1'));
+      await sync.submitQuiz(submission('quiz-2'));
+
+      server.rpcOffline = false;
+      await sync.sync(force: true);
+      expect(server.accepted, ['quiz-1', 'quiz-2']);
+      expect(c.read(progressControllerProvider).totalXp, 1100);
+    });
+
+    test('sans session : ni appel ni mise en file', () async {
+      final c = await container(userId: null);
+      await (await started(c)).submitQuiz(submission());
+      expect(server.requests, isEmpty);
+      expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+    });
+
+    test('quiz d\'un autre compte : ignoré', () async {
+      final c = await container();
+      await (await started(c)).submitQuiz(submission('quiz-1', 'autre'));
+      expect(server.quizzesSent, isEmpty);
+      expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+    });
+
+    test('file : quiz d\'un autre compte abandonné sans envoi', () async {
+      final c = await container();
+      final queue = c.read(pendingQuizRepositoryProvider);
+      await queue.add(submission('ancien-compte', 'autre'));
+      await queue.add(submission('quiz-1'));
+      await (await started(c)).sync(force: true);
+
+      expect(server.accepted, ['quiz-1']);
+      expect(queue.isEmpty, isTrue);
+    });
+
+    test('file : quiz de plus de 6 h abandonné sans envoi', () async {
+      final c = await container();
+      final queue = c.read(pendingQuizRepositoryProvider);
+      await queue.add(submission(
+          'trop-vieux', 'joueur-1', _now.subtract(const Duration(hours: 7))));
+      await queue.add(submission(
+          'recent', 'joueur-1', _now.subtract(const Duration(hours: 5))));
+      await (await started(c)).sync(force: true);
+
+      expect(server.accepted, ['recent']);
+      expect(queue.isEmpty, isTrue);
+    });
+
+    for (final code in ['22P02', '22003', '23505', 'P0002']) {
+      test('refus définitif ($code) : la file n\'est pas bloquée', () async {
+        server.submitError = code;
+        final c = await container();
+        final sync = await started(c);
+        await sync.submitQuiz(submission('quiz-1'));
+        server.submitError = null;
+        await sync.submitQuiz(submission('quiz-2'));
+
+        expect(server.accepted, ['quiz-2']);
+        expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+      });
+    }
+
+    group('fin de quiz (QuizController)', () {
+      // 10 questions dont la bonne réponse d'origine est l'index 0, mélangées.
+      final questions = [
+        for (var i = 1; i <= 10; i++)
+          Question(
+            id: 'q-$i',
+            category: 'divers',
+            question: 'Question $i',
+            answers: const ['a', 'b', 'c', 'd'],
+            correctIndex: 0,
+            explanation: '',
+            difficulty: 1,
+          ).shuffled(Random(i)),
+      ];
+
+      void play(ProviderContainer c, {required int count}) {
+        final quiz = c.read(quizControllerProvider.notifier)
+          ..start(questions.take(count).toList(), mode: QuizMode.mix);
+        for (var i = 0; i < count; i++) {
+          final q = c.read(quizControllerProvider).current;
+          // Bonne réponse, sauf à la 2e question (première mauvaise affichée).
+          quiz.answer(i == 1 ? (q.correctIndex + 1) % 4 : q.correctIndex);
+          quiz.next();
+        }
+      }
+
+      test('quiz de 10 questions : soumis en arrière-plan', () async {
+        final c = await container();
+        await started(c);
+        play(c, count: 10);
+        expect(c.read(quizControllerProvider).isFinished, isTrue);
+        await pumpEventQueue();
+
+        final body = server.quizzesSent.single;
+        expect(body['question_ids'], [for (final q in questions) q.id]);
+        final wrong =
+            questions[1].originalIndex((questions[1].correctIndex + 1) % 4);
+        expect(body['choices'], [0, wrong, 0, 0, 0, 0, 0, 0, 0, 0],
+            reason: 'index d\'origine, pas l\'ordre affiché');
+        expect(
+            (body['times_ms'] as List)
+                .every((t) => t is int && t >= 0 && t <= 30000),
+            isTrue);
+        expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+      });
+
+      test('quiz incomplet (moins de 10 questions) : non soumis', () async {
+        final c = await container();
+        play(c, count: 3);
+        await pumpEventQueue();
+        expect(server.quizzesSent, isEmpty);
+        expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+      });
+
+      test('mode local : aucun appel, rien en file', () async {
+        final c = await container(withClient: false, userId: null);
+        play(c, count: 10);
+        await pumpEventQueue();
+        expect(server.requests, isEmpty);
+        expect(c.read(pendingQuizRepositoryProvider).isEmpty, isTrue);
+        expect(c.read(progressControllerProvider).totalXp, greaterThan(150),
+            reason: 'calcul local');
+      });
+    });
   });
 }

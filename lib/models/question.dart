@@ -20,6 +20,7 @@ class Question {
     required this.correctIndex,
     required this.explanation,
     required this.difficulty,
+    this.answerOrder,
   });
 
   final String id;
@@ -31,6 +32,14 @@ class Question {
 
   /// 1 = facile, 2 = moyen, 3 = difficile.
   final int difficulty;
+
+  /// Index d'origine (ordre de assets/questions.json) de chaque réponse
+  /// affichée ; `null` = ordre d'origine. Envoyé au serveur, qui corrige
+  /// dans cet ordre (`submit_quiz`).
+  final List<int>? answerOrder;
+
+  /// Index d'origine de la réponse affichée en position [displayed].
+  int originalIndex(int displayed) => answerOrder?[displayed] ?? displayed;
 
   factory Question.fromJson(Map<String, dynamic> json) => Question(
         id: json['id'] as String,
@@ -53,6 +62,7 @@ class Question {
       correctIndex: order.indexOf(correctIndex),
       explanation: explanation,
       difficulty: difficulty,
+      answerOrder: [for (final i in order) originalIndex(i)],
     );
   }
 }

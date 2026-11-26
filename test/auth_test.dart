@@ -10,6 +10,8 @@ import 'package:quizzeo/backend/auth_service.dart';
 import 'package:quizzeo/backend/backend_config.dart';
 import 'package:quizzeo/backend/secure_session_storage.dart';
 import 'package:quizzeo/backend/supabase_provider.dart';
+import 'package:quizzeo/data/pending_quiz_repository.dart';
+import 'package:quizzeo/models/quiz_submission.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -149,6 +151,27 @@ void main() {
 
       expect(auth.currentSession, isNull);
       expect(await storage.hasAccessToken(), isFalse);
+    });
+
+    test('purge locale : file des quiz en attente vidée', () async {
+      SharedPreferences.setMockInitialValues({});
+      final queue =
+          PendingQuizRepository(await SharedPreferences.getInstance());
+      await queue.add(QuizSubmission(
+        id: 'quiz-1',
+        userId: 'existant',
+        questionIds: const ['q-1'],
+        choices: const [0],
+        timesMs: const [2000],
+        playedAt: DateTime.utc(2026, 11, 26),
+      ));
+      final server = _FakeServer();
+      final auth = _auth(server);
+      await auth.setInitialSession(jsonEncode(_session('existant')));
+
+      await AuthService(auth, clearLocalData: queue.clear).purgeLocalSession();
+
+      expect(queue.isEmpty, isTrue);
     });
   });
 

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../data/pending_quiz_repository.dart';
 import 'supabase_provider.dart';
 
 /// Connexion anonyme Supabase, toujours en arrière-plan.
@@ -17,11 +18,17 @@ class AuthService {
   AuthService(
     this._auth, {
     LocalStorage? sessionStorage,
+    Future<void> Function()? clearLocalData,
     this.retryDelay = const Duration(minutes: 1),
-  }) : _sessionStorage = sessionStorage;
+  })  : _sessionStorage = sessionStorage,
+        _clearLocalData = clearLocalData;
 
   final GoTrueClient _auth;
   final LocalStorage? _sessionStorage;
+
+  /// Données locales liées au compte à effacer à la purge (file des quiz
+  /// non envoyés).
+  final Future<void> Function()? _clearLocalData;
   final Duration retryDelay;
 
   Future<void>? _pending;
@@ -72,7 +79,8 @@ class AuthService {
   }
 
   /// Purge locale : déconnexion et effacement de la session du stockage
-  /// sécurisé. Servira à la suppression de compte (pas exposé dans l'UI).
+  /// sécurisé, puis des données locales du compte (quiz en attente).
+  /// Servira à la suppression de compte (pas exposé dans l'UI).
   Future<void> purgeLocalSession() async {
     try {
       // Efface la session en mémoire avant l'appel réseau (qui peut échouer).
@@ -84,6 +92,11 @@ class AuthService {
       await _sessionStorage?.removePersistedSession();
     } catch (e) {
       _logError('effacement de la session impossible', e);
+    }
+    try {
+      await _clearLocalData?.call();
+    } catch (e) {
+      _logError('effacement des données locales impossible', e);
     }
   }
 
@@ -114,6 +127,8 @@ final authServiceProvider = Provider<AuthService?>((ref) {
   final service = AuthService(
     client.auth,
     sessionStorage: ref.watch(sessionStorageProvider),
+    // Lu seulement à la purge : quiz en attente du compte effacé.
+    clearLocalData: () => ref.read(pendingQuizRepositoryProvider).clear(),
   )..start();
   ref.onDispose(service.dispose);
   return service;
