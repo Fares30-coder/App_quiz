@@ -77,3 +77,4 @@ Multijoueur temps réel, notifications avancées, contenus par niveau scolaire.
 - Ne jamais mettre de clés ou secrets dans le dépôt
 - Utiliser les ID de test AdMob en développement
 - Le cahier des charges complet est dans le projet claude.ai "quiz culture G" (`cahier-des-charges-mvp.md`)
+- Plan des tâches (numérotées T1, T2…, statut, dépendances, décisions ouvertes) : `docs/plan.md`, source unique à mettre à jour dans chaque PR
