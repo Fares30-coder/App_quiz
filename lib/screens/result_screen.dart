@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../quiz/quiz_controller.dart';
+import '../share/share_content.dart';
+import '../share/share_launcher.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ad_slot.dart';
 import '../widgets/brand.dart';
@@ -181,15 +183,21 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         const SizedBox(height: 14),
                         _AnswerDots(state: s),
                         const SizedBox(height: AppSpacing.l),
-                        FilledButton.icon(
-                          // TODO(partage): image 9:16 (RepaintBoundary -> PNG -> share_plus).
-                          onPressed: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Le partage arrive bientôt.')),
+                        ShareLauncher(
+                          content: () => scoreShareContent(
+                            mode: s.mode,
+                            category: s.category,
+                            score: score,
+                            total: total,
+                            answers: [for (final a in s.answers) a.correct],
+                            streakDays: outcome.streakCount,
+                            day: today,
                           ),
-                          icon: const Icon(Icons.ios_share),
-                          label: const Text('Partager mon score'),
+                          builder: (context, onPressed) => FilledButton.icon(
+                            onPressed: onPressed,
+                            icon: const Icon(Icons.ios_share),
+                            label: const Text('Partager mon score'),
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.l),
                         _XpCard(outcome: outcome, animate: animate),

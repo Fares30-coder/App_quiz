@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../models/player_progress.dart';
+import '../share/share_content.dart';
+import '../share/share_launcher.dart';
 import '../sound/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
@@ -119,15 +121,16 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
                           child: const Text('Continuer'),
                         ),
                         const SizedBox(height: 10),
-                        TextButton.icon(
-                          // TODO(partage): image de la série (share_plus).
-                          onPressed: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Le partage arrive bientôt.')),
+                        ShareLauncher(
+                          content: () => streakShareContent(
+                            streakDays: progress.streak.count,
+                            day: today,
                           ),
-                          icon: const Icon(Icons.ios_share),
-                          label: const Text('Partager ma série'),
+                          builder: (context, onPressed) => TextButton.icon(
+                            onPressed: onPressed,
+                            icon: const Icon(Icons.ios_share),
+                            label: const Text('Partager ma série'),
+                          ),
                         ),
                       ],
               ),
