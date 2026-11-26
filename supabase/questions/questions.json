@@ -644,7 +644,7 @@
     "question": "En quelle année a commencé la Première Guerre mondiale ?",
     "answers": ["1912", "1914", "1916", "1918"],
     "correctIndex": 1,
-    "explanation": "Le conflit éclate en août 1914, un mois après l'assassinat de l'archiduc François-Ferdinand à Sarajevo. Il prend fin en 1918.",
+    "explanation": "Le conflit éclate fin juillet 1914, un mois après l'assassinat de l'archiduc François-Ferdinand à Sarajevo (28 juin), puis s'étend à l'Europe début août. Il prend fin en 1918.",
     "difficulty": 1
   },
   {
@@ -689,7 +689,7 @@
     "question": "En quelle année l'esclavage a-t-il été définitivement aboli dans les colonies françaises ?",
     "answers": ["1794", "1815", "1848", "1870"],
     "correctIndex": 2,
-    "explanation": "Le décret du 27 avril 1848, porté par Victor Schœlcher, abolit l'esclavage. Une première abolition de 1794 avait été annulée par Napoléon en 1802.",
+    "explanation": "Le décret du 27 avril 1848, porté par Victor Schœlcher, abolit l'esclavage. Une première abolition de 1794 avait été annulée par Bonaparte en 1802.",
     "difficulty": 2
   },
   {
@@ -797,7 +797,7 @@
     "question": "Quel pays possède le plus de fuseaux horaires, en comptant ses territoires d'outre-mer ?",
     "answers": ["La Russie", "La France", "Les États-Unis", "Le Royaume-Uni"],
     "correctIndex": 1,
-    "explanation": "Grâce à ses territoires répartis sur tous les océans, la France couvre 12 fuseaux horaires (13 avec la terre Adélie), contre 11 pour la Russie.",
+    "explanation": "Grâce à ses territoires répartis sur tous les océans, la France couvre 12 fuseaux horaires (13 avec la terre Adélie), contre 11 pour la Russie et les États-Unis.",
     "difficulty": 3
   },
   {
@@ -866,7 +866,7 @@
   {
     "id": "sci-020",
     "category": "sciences",
-    "question": "Quel chimiste a publié le premier tableau périodique des éléments en 1869 ?",
+    "question": "Quel chimiste russe a publié en 1869 un tableau périodique prédisant des éléments encore inconnus ?",
     "answers": ["Dmitri Mendeleïev", "Antoine Lavoisier", "Marie Curie", "John Dalton"],
     "correctIndex": 0,
     "explanation": "Le chimiste russe a classé les éléments selon leur masse et laissé des cases vides pour des éléments encore inconnus, découverts ensuite.",
@@ -1136,7 +1136,7 @@
   {
     "id": "act-020",
     "category": "actu",
-    "question": "En 2024, quel pays est devenu le premier à inscrire la liberté de recourir à l'IVG dans sa Constitution ?",
+    "question": "En 2024, quel pays est devenu le premier à inscrire explicitement la liberté de recourir à l'IVG dans sa Constitution ?",
     "answers": ["L'Espagne", "La Suède", "L'Irlande", "La France"],
     "correctIndex": 3,
     "explanation": "Le Parlement réuni en Congrès à Versailles a adopté cette révision constitutionnelle le 4 mars 2024.",
@@ -1166,7 +1166,7 @@
     "question": "Quelle mission a réalisé en septembre 2024 la première sortie dans l'espace d'astronautes privés ?",
     "answers": ["Inspiration4", "Axiom Mission 3", "Polaris Dawn", "Artemis I"],
     "correctIndex": 2,
-    "explanation": "Le 12 septembre 2024, le milliardaire Jared Isaacman et l'ingénieure Sarah Gillis sont sortis de leur capsule Crew Dragon de SpaceX.",
+    "explanation": "Le 12 septembre 2024, le milliardaire Jared Isaacman et l'ingénieure Sarah Gillis se sont hissés hors de leur capsule Crew Dragon de SpaceX.",
     "difficulty": 3
   },
   {
@@ -1182,9 +1182,9 @@
     "id": "div-015",
     "category": "divers",
     "question": "Quel animal est un emblème traditionnel de la France ?",
-    "answers": ["L'aigle", "Le lion", "L'ours", "Le coq"],
+    "answers": ["Le loup", "Le lion", "L'ours", "Le coq"],
     "correctIndex": 3,
-    "explanation": "Le coq vient d'un jeu de mots latin : gallus signifie à la fois « coq » et « Gaulois ».",
+    "explanation": "Le coq viendrait d'un jeu de mots latin : gallus signifie à la fois « coq » et « Gaulois ».",
     "difficulty": 1
   },
   {
@@ -1193,7 +1193,7 @@
     "question": "Quel fruit est l'ingrédient principal du guacamole ?",
     "answers": ["L'avocat", "La mangue", "La papaye", "La goyave"],
     "correctIndex": 0,
-    "explanation": "Le guacamole est une recette d'origine aztèque, au Mexique, à base d'avocat écrasé.",
+    "explanation": "Né au Mexique, le guacamole tire son nom du nahuatl, la langue des Aztèques (āhuacamōlli, « sauce d'avocat »).",
     "difficulty": 1
   },
   {
@@ -1218,9 +1218,9 @@
     "id": "div-019",
     "category": "divers",
     "question": "Malgré son nom, de quelle couleur est la « boîte noire » d'un avion ?",
-    "answers": ["Noire", "Rouge", "Jaune", "Orange"],
+    "answers": ["Noire", "Rouge", "Verte", "Orange"],
     "correctIndex": 3,
-    "explanation": "Elle est peinte en orange vif pour être retrouvée plus facilement après un accident.",
+    "explanation": "Elle est le plus souvent peinte en orange vif (le jaune vif est aussi autorisé) pour être retrouvée facilement après un accident.",
     "difficulty": 2
   },
   {
