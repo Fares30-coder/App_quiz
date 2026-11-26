@@ -34,6 +34,10 @@ class QuizzeoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Quizzéo',
       debugShowCheckedModeBanner: false,
+      // Contenu 100 % français : menus et sélecteurs Material en français.
+      locale: const Locale('fr'),
+      supportedLocales: const [Locale('fr')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       home: const RootGate(),
