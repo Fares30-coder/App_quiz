@@ -1,6 +1,6 @@
 # ADR 0001 — Back-end de l'étape 2 : Supabase ou Firebase
 
-- Statut : **proposé** (à valider par Fares)
+- Statut : **accepté** (validé par Fares le 2026-11-26)
 - Date : 2026-11-26
 - Portée : comptes, classement hebdo, synchronisation de la progression, questions distantes, défi du jour
 
@@ -23,7 +23,7 @@ Contraintes déjà connues : AdMob (SDK Google de toute façon), analytics à ch
 1. **Supabase** (Postgres managé, Auth, Edge Functions Deno, Cron/pg_cron, région Paris `eu-west-3`).
 2. **Firebase** (Auth, Firestore, Cloud Functions Node/TS, App Check, région `europe-west9` Paris ou `eur3`).
 
-Écartés : back-end maison (Node + Postgres sur VPS : trop de maintenance), Firebase Data Connect (Postgres chez Google : plus jeune, moins de recul côté Flutter, coût Cloud SQL fixe).
+Écartés : back-end maison (Node + Postgres sur VPS : trop de maintenance), Scaleway (cloud français, hors CLOUD Act, mais briques d'infrastructure seulement : auth Apple/Google, API, règles d'accès et suppression de compte à construire et maintenir soi-même ; Supabase auto-hébergé sur Scaleway reste une piste de migration plus tard si la souveraineté devient prioritaire), Firebase Data Connect (Postgres chez Google : plus jeune, moins de recul côté Flutter, coût Cloud SQL fixe).
 
 ## Comparaison
 
@@ -58,7 +58,7 @@ Hypothèses par joueur actif/mois : 20 quiz terminés, 8 ouvertures du classemen
 
 À ces volumes, les deux restent négligeables face aux revenus pub attendus. L'écart de coût n'est pas décisif ; ce qui compte est l'effort sur le classement/les ligues et la maintenance.
 
-## Décision recommandée
+## Décision
 
 **Supabase, région Paris (`eu-west-3`), plan Free pendant le développement puis Pro (25 $/mois) dès le test fermé.**
 

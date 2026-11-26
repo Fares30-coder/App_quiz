@@ -7,7 +7,7 @@ Développeur : Fares Haouari (full stack, à l'aise en React/Node/Flutter). Proj
 
 ## Stack
 - Mobile : **Flutter** (une seule base de code iOS + Android), dev sous VS Code, Mac
-- Back-end : Supabase ou Firebase (auth, questions, classement) — à trancher
+- Back-end : **Supabase** région Paris (auth, questions, classement) — voir `docs/decisions/0001-backend.md`
 - Pubs : Google AdMob (`google_mobile_ads`) + consentement UMP (RGPD) + ATT sur iOS
 - Achat "sans pub" : RevenueCat ou achats natifs (StoreKit / Play Billing)
 - Analytics : PostHog ou Firebase Analytics
@@ -63,10 +63,11 @@ Multijoueur temps réel, notifications avancées, contenus par niveau scolaire.
 - Flutter retenu (React Native/Expo écarté après comparaison)
 - État : Riverpod (`flutter_riverpod`)
 - Nom Quizzéo gardé malgré des noms proches (Quizeo.ai, Qizeo) : risque de marque à garder en tête
+- Back-end : Supabase (Paris, `eu-west-3`), plan Free en dev puis Pro (25 $/mois) dès le test fermé ; Firebase et Scaleway écartés (ADR 0001)
 
 ## Questions ouvertes
 - "Sans pub" : achat unique ou abonnement, et prix
-- Back-end : Supabase ou Firebase
+- Analytics : PostHog (UE) ou Firebase Analytics
 - Google Play : un compte personnel récent exige en général un test fermé avant publication (vérifier les conditions actuelles)
 
 ## Conventions de travail
