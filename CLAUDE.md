@@ -34,7 +34,7 @@ Règles validées :
 - Sons activés par défaut, coupés en mode silencieux (session audio ambient sur iOS)
 - Premier lancement : objectif 2 quiz/jour et rappel à 20 h 30 proposés par défaut
 - Maquettes et composants : `design/maquettes/`, `design/charte.md` (§ 7 bis Engagement)
-Étape 2 : ligues hebdo (groupes de 30, montée/descente), badges.
+Après publication : ligues hebdo (groupes de 30, montée/descente), badges (voir `docs/plan.md`, T35-T36).
 À éviter : vies qui bloquent le jeu, notifications culpabilisantes ou trop fréquentes.
 
 ## Monétisation
@@ -77,3 +77,4 @@ Multijoueur temps réel, notifications avancées, contenus par niveau scolaire.
 - Ne jamais mettre de clés ou secrets dans le dépôt
 - Utiliser les ID de test AdMob en développement
 - Le cahier des charges complet est dans le projet claude.ai "quiz culture G" (`cahier-des-charges-mvp.md`)
+- Plan des tâches (numérotées T1, T2…, statut, dépendances, décisions ouvertes) : `docs/plan.md`, source unique à mettre à jour dans chaque PR
