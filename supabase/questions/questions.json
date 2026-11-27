@@ -6,6 +6,7 @@
     "answers": ["Louis XVIII", "Napoléon Ier", "Charles X", "Napoléon III"],
     "correctIndex": 1,
     "explanation": "Napoléon Bonaparte s'est couronné lui-même le 2 décembre 1804 à Notre-Dame de Paris.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -15,6 +16,7 @@
     "answers": ["Marie-Antoinette", "Catherine de Médicis", "Anne d'Autriche", "Marie de Médicis"],
     "correctIndex": 0,
     "explanation": "Marie-Antoinette, épouse de Louis XVI, a été exécutée le 16 octobre 1793, neuf mois après le roi.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -24,6 +26,7 @@
     "answers": ["1943", "1945", "1942", "1944"],
     "correctIndex": 3,
     "explanation": "Le débarquement a eu lieu le 6 juin 1944, le « Jour J », sur cinq plages normandes.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -33,6 +36,7 @@
     "answers": ["Ramsès II", "Khéops", "Toutânkhamon", "Akhenaton"],
     "correctIndex": 2,
     "explanation": "L'archéologue Howard Carter a découvert la tombe de Toutânkhamon dans la Vallée des Rois, avec son célèbre masque d'or.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -42,6 +46,7 @@
     "answers": ["Austerlitz", "Waterloo", "Iéna", "Wagram"],
     "correctIndex": 1,
     "explanation": "À Waterloo, en Belgique actuelle, Napoléon est battu le 18 juin 1815, puis exilé à Sainte-Hélène.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -51,6 +56,7 @@
     "answers": ["Louis XIV", "Louis XIII", "Louis XV", "Henri IV"],
     "correctIndex": 0,
     "explanation": "Louis XIV a régné 72 ans (1643-1715), le plus long règne de l'histoire de France. Il a fait de Versailles le siège du pouvoir.",
+    "source": "Château de Versailles",
     "difficulty": 1
   },
   {
@@ -60,6 +66,7 @@
     "answers": ["1936", "1919", "1958", "1945"],
     "correctIndex": 3,
     "explanation": "Le droit de vote a été accordé aux femmes en 1944 ; elles ont voté pour la première fois aux municipales d'avril 1945.",
+    "source": "Assemblée nationale",
     "difficulty": 2
   },
   {
@@ -69,6 +76,7 @@
     "answers": ["L'Empire inca", "L'Empire maya", "L'Empire aztèque", "L'Empire olmèque"],
     "correctIndex": 2,
     "explanation": "Tenochtitlan, bâtie sur un lac, a été conquise par Hernán Cortés en 1521. Mexico s'élève aujourd'hui à son emplacement.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -78,6 +86,7 @@
     "answers": ["1685", "1598", "1572", "1610"],
     "correctIndex": 1,
     "explanation": "L'édit de Nantes (1598) accordait aux protestants la liberté de conscience et un droit de culte limité à certains lieux. Louis XIV l'a révoqué en 1685.",
+    "source": "Larousse",
     "difficulty": 3
   },
   {
@@ -87,6 +96,7 @@
     "answers": ["Le traité de Rome", "Le traité de Maastricht", "Le traité de Paris", "Le traité de Lisbonne"],
     "correctIndex": 0,
     "explanation": "Six pays, dont la France, ont signé le traité de Rome le 25 mars 1957. Le traité de Paris (1951) avait créé la CECA.",
+    "source": "Parlement européen",
     "difficulty": 3
   },
   {
@@ -96,6 +106,7 @@
     "answers": ["Toronto", "Montréal", "Vancouver", "Ottawa"],
     "correctIndex": 3,
     "explanation": "Ottawa, en Ontario, est la capitale fédérale, même si Toronto et Montréal sont plus peuplées.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -105,6 +116,7 @@
     "answers": ["Le Cervin", "Le mont Rose", "Le mont Blanc", "La Barre des Écrins"],
     "correctIndex": 2,
     "explanation": "Le mont Blanc culmine à environ 4 800 m, dans le massif du Mont-Blanc, entre la France et l'Italie.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -123,6 +135,7 @@
     "answers": ["8", "6", "7", "9"],
     "correctIndex": 0,
     "explanation": "Belgique, Luxembourg, Allemagne, Suisse, Italie, Monaco, Andorre et Espagne : 8 voisins terrestres.",
+    "source": "Insee",
     "difficulty": 3
   },
   {
@@ -132,6 +145,7 @@
     "answers": ["La Bolivie", "Le Chili", "L'Équateur", "Le Pérou"],
     "correctIndex": 3,
     "explanation": "Cette cité inca du XVe siècle est perchée dans les Andes péruviennes, à environ 2 400 m d'altitude.",
+    "source": "Unesco",
     "difficulty": 1
   },
   {
@@ -141,6 +155,7 @@
     "answers": ["Le Tigre", "L'Euphrate", "Le Nil", "Le Congo"],
     "correctIndex": 2,
     "explanation": "Le Nil traverse l'Égypte du sud au nord avant de se jeter dans la Méditerranée par un vaste delta.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -150,6 +165,7 @@
     "answers": ["Istanbul", "Ankara", "Izmir", "Antalya"],
     "correctIndex": 1,
     "explanation": "Ankara est la capitale depuis 1923. Istanbul reste la plus grande ville du pays.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -159,6 +175,7 @@
     "answers": ["Le Vatican", "Monaco", "Saint-Marin", "Le Liechtenstein"],
     "correctIndex": 0,
     "explanation": "Le Vatican, enclavé dans Rome, mesure moins de 0,5 km². Monaco arrive en deuxième position.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -168,6 +185,7 @@
     "answers": ["Le détroit du Bosphore", "Le détroit de Messine", "Le détroit d'Ormuz", "Le détroit de Gibraltar"],
     "correctIndex": 3,
     "explanation": "Au plus étroit, le détroit de Gibraltar ne mesure qu'environ 14 km entre l'Espagne et le Maroc.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -177,6 +195,7 @@
     "answers": ["Le lac Tanganyika", "Le lac Supérieur", "Le lac Baïkal", "Le lac Victoria"],
     "correctIndex": 2,
     "explanation": "Le Baïkal, en Sibérie, dépasse 1 600 m de profondeur et contient environ un cinquième de l'eau douce liquide de surface.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   },
   {
@@ -186,6 +205,7 @@
     "answers": ["CO2", "H2O", "H2O2", "HO2"],
     "correctIndex": 1,
     "explanation": "Une molécule d'eau est formée de deux atomes d'hydrogène et d'un atome d'oxygène. H2O2 est l'eau oxygénée.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -195,6 +215,7 @@
     "answers": ["Mars", "Jupiter", "Vénus", "Mercure"],
     "correctIndex": 0,
     "explanation": "Sa couleur vient de l'oxyde de fer, autrement dit de la rouille, présent dans ses poussières.",
+    "source": "NASA",
     "difficulty": 1
   },
   {
@@ -204,6 +225,7 @@
     "answers": ["Isaac Newton", "Niels Bohr", "Max Planck", "Albert Einstein"],
     "correctIndex": 3,
     "explanation": "Einstein a publié la relativité restreinte en 1905 puis la relativité générale en 1915.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -213,6 +235,7 @@
     "answers": ["Vénus", "Mars", "Mercure", "La Terre"],
     "correctIndex": 2,
     "explanation": "Mercure est aussi la plus petite planète du système solaire. Vénus vient en deuxième position.",
+    "source": "NASA",
     "difficulty": 1
   },
   {
@@ -222,6 +245,7 @@
     "answers": ["23", "46", "44", "48"],
     "correctIndex": 1,
     "explanation": "Soit 23 paires : une moitié vient de la mère, l'autre du père. Les ovules et spermatozoïdes en ont 23.",
+    "source": "National Human Genome Research Institute",
     "difficulty": 2
   },
   {
@@ -231,6 +255,7 @@
     "answers": ["300 000 km/s", "30 000 km/s", "3 000 000 km/s", "150 000 km/s"],
     "correctIndex": 0,
     "explanation": "La lumière parcourt précisément 299 792 458 m par seconde, soit environ 7,5 fois le tour de la Terre.",
+    "source": "BIPM",
     "difficulty": 2
   },
   {
@@ -240,6 +265,7 @@
     "answers": ["Le foie", "Les poumons", "Le cerveau", "La peau"],
     "correctIndex": 3,
     "explanation": "La peau couvre près de 2 m² chez l'adulte. Le foie est le plus gros organe interne.",
+    "source": "Inserm",
     "difficulty": 2
   },
   {
@@ -249,6 +275,7 @@
     "answers": ["Louis Pasteur", "Marie Curie", "Alexander Fleming", "Robert Koch"],
     "correctIndex": 2,
     "explanation": "Le Britannique Alexander Fleming a remarqué qu'une moisissure empêchait la croissance des bactéries : cette découverte a ouvert l'ère des antibiotiques.",
+    "source": "Fondation Nobel",
     "difficulty": 2
   },
   {
@@ -258,6 +285,7 @@
     "answers": ["Environ 8 secondes", "Environ 8 minutes", "Environ 1 heure", "Environ 30 minutes"],
     "correctIndex": 1,
     "explanation": "Elle parcourt environ 150 millions de km en un peu plus de 8 minutes : on voit donc le Soleil tel qu'il était 8 minutes plus tôt.",
+    "source": "NASA",
     "difficulty": 3
   },
   {
@@ -267,6 +295,7 @@
     "answers": ["L'oxygène", "Le silicium", "Le fer", "L'aluminium"],
     "correctIndex": 0,
     "explanation": "L'oxygène représente près de la moitié de la masse de la croûte, surtout lié au silicium dans les roches.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   },
   {
@@ -276,6 +305,7 @@
     "answers": ["Claude Monet", "Paul Gauguin", "Paul Cézanne", "Vincent van Gogh"],
     "correctIndex": 3,
     "explanation": "Van Gogh l'a peinte en 1889 à l'asile de Saint-Rémy-de-Provence, d'après la vue depuis la fenêtre de sa chambre.",
+    "source": "MoMA",
     "difficulty": 1
   },
   {
@@ -285,6 +315,7 @@
     "answers": ["Jules Verne", "Albert Camus", "Antoine de Saint-Exupéry", "Jacques Prévert"],
     "correctIndex": 2,
     "explanation": "Publié en 1943, c'est l'un des livres les plus traduits au monde. L'auteur, aviateur, l'a aussi illustré.",
+    "source": "BnF",
     "difficulty": 1
   },
   {
@@ -294,6 +325,7 @@
     "answers": ["Jean-Sébastien Bach", "Antonio Vivaldi", "Wolfgang Amadeus Mozart", "Georg Friedrich Haendel"],
     "correctIndex": 1,
     "explanation": "Ces quatre concertos pour violon du Vénitien Vivaldi ont été publiés en 1725.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -303,6 +335,7 @@
     "answers": ["Pablo Picasso", "Salvador Dalí", "Joan Miró", "Francisco de Goya"],
     "correctIndex": 0,
     "explanation": "Picasso l'a peint en 1937 après le bombardement de la ville basque de Guernica pendant la guerre d'Espagne.",
+    "source": "Musée Reina Sofía",
     "difficulty": 1
   },
   {
@@ -312,6 +345,7 @@
     "answers": ["Camille Claudel", "Michel-Ange", "Auguste Bartholdi", "Auguste Rodin"],
     "correctIndex": 3,
     "explanation": "Le Penseur faisait d'abord partie de La Porte de l'Enfer, inspirée de Dante. On peut le voir au musée Rodin à Paris.",
+    "source": "Musée Rodin",
     "difficulty": 2
   },
   {
@@ -321,6 +355,7 @@
     "answers": ["Le fauvisme", "Le cubisme", "L'impressionnisme", "Le pointillisme"],
     "correctIndex": 2,
     "explanation": "Le tableau Impression, soleil levant (1872) a inspiré à un critique moqueur le mot « impressionnistes ».",
+    "source": "Musée Marmottan Monet",
     "difficulty": 2
   },
   {
@@ -330,6 +365,7 @@
     "answers": ["Le Misanthrope", "L'Avare", "Tartuffe", "Le Malade imaginaire"],
     "correctIndex": 1,
     "explanation": "Harpagon, vieil homme obsédé par sa cassette d'or, est le héros de L'Avare (1668).",
+    "source": "Comédie-Française",
     "difficulty": 2
   },
   {
@@ -339,6 +375,7 @@
     "answers": ["Charles Baudelaire", "Arthur Rimbaud", "Paul Verlaine", "Stéphane Mallarmé"],
     "correctIndex": 0,
     "explanation": "Publié en 1857, le recueil a valu à Baudelaire un procès pour atteinte aux bonnes mœurs.",
+    "source": "BnF",
     "difficulty": 2
   },
   {
@@ -348,6 +385,7 @@
     "answers": ["Le musée du Louvre", "Le musée du Prado", "La National Gallery", "La galerie des Offices"],
     "correctIndex": 3,
     "explanation": "Le tableau est conservé à la galerie des Offices, à Florence, ville où Botticelli a passé l'essentiel de sa vie.",
+    "source": "Galerie des Offices",
     "difficulty": 3
   },
   {
@@ -357,6 +395,7 @@
     "answers": ["Jean Nouvel", "Renzo Piano", "Ieoh Ming Pei", "Frank Gehry"],
     "correctIndex": 2,
     "explanation": "L'architecte sino-américain I. M. Pei l'a dessinée ; elle a été inaugurée en 1989.",
+    "source": "Musée du Louvre",
     "difficulty": 3
   },
   {
@@ -366,6 +405,7 @@
     "answers": ["Wimbledon", "Roland-Garros", "L'US Open", "L'Open d'Australie"],
     "correctIndex": 1,
     "explanation": "Roland-Garros, à Paris, est le seul des quatre sur terre battue. Wimbledon se joue sur gazon.",
+    "source": "ITF",
     "difficulty": 1
   },
   {
@@ -375,6 +415,7 @@
     "answers": ["5", "6", "7", "4"],
     "correctIndex": 0,
     "explanation": "Chaque équipe aligne 5 joueurs ; les remplacements sont illimités.",
+    "source": "FIBA",
     "difficulty": 1
   },
   {
@@ -384,6 +425,7 @@
     "answers": ["2018", "1986", "2006", "1998"],
     "correctIndex": 3,
     "explanation": "Les Bleus ont battu le Brésil 3-0 en finale au Stade de France. Ils ont gagné leur deuxième titre en 2018.",
+    "source": "FIFA",
     "difficulty": 1
   },
   {
@@ -393,6 +435,7 @@
     "answers": ["Le squash", "Le tennis de table", "Le badminton", "Le padel"],
     "correctIndex": 2,
     "explanation": "Le volant, traditionnellement fait de plumes d'oie, peut dépasser 400 km/h lors d'un smash.",
+    "source": "CIO",
     "difficulty": 1
   },
   {
@@ -402,6 +445,7 @@
     "answers": ["3", "5", "4", "6"],
     "correctIndex": 1,
     "explanation": "Un essai vaut 5 points, et la transformation qui suit peut en ajouter 2. L'essai de pénalité, lui, vaut 7 points.",
+    "source": "World Rugby",
     "difficulty": 2
   },
   {
@@ -411,6 +455,7 @@
     "answers": ["42,195 km", "40 km", "44,5 km", "39,5 km"],
     "correctIndex": 0,
     "explanation": "Cette distance a été fixée officiellement en 1921, sur la base du parcours des JO de Londres 1908.",
+    "source": "World Athletics",
     "difficulty": 2
   },
   {
@@ -420,6 +465,7 @@
     "answers": ["9", "12", "24", "18"],
     "correctIndex": 3,
     "explanation": "Le standard de 18 trous vient du parcours de St Andrews, en Écosse, au XVIIIe siècle.",
+    "source": "The R&A",
     "difficulty": 2
   },
   {
@@ -429,6 +475,7 @@
     "answers": ["2", "4", "3", "5"],
     "correctIndex": 2,
     "explanation": "Les matchs masculins se jouent en 3 sets gagnants (5 au maximum), les matchs féminins en 2 sets gagnants.",
+    "source": "ITF",
     "difficulty": 2
   },
   {
@@ -438,6 +485,7 @@
     "answers": ["2 minutes", "3 minutes", "4 minutes", "5 minutes"],
     "correctIndex": 1,
     "explanation": "Chaque round de 3 minutes est suivi d'une minute de repos. Chez les femmes professionnelles, il dure en général 2 minutes.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   },
   {
@@ -447,6 +495,7 @@
     "answers": ["1896", "1900", "1888", "1912"],
     "correctIndex": 0,
     "explanation": "Relancés à l'initiative de Pierre de Coubertin, ils se sont tenus à Athènes en 1896.",
+    "source": "CIO",
     "difficulty": 3
   },
   {
@@ -456,6 +505,7 @@
     "answers": ["L'Angleterre", "La France", "L'Allemagne", "L'Espagne"],
     "correctIndex": 3,
     "explanation": "L'Espagne a battu l'Angleterre 2-1 en finale à Berlin et remporté son quatrième Euro, un record.",
+    "source": "UEFA",
     "difficulty": 1
   },
   {
@@ -465,6 +515,7 @@
     "answers": ["Florent Manaudou", "Maxime Grousset", "Léon Marchand", "Yannick Agnel"],
     "correctIndex": 2,
     "explanation": "Léon Marchand a gagné le 200 m papillon, le 200 m brasse, le 200 m et le 400 m quatre nages.",
+    "source": "CIO",
     "difficulty": 1
   },
   {
@@ -474,6 +525,7 @@
     "answers": ["Kamala Harris", "Donald Trump", "Joe Biden", "Ron DeSantis"],
     "correctIndex": 1,
     "explanation": "Donald Trump a battu Kamala Harris et entamé en janvier 2025 un second mandat, non consécutif au premier.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -483,6 +535,7 @@
     "answers": ["La Seine", "La Loire", "Le Rhône", "La Marne"],
     "correctIndex": 0,
     "explanation": "Pour la première fois, la cérémonie s'est déroulée hors d'un stade : les délégations ont défilé en bateau sur la Seine.",
+    "source": "CIO",
     "difficulty": 1
   },
   {
@@ -492,6 +545,7 @@
     "answers": ["Pie XIII", "Jean-Paul III", "Benoît XVII", "Léon XIV"],
     "correctIndex": 3,
     "explanation": "L'Américain Robert Francis Prevost a été élu le 8 mai 2025, après la mort du pape François.",
+    "source": "Vatican News",
     "difficulty": 2
   },
   {
@@ -501,6 +555,7 @@
     "answers": ["La Croatie", "L'Italie", "La Suisse", "La France"],
     "correctIndex": 2,
     "explanation": "Nemo a gagné pour la Suisse avec la chanson « The Code ». La Croatie a fini deuxième.",
+    "source": "Eurovision (UER)",
     "difficulty": 2
   },
   {
@@ -510,6 +565,7 @@
     "answers": ["François Bayrou", "Michel Barnier", "Gabriel Attal", "Édouard Philippe"],
     "correctIndex": 1,
     "explanation": "Michel Barnier a été nommé le 5 septembre 2024. Son gouvernement a été renversé par une motion de censure en décembre.",
+    "source": "Gouvernement français",
     "difficulty": 2
   },
   {
@@ -519,6 +575,7 @@
     "answers": ["Le Paris Saint-Germain", "L'Inter Milan", "Arsenal", "Le FC Barcelone"],
     "correctIndex": 0,
     "explanation": "Le PSG a battu l'Inter Milan 5-0 en finale à Munich, le 31 mai 2025, un écart record en finale.",
+    "source": "UEFA",
     "difficulty": 2
   },
   {
@@ -528,6 +585,7 @@
     "answers": ["Dubaï", "Riyad", "Milan", "Osaka"],
     "correctIndex": 3,
     "explanation": "L'Expo 2025 s'est tenue à Osaka, au Japon. Dubaï avait accueilli la précédente et Riyad organisera celle de 2030.",
+    "source": "Bureau international des Expositions",
     "difficulty": 3
   },
   {
@@ -537,6 +595,7 @@
     "answers": ["Vinícius Júnior", "Jude Bellingham", "Rodri", "Kylian Mbappé"],
     "correctIndex": 2,
     "explanation": "Le milieu espagnol de Manchester City, champion d'Europe 2024, a devancé Vinícius Júnior.",
+    "source": "UEFA",
     "difficulty": 3
   },
   {
@@ -546,6 +605,7 @@
     "answers": ["365", "366", "364", "367"],
     "correctIndex": 1,
     "explanation": "Le 29 février est ajouté environ tous les 4 ans pour rattraper le décalage avec la course de la Terre autour du Soleil.",
+    "source": "IMCCE",
     "difficulty": 1
   },
   {
@@ -555,6 +615,7 @@
     "answers": ["64", "81", "100", "49"],
     "correctIndex": 0,
     "explanation": "Un échiquier est un carré de 8 cases sur 8, alternant cases claires et foncées.",
+    "source": "FIDE",
     "difficulty": 1
   },
   {
@@ -564,6 +625,7 @@
     "answers": ["Le won", "Le yuan", "Le baht", "Le yen"],
     "correctIndex": 3,
     "explanation": "Le yen est la monnaie japonaise. Le won est utilisé en Corée, le yuan en Chine et le baht en Thaïlande.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -573,6 +635,7 @@
     "answers": ["54", "32", "52", "48"],
     "correctIndex": 2,
     "explanation": "Quatre couleurs de 13 cartes : 52. Avec deux jokers, on arrive à 54 ; le jeu de belote en a 32.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -582,6 +645,7 @@
     "answers": ["1 240", "1 440", "1 600", "1 340"],
     "correctIndex": 1,
     "explanation": "24 heures × 60 minutes = 1 440 minutes, soit 86 400 secondes.",
+    "source": "BIPM",
     "difficulty": 2
   },
   {
@@ -591,6 +655,7 @@
     "answers": ["Bruxelles", "Amsterdam", "Anvers", "Liège"],
     "correctIndex": 0,
     "explanation": "Cette petite statue de bronze d'environ 55 cm est un symbole de Bruxelles ; elle possède plus de 1 000 costumes.",
+    "source": "RTBF",
     "difficulty": 2
   },
   {
@@ -600,6 +665,7 @@
     "answers": ["La lentille", "Le haricot blanc", "La fève", "Le pois chiche"],
     "correctIndex": 3,
     "explanation": "Le houmous est une purée de pois chiches mélangée à du tahini (crème de sésame), du citron et de l'ail.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -609,6 +675,7 @@
     "answers": ["6", "12", "9", "10"],
     "correctIndex": 2,
     "explanation": "Un milliard s'écrit 1 000 000 000, soit mille millions. Un million a 6 zéros.",
+    "source": "Académie française",
     "difficulty": 2
   },
   {
@@ -618,6 +685,7 @@
     "answers": ["Un décagone", "Un dodécagone", "Un ennéagone", "Un hendécagone"],
     "correctIndex": 1,
     "explanation": "« Dodéca » signifie douze en grec. Le décagone a 10 côtés, l'ennéagone 9 et l'hendécagone 11.",
+    "source": "Larousse",
     "difficulty": 3
   },
   {
@@ -627,6 +695,7 @@
     "answers": ["1900", "1100", "2100", "1950"],
     "correctIndex": 0,
     "explanation": "M vaut 1 000 et CM vaut 900 (C placé avant M se retranche) : 1 000 + 900 = 1 900.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   },
   {
@@ -636,6 +705,7 @@
     "answers": ["Christophe Colomb", "Vasco de Gama", "Fernand de Magellan", "Amerigo Vespucci"],
     "correctIndex": 0,
     "explanation": "Au service des Rois catholiques d'Espagne, Colomb aborde une île des Bahamas le 12 octobre 1492, persuadé d'avoir atteint les Indes.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -645,6 +715,7 @@
     "answers": ["1912", "1914", "1916", "1918"],
     "correctIndex": 1,
     "explanation": "Le conflit éclate fin juillet 1914, un mois après l'assassinat de l'archiduc François-Ferdinand à Sarajevo (28 juin), puis s'étend à l'Europe début août. Il prend fin en 1918.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -654,6 +725,7 @@
     "answers": ["Buzz Aldrin", "Youri Gagarine", "Neil Armstrong", "John Glenn"],
     "correctIndex": 2,
     "explanation": "Le 21 juillet 1969 (heure française), Armstrong pose le pied sur la Lune lors de la mission Apollo 11, suivi de Buzz Aldrin.",
+    "source": "NASA",
     "difficulty": 1
   },
   {
@@ -663,6 +735,7 @@
     "answers": ["Le Lusitania", "L'Olympic", "Le Normandie", "Le Titanic"],
     "correctIndex": 3,
     "explanation": "Le Titanic a heurté un iceberg dans l'Atlantique Nord dans la nuit du 14 au 15 avril 1912 ; environ 1 500 personnes ont péri.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -672,6 +745,7 @@
     "answers": ["Vercingétorix", "Ambiorix", "Brennus", "Dumnorix"],
     "correctIndex": 0,
     "explanation": "Assiégé à Alésia en 52 av. J.-C., Vercingétorix se rend à César. Il est exécuté à Rome quelques années plus tard.",
+    "source": "Larousse",
     "difficulty": 2
   },
   {
@@ -681,6 +755,7 @@
     "answers": ["Blanche de Castille", "Jeanne d'Arc", "Aliénor d'Aquitaine", "Anne de Bretagne"],
     "correctIndex": 1,
     "explanation": "Après Orléans, Jeanne d'Arc fait sacrer Charles VII à Reims. Capturée, elle est brûlée à Rouen en 1431.",
+    "source": "Larousse",
     "difficulty": 2
   },
   {
@@ -690,6 +765,7 @@
     "answers": ["1794", "1815", "1848", "1870"],
     "correctIndex": 2,
     "explanation": "Le décret du 27 avril 1848, porté par Victor Schœlcher, abolit l'esclavage. Une première abolition de 1794 avait été annulée par Bonaparte en 1802.",
+    "source": "Assemblée nationale",
     "difficulty": 2
   },
   {
@@ -699,6 +775,7 @@
     "answers": ["La guerre de Trente Ans", "La guerre de Sept Ans", "Les guerres de Religion", "La guerre de Cent Ans"],
     "correctIndex": 3,
     "explanation": "Malgré son nom, elle a duré 116 ans, entrecoupée de longues trêves.",
+    "source": "Larousse",
     "difficulty": 2
   },
   {
@@ -708,6 +785,7 @@
     "answers": ["1453", "1204", "1492", "1515"],
     "correctIndex": 0,
     "explanation": "Le sultan Mehmed II s'empare de la ville le 29 mai 1453, ce qui met fin à l'Empire byzantin. Elle deviendra Istanbul.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   },
   {
@@ -726,6 +804,7 @@
     "answers": ["Washington", "New York", "Boston", "Philadelphie"],
     "correctIndex": 1,
     "explanation": "Offerte par la France aux États-Unis, elle a été inaugurée en 1886. Sa structure interne a été conçue par Gustave Eiffel.",
+    "source": "National Park Service",
     "difficulty": 1
   },
   {
@@ -735,6 +814,7 @@
     "answers": ["Les Alpes", "Le Jura", "Les Pyrénées", "Les Vosges"],
     "correctIndex": 2,
     "explanation": "Les Pyrénées s'étendent sur environ 430 km, de l'Atlantique à la Méditerranée. Andorre est nichée en leur cœur.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -744,6 +824,7 @@
     "answers": ["Le Canada", "La Chine", "Les États-Unis", "La Russie"],
     "correctIndex": 3,
     "explanation": "Avec environ 17 millions de km², la Russie est presque deux fois plus vaste que le Canada, deuxième du classement.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -753,6 +834,7 @@
     "answers": ["Lisbonne", "Porto", "Coimbra", "Faro"],
     "correctIndex": 0,
     "explanation": "Lisbonne est bâtie sur l'estuaire du Tage. Elle a été en grande partie détruite par un séisme en 1755.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -762,6 +844,7 @@
     "answers": ["Rio de Janeiro", "Brasília", "São Paulo", "Salvador"],
     "correctIndex": 1,
     "explanation": "Brasília a été construite de toutes pièces et inaugurée en 1960 pour remplacer Rio de Janeiro comme capitale.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -771,6 +854,7 @@
     "answers": ["Casablanca", "Marrakech", "Rabat", "Fès"],
     "correctIndex": 2,
     "explanation": "Rabat est la capitale politique du Maroc, alors que Casablanca en est la plus grande ville et le poumon économique.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -780,6 +864,7 @@
     "answers": ["Le Niger", "La Mauritanie", "Le Burkina Faso", "Le Mali"],
     "correctIndex": 3,
     "explanation": "Surnommée « la ville aux 333 saints », Tombouctou est célèbre pour ses mosquées en terre et ses manuscrits anciens.",
+    "source": "Unesco",
     "difficulty": 2
   },
   {
@@ -789,6 +874,7 @@
     "answers": ["Wellington", "Auckland", "Christchurch", "Dunedin"],
     "correctIndex": 0,
     "explanation": "Wellington, au sud de l'île du Nord, est la capitale depuis 1865. Auckland est pourtant la ville la plus peuplée.",
+    "source": "Te Ara (encyclopédie de Nouvelle-Zélande)",
     "difficulty": 2
   },
   {
@@ -798,6 +884,7 @@
     "answers": ["La Russie", "La France", "Les États-Unis", "Le Royaume-Uni"],
     "correctIndex": 1,
     "explanation": "Grâce à ses territoires répartis sur tous les océans, la France couvre 12 fuseaux horaires (13 avec la terre Adélie), contre 11 pour la Russie et les États-Unis.",
+    "source": "Guinness World Records",
     "difficulty": 3
   },
   {
@@ -807,6 +894,7 @@
     "answers": ["Le Danube", "Le Rhin", "La Volga", "Le Dniepr"],
     "correctIndex": 2,
     "explanation": "La Volga coule entièrement en Russie sur environ 3 500 km avant de se jeter dans la mer Caspienne. Le Danube arrive deuxième.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   },
   {
@@ -816,6 +904,7 @@
     "answers": ["6", "10", "8", "12"],
     "correctIndex": 2,
     "explanation": "Les araignées sont des arachnides et ont 8 pattes, contrairement aux insectes, qui en ont 6.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -825,6 +914,7 @@
     "answers": ["Proxima du Centaure", "Sirius", "L'étoile Polaire", "Le Soleil"],
     "correctIndex": 3,
     "explanation": "Le Soleil est une étoile, à environ 150 millions de km. Après lui, la plus proche est Proxima du Centaure, à un peu plus de 4 années-lumière.",
+    "source": "NASA",
     "difficulty": 1
   },
   {
@@ -834,6 +924,7 @@
     "answers": ["100 °C", "90 °C", "80 °C", "120 °C"],
     "correctIndex": 0,
     "explanation": "À la pression atmosphérique normale, l'eau bout à 100 °C. En altitude, la pression baisse et l'eau bout à plus basse température.",
+    "source": "Larousse",
     "difficulty": 1
   },
   {
@@ -843,6 +934,7 @@
     "answers": ["L'éléphant d'Afrique", "La baleine bleue", "Le requin-baleine", "Le cachalot"],
     "correctIndex": 1,
     "explanation": "La baleine bleue peut dépasser 25 m de long et 100 tonnes, ce qui en fait le plus grand animal connu, dinosaures compris.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -852,6 +944,7 @@
     "answers": ["Fr", "F", "Fe", "Ir"],
     "correctIndex": 2,
     "explanation": "Fe vient du latin ferrum. F désigne le fluor, Fr le francium et Ir l'iridium.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -861,6 +954,7 @@
     "answers": ["1", "2", "4", "3"],
     "correctIndex": 3,
     "explanation": "Deux cœurs envoient le sang vers les branchies et un troisième l'envoie dans le reste du corps. Son sang est bleu.",
+    "source": "Smithsonian Ocean",
     "difficulty": 2
   },
   {
@@ -870,6 +964,7 @@
     "answers": ["Dmitri Mendeleïev", "Antoine Lavoisier", "Marie Curie", "John Dalton"],
     "correctIndex": 0,
     "explanation": "Le chimiste russe a classé les éléments selon leur masse et laissé des cases vides pour des éléments encore inconnus, découverts ensuite.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -879,6 +974,7 @@
     "answers": ["Le tibia", "Le fémur", "L'humérus", "Le péroné"],
     "correctIndex": 1,
     "explanation": "Le fémur, l'os de la cuisse, mesure environ un quart de la taille d'une personne. C'est aussi l'un des plus solides.",
+    "source": "NCBI StatPearls",
     "difficulty": 2
   },
   {
@@ -888,6 +984,7 @@
     "answers": ["Niels Bohr", "Joseph John Thomson", "Ernest Rutherford", "James Chadwick"],
     "correctIndex": 2,
     "explanation": "En bombardant une fine feuille d'or, Rutherford a montré que la masse de l'atome est concentrée dans un minuscule noyau.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   },
   {
@@ -897,6 +994,7 @@
     "answers": ["Le cuivre", "L'or", "L'aluminium", "L'argent"],
     "correctIndex": 3,
     "explanation": "L'argent conduit un peu mieux que le cuivre, mais il est bien plus cher : c'est pourquoi les câbles électriques sont en cuivre.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   },
   {
@@ -906,6 +1004,7 @@
     "answers": ["Molière", "Miguel de Cervantès", "Johann Wolfgang von Goethe", "William Shakespeare"],
     "correctIndex": 3,
     "explanation": "Shakespeare a écrit cette tragédie vers 1595. L'histoire des deux amants se déroule à Vérone, en Italie.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -915,6 +1014,7 @@
     "answers": ["Michel-Ange", "Raphaël", "Léonard de Vinci", "Le Caravage"],
     "correctIndex": 0,
     "explanation": "Michel-Ange l'a peint de 1508 à 1512, à la demande du pape Jules II. La Création d'Adam en est la scène la plus célèbre.",
+    "source": "Musées du Vatican",
     "difficulty": 1
   },
   {
@@ -924,6 +1024,7 @@
     "answers": ["Victor Hugo", "Alexandre Dumas", "Jules Verne", "Honoré de Balzac"],
     "correctIndex": 1,
     "explanation": "Publié en 1844, le roman suit d'Artagnan et ses amis Athos, Porthos et Aramis.",
+    "source": "BnF",
     "difficulty": 1
   },
   {
@@ -933,6 +1034,7 @@
     "answers": ["Franquin", "Peyo", "Hergé", "Morris"],
     "correctIndex": 2,
     "explanation": "Tintin apparaît en 1929. Hergé est le pseudonyme de Georges Remi, formé à partir de ses initiales inversées (R. G.).",
+    "source": "Tintin.com (Moulinsart)",
     "difficulty": 1
   },
   {
@@ -942,6 +1044,7 @@
     "answers": ["Ludwig van Beethoven", "Richard Wagner", "Giuseppe Verdi", "Wolfgang Amadeus Mozart"],
     "correctIndex": 3,
     "explanation": "Mozart l'a créé à Vienne en 1791, quelques semaines avant sa mort, à 35 ans.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -951,6 +1054,7 @@
     "answers": ["Édouard Manet", "Claude Monet", "Auguste Renoir", "Gustave Courbet"],
     "correctIndex": 0,
     "explanation": "Refusé au Salon officiel, le tableau a fait scandale au Salon des refusés de 1863. Il est exposé au musée d'Orsay.",
+    "source": "Musée d'Orsay",
     "difficulty": 2
   },
   {
@@ -960,6 +1064,7 @@
     "answers": ["Mary Shelley", "Agatha Christie", "Jane Austen", "Virginia Woolf"],
     "correctIndex": 1,
     "explanation": "Le détective belge apparaît en 1920 dans La Mystérieuse Affaire de Styles. Agatha Christie est l'une des autrices les plus vendues au monde.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -969,6 +1074,7 @@
     "answers": ["Gustave Flaubert", "Émile Zola", "Stendhal", "Honoré de Balzac"],
     "correctIndex": 2,
     "explanation": "Publié en 1830, le roman raconte l'ascension de Julien Sorel. Stendhal est le pseudonyme d'Henri Beyle.",
+    "source": "Larousse",
     "difficulty": 2
   },
   {
@@ -978,6 +1084,7 @@
     "answers": ["Rembrandt", "Frans Hals", "Pieter Bruegel l'Ancien", "Johannes Vermeer"],
     "correctIndex": 3,
     "explanation": "Ce tableau du peintre néerlandais, peint vers 1665, est conservé au Mauritshuis, à La Haye.",
+    "source": "Mauritshuis",
     "difficulty": 3
   },
   {
@@ -987,6 +1094,7 @@
     "answers": ["Jean-Baptiste Poquelin", "Jean-Baptiste Lully", "François-Marie Arouet", "Pierre Carlet"],
     "correctIndex": 0,
     "explanation": "Fils d'un tapissier du roi, il prend le nom de Molière vers 1644. François-Marie Arouet est le vrai nom de Voltaire.",
+    "source": "Larousse",
     "difficulty": 3
   },
   {
@@ -996,6 +1104,7 @@
     "answers": ["Le Japon", "La Chine", "La Corée du Sud", "La Thaïlande"],
     "correctIndex": 0,
     "explanation": "Le judo a été fondé en 1882 à Tokyo par Jigoro Kano. Il est devenu un sport olympique en 1964.",
+    "source": "Fédération internationale de judo",
     "difficulty": 1
   },
   {
@@ -1005,6 +1114,7 @@
     "answers": ["80 minutes", "90 minutes", "100 minutes", "120 minutes"],
     "correctIndex": 1,
     "explanation": "Un match se joue en deux mi-temps de 45 minutes. L'arbitre ajoute ensuite du temps additionnel pour compenser les arrêts.",
+    "source": "IFAB",
     "difficulty": 1
   },
   {
@@ -1014,6 +1124,7 @@
     "answers": ["4", "6", "5", "7"],
     "correctIndex": 2,
     "explanation": "Les cinq anneaux entrelacés, dessinés par Pierre de Coubertin, symbolisent l'union des continents.",
+    "source": "CIO",
     "difficulty": 1
   },
   {
@@ -1023,6 +1134,7 @@
     "answers": ["Le billard", "Le curling", "La pétanque", "Le bowling"],
     "correctIndex": 3,
     "explanation": "Un strike, c'est renverser les 10 quilles dès le premier lancer. Une partie parfaite, 12 strikes d'affilée, vaut 300 points.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -1032,6 +1144,7 @@
     "answers": ["3,05 m", "2,80 m", "3,25 m", "3,50 m"],
     "correctIndex": 0,
     "explanation": "Le cercle est fixé à 10 pieds, soit 3,05 m. Cette hauteur n'a pas changé depuis l'invention du jeu en 1891.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -1041,6 +1154,7 @@
     "answers": ["5", "6", "7", "8"],
     "correctIndex": 1,
     "explanation": "Chaque équipe aligne 6 joueurs, qui tournent d'une position chaque fois qu'ils récupèrent le service.",
+    "source": "FIVB",
     "difficulty": 2
   },
   {
@@ -1050,6 +1164,7 @@
     "answers": ["La terre battue", "Le dur", "Le gazon", "La moquette"],
     "correctIndex": 2,
     "explanation": "Créé en 1877 à Londres, Wimbledon est le plus ancien tournoi de tennis du monde et le seul Grand Chelem sur gazon.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -1059,6 +1174,7 @@
     "answers": ["Avantage", "Jeu blanc", "Tie-break", "Égalité"],
     "correctIndex": 3,
     "explanation": "À 40-40, il faut ensuite marquer deux points d'affilée : le premier donne l'avantage, le second le jeu.",
+    "source": "ITF",
     "difficulty": 2
   },
   {
@@ -1068,6 +1184,7 @@
     "answers": ["L'Uruguay", "L'Argentine", "Le Brésil", "L'Italie"],
     "correctIndex": 0,
     "explanation": "Organisateur du tournoi, l'Uruguay a battu l'Argentine 4-2 en finale à Montevideo.",
+    "source": "FIFA",
     "difficulty": 3
   },
   {
@@ -1077,6 +1194,7 @@
     "answers": ["5", "6", "7", "8"],
     "correctIndex": 1,
     "explanation": "Chaque équipe aligne un gardien et 5 joueurs de champ, qui se relaient très souvent en cours de jeu.",
+    "source": "IIHF",
     "difficulty": 3
   },
   {
@@ -1086,6 +1204,7 @@
     "answers": ["La France", "L'Argentine", "La Croatie", "Le Brésil"],
     "correctIndex": 1,
     "explanation": "L'Argentine de Lionel Messi a battu la France aux tirs au but (3-3, puis 4-2) en finale, le 18 décembre 2022.",
+    "source": "FIFA",
     "difficulty": 1
   },
   {
@@ -1095,6 +1214,7 @@
     "answers": ["La Nouvelle-Zélande", "La France", "L'Afrique du Sud", "L'Irlande"],
     "correctIndex": 2,
     "explanation": "Les Springboks ont battu la Nouvelle-Zélande 12-11 en finale au Stade de France, remportant un 4e titre record.",
+    "source": "World Rugby",
     "difficulty": 1
   },
   {
@@ -1104,6 +1224,7 @@
     "answers": ["Benoît XVI", "Jean-Paul II", "Paul VI", "François"],
     "correctIndex": 3,
     "explanation": "Le pape François, premier pape sud-américain, est mort à 88 ans, après douze ans de pontificat.",
+    "source": "Vatican News",
     "difficulty": 1
   },
   {
@@ -1113,6 +1234,7 @@
     "answers": ["Charles III", "William V", "George VII", "Édouard IX"],
     "correctIndex": 0,
     "explanation": "Charles III, roi depuis la mort d'Élisabeth II en septembre 2022, a été couronné à l'abbaye de Westminster le 6 mai 2023.",
+    "source": "Famille royale britannique",
     "difficulty": 1
   },
   {
@@ -1122,6 +1244,7 @@
     "answers": ["Jonas Vingegaard", "Tadej Pogačar", "Remco Evenepoel", "Primož Roglič"],
     "correctIndex": 1,
     "explanation": "Le Slovène a décroché son quatrième Tour de France, devant le Danois Jonas Vingegaard.",
+    "source": "UCI",
     "difficulty": 2
   },
   {
@@ -1131,6 +1254,7 @@
     "answers": ["Jannik Sinner", "Novak Djokovic", "Carlos Alcaraz", "Alexander Zverev"],
     "correctIndex": 2,
     "explanation": "L'Espagnol a battu Jannik Sinner en cinq sets lors d'une finale de plus de cinq heures, après avoir sauvé trois balles de match.",
+    "source": "ATP",
     "difficulty": 2
   },
   {
@@ -1140,6 +1264,7 @@
     "answers": ["L'Espagne", "La Suède", "L'Irlande", "La France"],
     "correctIndex": 3,
     "explanation": "Le Parlement réuni en Congrès à Versailles a adopté cette révision constitutionnelle le 4 mars 2024.",
+    "source": "Présidence de la République",
     "difficulty": 2
   },
   {
@@ -1149,6 +1274,7 @@
     "answers": ["L'Inde", "La Chine", "L'Indonésie", "Les États-Unis"],
     "correctIndex": 0,
     "explanation": "L'Inde a dépassé la Chine en 2023 avec plus de 1,4 milliard d'habitants, selon les estimations des Nations unies.",
+    "source": "ONU",
     "difficulty": 2
   },
   {
@@ -1158,6 +1284,7 @@
     "answers": ["La Finlande", "La Suède", "L'Ukraine", "L'Autriche"],
     "correctIndex": 1,
     "explanation": "La Suède a rejoint l'Alliance le 7 mars 2024, un an après la Finlande, rompant avec deux siècles de neutralité.",
+    "source": "OTAN",
     "difficulty": 3
   },
   {
@@ -1167,6 +1294,7 @@
     "answers": ["Inspiration4", "Axiom Mission 3", "Polaris Dawn", "Artemis I"],
     "correctIndex": 2,
     "explanation": "Le 12 septembre 2024, le milliardaire Jared Isaacman et l'ingénieure Sarah Gillis se sont hissés hors de leur capsule Crew Dragon de SpaceX.",
+    "source": "Polaris Program",
     "difficulty": 3
   },
   {
@@ -1176,6 +1304,7 @@
     "answers": ["5", "6", "7", "8"],
     "correctIndex": 2,
     "explanation": "Rouge, orange, jaune, vert, bleu, indigo et violet : Isaac Newton a retenu ce découpage en sept couleurs.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -1185,6 +1314,7 @@
     "answers": ["Le loup", "Le lion", "L'ours", "Le coq"],
     "correctIndex": 3,
     "explanation": "Le coq viendrait d'un jeu de mots latin : gallus signifie à la fois « coq » et « Gaulois ».",
+    "source": "Présidence de la République",
     "difficulty": 1
   },
   {
@@ -1194,6 +1324,7 @@
     "answers": ["L'avocat", "La mangue", "La papaye", "La goyave"],
     "correctIndex": 0,
     "explanation": "Né au Mexique, le guacamole tire son nom du nahuatl, la langue des Aztèques (āhuacamōlli, « sauce d'avocat »).",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -1203,6 +1334,7 @@
     "answers": ["5", "7", "6", "8"],
     "correctIndex": 1,
     "explanation": "Janvier, mars, mai, juillet, août, octobre et décembre ont 31 jours. Astuce : comptez sur les bosses de vos poings.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -1212,6 +1344,7 @@
     "answers": ["6", "8", "7", "9"],
     "correctIndex": 2,
     "explanation": "Le 1 est opposé au 6, le 2 au 5 et le 3 au 4 : chaque paire fait 7.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
   {
@@ -1221,6 +1354,7 @@
     "answers": ["Noire", "Rouge", "Verte", "Orange"],
     "correctIndex": 3,
     "explanation": "Elle est le plus souvent peinte en orange vif (le jaune vif est aussi autorisé) pour être retrouvée facilement après un accident.",
+    "source": "OACI",
     "difficulty": 2
   },
   {
@@ -1230,6 +1364,7 @@
     "answers": ["Les noces d'or", "Les noces d'argent", "Les noces de diamant", "Les noces de platine"],
     "correctIndex": 0,
     "explanation": "On fête les noces d'argent à 25 ans, d'or à 50 ans et de diamant à 60 ans de mariage.",
+    "source": "Académie française",
     "difficulty": 2
   },
   {
@@ -1239,6 +1374,7 @@
     "answers": ["12", "20", "16", "24"],
     "correctIndex": 1,
     "explanation": "Chaque joueur place 20 pions sur les cases foncées des quatre premières rangées. Les dames anglaises, sur 64 cases, en utilisent 12.",
+    "source": "Fédération française de jeu de dames",
     "difficulty": 2
   },
   {
@@ -1248,6 +1384,7 @@
     "answers": ["L'arobase", "L'astérisque", "L'esperluette", "Le tilde"],
     "correctIndex": 2,
     "explanation": "L'esperluette vient de la ligature des lettres e et t, qui forment le mot latin et.",
+    "source": "Larousse",
     "difficulty": 3
   },
   {
@@ -1257,6 +1394,7 @@
     "answers": ["22", "26", "28", "24"],
     "correctIndex": 3,
     "explanation": "Il va d'alpha à oméga. L'alphabet hébreu en compte 22, l'alphabet latin 26 et l'alphabet arabe 28.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 3
   }
 ]

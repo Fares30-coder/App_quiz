@@ -39,6 +39,19 @@ void _expectValid(List<Question> questions) {
 
 String _normalize(String text) => text.toLowerCase().trim();
 
+/// Questions serveur laissées sans source car un doute a été relevé lors de
+/// la vérification des faits ; en attente de correction de l'explication.
+/// Retirer l'id dès que la question est corrigée et sourcée.
+const questionsSansSourceAutorisees = {
+  // Explication : « plus de 9 millions de km² » ; Britannica donne
+  // 8,6 millions, l'encyclopédie Larousse « plus de 8 millions ».
+  'geo-006',
+  // Explication : la France obtient « une grande partie de l'Alsace » ;
+  // selon Larousse, elle reçoit les droits des Habsbourg en Alsace, qui
+  // reste terre d'Empire (sans Strasbourg ni Mulhouse).
+  'his-023',
+};
+
 void main() {
   /// Lot hors ligne, embarqué dans l'app.
   final offline = _load(offlineQuestionsPath);
@@ -54,6 +67,23 @@ void main() {
       expect(
           server.where((q) => q.category == c).length, greaterThanOrEqualTo(10),
           reason: '$c : au moins 10 questions pour un quiz par catégorie');
+    }
+  });
+
+  test('chaque question serveur a une source', () {
+    final serverIds = {for (final q in server) q.id};
+    expect(serverIds.containsAll(questionsSansSourceAutorisees), isTrue,
+        reason: 'id inconnu dans questionsSansSourceAutorisees');
+    final sansSource = [
+      for (final q in server)
+        if (q.source == null && !questionsSansSourceAutorisees.contains(q.id))
+          q.id,
+    ];
+    expect(sansSource, isEmpty,
+        reason: 'questions serveur sans source : ${sansSource.join(', ')}');
+    for (final id in questionsSansSourceAutorisees) {
+      expect(server.firstWhere((q) => q.id == id).source, isNull,
+          reason: '$id a désormais une source : la retirer de la liste');
     }
   });
 

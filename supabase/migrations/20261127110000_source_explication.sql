@@ -3,7 +3,9 @@
 -- Chaque question peut citer une source courte (libellé texte : « Larousse »,
 -- « Insee », « Britannica », « NASA »…), affichée sous l'explication. Pas
 -- d'URL au MVP, pas ajoutée au texte de l'explication. Nullable : une
--- question sans source n'affiche rien.
+-- question sans source n'affiche rien. Contrainte `questions_source_check` :
+-- 1 à 60 caractères, sans espace au bord, sans `://` ni caractère de
+-- contrôle (mêmes règles que validateSource() de tool/generate_seed.dart).
 --
 -- Anti-triche : la source peut trahir la bonne réponse. Comme l'explication,
 -- elle n'est JAMAIS envoyée avant la réponse : seulement dans la correction
@@ -17,8 +19,12 @@
 
 alter table public.questions
   add column source text
-    constraint questions_source_length
-    check (source is null or char_length(source) between 1 and 60);
+    constraint questions_source_check
+    check (source is null
+           or (char_length(source) between 1 and 60
+               and source = btrim(source)
+               and source !~ '://'
+               and source !~ '[[:cntrl:]]'));
 
 comment on column public.questions.source is
   'Source courte de l''explication (ex. « Larousse »), sans URL. Renvoyée seulement avec la correction (après answer_question ou temps écoulé), jamais avant la réponse.';
