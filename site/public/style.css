@@ -1,0 +1,65 @@
+/* Quizzéo — pages légales. Couleurs : design/charte.md (clair « Crème », sombre « Nuit »). */
+:root {
+  color-scheme: light dark;
+  --bg: #FFF7EE;
+  --surface: #FFFFFF;
+  --surface-2: #F6EEE3;
+  --text: #1A1B3A;
+  --text-2: #4A4C6B;
+  --line: #E6DED2;
+  --primary: #D63A1F;
+  --link: #B8301A;
+  --todo-bg: #FFF0C7;
+  --todo-text: #8A5A00;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12132A;
+    --surface: #1E2042;
+    --surface-2: #2A2C55;
+    --text: #F5F1EA;
+    --text-2: #B4B6D0;
+    --line: #34365E;
+    --primary: #FF7A5C;
+    --link: #FF7A5C;
+    --todo-bg: #3A2E0A;
+    --todo-text: #FFC23D;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-wrap: anywhere;
+}
+.wrap { max-width: 44rem; margin: 0 auto; padding: 24px 16px 48px; }
+header.site { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.brand { font-weight: 800; font-size: 1.5rem; letter-spacing: -0.01em; color: var(--text); text-decoration: none; }
+.brand span { color: var(--primary); }
+nav.site { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.95rem; }
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 8px; }
+h2 { font-size: 1.25rem; line-height: 1.3; margin: 32px 0 8px; }
+h3 { font-size: 1.05rem; margin: 20px 0 4px; }
+p, ul, ol { margin: 0 0 12px; }
+ul, ol { padding-left: 1.3rem; }
+li { margin-bottom: 4px; }
+a { color: var(--link); text-underline-offset: 2px; }
+a:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; border-radius: 2px; }
+.meta { color: var(--text-2); font-size: 0.95rem; margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 20px; margin: 16px 0; }
+.card > :last-child { margin-bottom: 0; }
+.links { list-style: none; padding: 0; }
+.links li { margin: 0 0 12px; }
+.links a { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 18px; text-decoration: none; color: var(--text); }
+.links a strong { color: var(--link); display: block; }
+.links a span { color: var(--text-2); font-size: 0.95rem; }
+.todo { background: var(--todo-bg); color: var(--todo-text); font-weight: 700; padding: 0 4px; border-radius: 4px; }
+.table { width: 100%; overflow-x: auto; margin: 0 0 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+th { background: var(--surface-2); }
+footer.site { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 0.9rem; }
+footer.site a { color: var(--text-2); }
