@@ -125,7 +125,8 @@
     "question": "Quel est le plus grand désert chaud du monde ?",
     "answers": ["Le Kalahari", "Le Sahara", "Le désert d'Arabie", "Le désert de Sonora"],
     "correctIndex": 1,
-    "explanation": "Le Sahara couvre plus de 9 millions de km². Les déserts froids de l'Antarctique et de l'Arctique sont plus vastes.",
+    "explanation": "Le Sahara couvre plus de 8,5 millions de km². Les déserts froids de l'Antarctique et de l'Arctique sont plus vastes.",
+    "source": "Encyclopædia Britannica",
     "difficulty": 1
   },
   {
@@ -435,7 +436,7 @@
     "answers": ["Le squash", "Le tennis de table", "Le badminton", "Le padel"],
     "correctIndex": 2,
     "explanation": "Le volant, traditionnellement fait de plumes d'oie, peut dépasser 400 km/h lors d'un smash.",
-    "source": "CIO",
+    "source": "Guinness World Records",
     "difficulty": 1
   },
   {
@@ -464,7 +465,7 @@
     "question": "Combien de trous compte un parcours de golf standard ?",
     "answers": ["9", "12", "24", "18"],
     "correctIndex": 3,
-    "explanation": "Le standard de 18 trous vient du parcours de St Andrews, en Écosse, au XVIIIe siècle.",
+    "explanation": "En 1764, le parcours de St Andrews, en Écosse, passe de 22 à 18 trous : ce format devient ensuite la norme.",
     "source": "The R&A",
     "difficulty": 2
   },
@@ -794,7 +795,8 @@
     "question": "Quels traités ont mis fin à la guerre de Trente Ans en 1648 ?",
     "answers": ["Les traités d'Utrecht", "Les traités de Westphalie", "Le traité des Pyrénées", "Le traité de Versailles"],
     "correctIndex": 1,
-    "explanation": "Signés à Münster et Osnabrück, ils redessinent l'Europe et donnent notamment à la France une grande partie de l'Alsace.",
+    "explanation": "Signés à Münster et Osnabrück, ils cèdent à la France les terres des Habsbourg en Alsace, sans Strasbourg.",
+    "source": "Hérodote.net",
     "difficulty": 3
   },
   {
@@ -813,7 +815,7 @@
     "question": "Quelle chaîne de montagnes sépare la France de l'Espagne ?",
     "answers": ["Les Alpes", "Le Jura", "Les Pyrénées", "Les Vosges"],
     "correctIndex": 2,
-    "explanation": "Les Pyrénées s'étendent sur environ 430 km, de l'Atlantique à la Méditerranée. Andorre est nichée en leur cœur.",
+    "explanation": "Les Pyrénées s'étendent sur plus de 400 km, de l'Atlantique à la Méditerranée. Andorre est nichée en leur cœur.",
     "source": "Larousse",
     "difficulty": 1
   },
@@ -883,7 +885,7 @@
     "question": "Quel pays possède le plus de fuseaux horaires, en comptant ses territoires d'outre-mer ?",
     "answers": ["La Russie", "La France", "Les États-Unis", "Le Royaume-Uni"],
     "correctIndex": 1,
-    "explanation": "Grâce à ses territoires répartis sur tous les océans, la France couvre 12 fuseaux horaires (13 avec la terre Adélie), contre 11 pour la Russie et les États-Unis.",
+    "explanation": "Grâce à ses territoires répartis sur tous les océans, la France couvre 12 fuseaux horaires (13 une partie de l'année), contre 11 pour la Russie et les États-Unis.",
     "source": "Guinness World Records",
     "difficulty": 3
   },
@@ -973,7 +975,7 @@
     "question": "Quel est l'os le plus long du corps humain ?",
     "answers": ["Le tibia", "Le fémur", "L'humérus", "Le péroné"],
     "correctIndex": 1,
-    "explanation": "Le fémur, l'os de la cuisse, mesure environ un quart de la taille d'une personne. C'est aussi l'un des plus solides.",
+    "explanation": "Le fémur, l'os de la cuisse, est l'os le plus long, le plus lourd et le plus solide du corps humain.",
     "source": "NCBI StatPearls",
     "difficulty": 2
   },
@@ -1043,7 +1045,7 @@
     "question": "Quel compositeur a écrit l'opéra La Flûte enchantée ?",
     "answers": ["Ludwig van Beethoven", "Richard Wagner", "Giuseppe Verdi", "Wolfgang Amadeus Mozart"],
     "correctIndex": 3,
-    "explanation": "Mozart l'a créé à Vienne en 1791, quelques semaines avant sa mort, à 35 ans.",
+    "explanation": "Mozart l'a créé à Vienne le 30 septembre 1791, un peu plus de deux mois avant sa mort, à 35 ans.",
     "source": "Encyclopædia Britannica",
     "difficulty": 2
   },
@@ -1223,7 +1225,7 @@
     "question": "Quel pape est mort le 21 avril 2025 ?",
     "answers": ["Benoît XVI", "Jean-Paul II", "Paul VI", "François"],
     "correctIndex": 3,
-    "explanation": "Le pape François, premier pape sud-américain, est mort à 88 ans, après douze ans de pontificat.",
+    "explanation": "Le pape François, premier pape latino-américain, est mort à 88 ans, après douze ans de pontificat.",
     "source": "Vatican News",
     "difficulty": 1
   },
@@ -1264,7 +1266,7 @@
     "answers": ["L'Espagne", "La Suède", "L'Irlande", "La France"],
     "correctIndex": 3,
     "explanation": "Le Parlement réuni en Congrès à Versailles a adopté cette révision constitutionnelle le 4 mars 2024.",
-    "source": "Présidence de la République",
+    "source": "Gouvernement (info.gouv.fr)",
     "difficulty": 2
   },
   {
@@ -1373,7 +1375,7 @@
     "question": "Aux dames internationales (damier de 100 cases), combien de pions chaque joueur a-t-il au départ ?",
     "answers": ["12", "20", "16", "24"],
     "correctIndex": 1,
-    "explanation": "Chaque joueur place 20 pions sur les cases foncées des quatre premières rangées. Les dames anglaises, sur 64 cases, en utilisent 12.",
+    "explanation": "Chaque joueur place 20 pions sur les cases foncées des quatre premières rangées.",
     "source": "Fédération française de jeu de dames",
     "difficulty": 2
   },
