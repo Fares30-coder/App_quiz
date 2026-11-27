@@ -1398,5 +1398,705 @@
     "explanation": "Il va d'alpha à oméga. L'alphabet hébreu en compte 22, l'alphabet latin 26 et l'alphabet arabe 28.",
     "source": "Encyclopædia Britannica",
     "difficulty": 3
+  },
+  {
+    "id": "his-024",
+    "category": "histoire",
+    "question": "Quel roi des Francs a été baptisé à Reims par l'évêque Remi ?",
+    "answers": ["Charlemagne", "Pépin le Bref", "Dagobert Ier", "Clovis"],
+    "correctIndex": 3,
+    "explanation": "Ce baptême, célébré un jour de Noël, est traditionnellement daté de 496, mais les historiens débattent encore de l'année exacte.",
+    "source": "Larousse",
+    "difficulty": 2
+  },
+  {
+    "id": "his-025",
+    "category": "histoire",
+    "question": "En quelle année la Belgique a-t-elle proclamé son indépendance ?",
+    "answers": ["1815", "1848", "1870", "1830"],
+    "correctIndex": 3,
+    "explanation": "Le 4 octobre 1830, le gouvernement provisoire proclame l'indépendance des provinces belges, jusque-là rattachées au royaume des Pays-Bas.",
+    "source": "Encyclopædia Universalis",
+    "difficulty": 2
+  },
+  {
+    "id": "his-026",
+    "category": "histoire",
+    "question": "Quel explorateur français a fondé la ville de Québec en 1608 ?",
+    "answers": ["Samuel de Champlain", "Jacques Cartier", "Louis Jolliet", "Cavelier de La Salle"],
+    "correctIndex": 0,
+    "explanation": "Arrivé au cap Diamant le 3 juillet 1608, Champlain y fonde un établissement sur le Saint-Laurent, berceau de la ville de Québec.",
+    "source": "L'Encyclopédie canadienne",
+    "difficulty": 2
+  },
+  {
+    "id": "his-027",
+    "category": "histoire",
+    "question": "Qui est considéré comme le premier empereur romain ?",
+    "answers": ["Jules César", "Néron", "Trajan", "Auguste"],
+    "correctIndex": 3,
+    "explanation": "Né Octave, il reçoit du Sénat le titre d'Auguste en 27 av. J.-C., date traditionnelle du début de l'Empire romain.",
+    "source": "Larousse",
+    "difficulty": 2
+  },
+  {
+    "id": "his-028",
+    "category": "histoire",
+    "question": "En quelle année s'est terminée la Seconde Guerre mondiale ?",
+    "answers": ["1944", "1946", "1945", "1918"],
+    "correctIndex": 2,
+    "explanation": "L'Allemagne capitule le 8 mai 1945, puis le Japon signe sa capitulation le 2 septembre 1945, ce qui met fin au conflit.",
+    "source": "Larousse",
+    "difficulty": 1
+  },
+  {
+    "id": "his-029",
+    "category": "histoire",
+    "question": "Quel président des États-Unis a été assassiné en avril 1865 ?",
+    "answers": ["George Washington", "Thomas Jefferson", "Abraham Lincoln", "John F. Kennedy"],
+    "correctIndex": 2,
+    "explanation": "Lincoln a été abattu par John Wilkes Booth le 14 avril 1865 au théâtre Ford, à Washington, quelques jours après la reddition du général sudiste Lee.",
+    "source": "Encyclopædia Britannica",
+    "difficulty": 1
+  },
+  {
+    "id": "his-030",
+    "category": "histoire",
+    "question": "Quel militant anti-apartheid, libéré en 1990 après 27 ans de prison, est devenu président de l'Afrique du Sud en 1994 ?",
+    "answers": ["Desmond Tutu", "Nelson Mandela", "Steve Biko", "Thabo Mbeki"],
+    "correctIndex": 1,
+    "explanation": "Libéré le 11 février 1990, Nelson Mandela devient en 1994 le premier président noir du pays, après les premières élections multiraciales.",
+    "source": "Encyclopædia Universalis",
+    "difficulty": 1
+  },
+  {
+    "id": "his-031",
+    "category": "histoire",
+    "question": "Quelle ville romaine a été ensevelie par l'éruption du Vésuve en 79 ?",
+    "answers": ["Ostie", "Pompéi", "Carthage", "Ravenne"],
+    "correctIndex": 1,
+    "explanation": "Pompéi et sa voisine Herculanum ont été ensevelies par l'éruption ; leurs vestiges sont inscrits au patrimoine mondial de l'Unesco.",
+    "source": "Unesco",
+    "difficulty": 1
+  },
+  {
+    "id": "his-032",
+    "category": "histoire",
+    "question": "Quelle ancienne colonie française a proclamé son indépendance le 1er janvier 1804 ?",
+    "answers": ["L'Algérie", "Le Sénégal", "Madagascar", "Haïti"],
+    "correctIndex": 3,
+    "explanation": "Jean-Jacques Dessalines proclame l'indépendance aux Gonaïves : l'ancienne colonie de Saint-Domingue prend le nom d'Haïti.",
+    "source": "BnF",
+    "difficulty": 3
+  },
+  {
+    "id": "his-033",
+    "category": "histoire",
+    "question": "Quel traité signé en 1494 a partagé les terres nouvellement découvertes entre l'Espagne et le Portugal ?",
+    "answers": ["Le traité d'Utrecht", "Le traité de Tordesillas", "Le traité des Pyrénées", "Le traité de Cateau-Cambrésis"],
+    "correctIndex": 1,
+    "explanation": "Le partage suivait un méridien situé à 370 lieues à l'ouest des îles du Cap-Vert.",
+    "source": "World History Encyclopedia",
+    "difficulty": 3
+  },
+  {
+    "id": "geo-024",
+    "category": "geo",
+    "question": "Quelle est la capitale du Sénégal ?",
+    "answers": ["Bamako", "Abidjan", "Dakar", "Conakry"],
+    "correctIndex": 2,
+    "explanation": "Dakar est bâtie sur la presqu'île du Cap-Vert, le point le plus occidental du continent africain.",
+    "source": "Encyclopædia Britannica",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-025",
+    "category": "geo",
+    "question": "Sur quel fleuve se trouvent les villes de Montréal et de Québec ?",
+    "answers": ["Le Mississippi", "Le Saint-Laurent", "L'Hudson", "Le Yukon"],
+    "correctIndex": 1,
+    "explanation": "Né du lac Ontario, le Saint-Laurent coule sur environ 1 200 km, estuaire compris, vers le nord-est avant de se jeter dans le golfe du Saint-Laurent.",
+    "source": "L'Encyclopédie canadienne",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-026",
+    "category": "geo",
+    "question": "Quelle ville accueille le gouvernement et le Parlement de la Suisse ?",
+    "answers": ["Genève", "Zurich", "Lausanne", "Berne"],
+    "correctIndex": 3,
+    "explanation": "La Suisse n'a pas de capitale officielle : Berne porte le titre de « ville fédérale ».",
+    "source": "Swissinfo",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-027",
+    "category": "geo",
+    "question": "Quel est le plus haut sommet du monde ?",
+    "answers": ["Le K2", "Le mont Everest", "L'Aconcagua", "Le Kilimandjaro"],
+    "correctIndex": 1,
+    "explanation": "À la frontière entre le Népal et la Chine, il culmine à 8 848,86 m selon la mesure commune annoncée par les deux pays en 2020.",
+    "source": "Encyclopædia Britannica",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-028",
+    "category": "geo",
+    "question": "Quel fleuve a le plus grand débit du monde ?",
+    "answers": ["Le Nil", "Le Congo", "L'Amazone", "Le Yangzi Jiang"],
+    "correctIndex": 2,
+    "explanation": "L'Amazone déverse à lui seul jusqu'à 20 % de l'eau douce que les fleuves apportent aux océans.",
+    "source": "Encyclopædia Britannica",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-029",
+    "category": "geo",
+    "question": "Quelle est la capitale de l'Argentine ?",
+    "answers": ["Buenos Aires", "Montevideo", "Santiago", "Córdoba"],
+    "correctIndex": 0,
+    "explanation": "Buenos Aires est située sur le Río de la Plata, le vaste estuaire qui s'ouvre sur l'océan Atlantique.",
+    "source": "Larousse",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-030",
+    "category": "geo",
+    "question": "Quel pays est surnommé « le pays du Soleil-Levant » ?",
+    "answers": ["La Chine", "Le Japon", "La Corée du Sud", "La Thaïlande"],
+    "correctIndex": 1,
+    "explanation": "En japonais, le pays se nomme Nippon, littéralement « origine du soleil », d'où ce surnom.",
+    "source": "Larousse",
+    "difficulty": 1
+  },
+  {
+    "id": "geo-031",
+    "category": "geo",
+    "question": "Sur quelle île française se trouve le piton de la Fournaise, l'un des volcans les plus actifs du monde ?",
+    "answers": ["La Martinique", "La Guadeloupe", "La Réunion", "Tahiti"],
+    "correctIndex": 2,
+    "explanation": "Ce volcan de l'océan Indien se trouve dans le parc national de La Réunion, dont le cœur est inscrit au patrimoine mondial de l'Unesco.",
+    "source": "Unesco",
+    "difficulty": 2
+  },
+  {
+    "id": "geo-032",
+    "category": "geo",
+    "question": "Quelle est la capitale de la Mongolie ?",
+    "answers": ["Almaty", "Oulan-Bator", "Bichkek", "Tachkent"],
+    "correctIndex": 1,
+    "explanation": "Capitale et plus grande ville du pays, Oulan-Bator en est aussi le principal centre industriel.",
+    "source": "Encyclopædia Britannica",
+    "difficulty": 3
+  },
+  {
+    "id": "geo-033",
+    "category": "geo",
+    "question": "Au bord de quelle étendue d'eau se trouve le point le plus bas des terres émergées ?",
+    "answers": ["La mer Morte", "La mer Caspienne", "Le lac Assal", "La mer d'Aral"],
+    "correctIndex": 0,
+    "explanation": "Ses rives se situent à plus de 400 m sous le niveau de la mer, un niveau qui baisse depuis des décennies.",
+    "source": "Futura Sciences",
+    "difficulty": 3
+  },
+  {
+    "id": "sci-024",
+    "category": "sciences",
+    "question": "Quelle est la plus grande planète du système solaire ?",
+    "answers": ["Jupiter", "Saturne", "Neptune", "Uranus"],
+    "correctIndex": 0,
+    "explanation": "Cette géante gazeuse est environ 2,5 fois plus massive que toutes les autres planètes réunies.",
+    "source": "CNES",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-025",
+    "category": "sciences",
+    "question": "Quel gaz les plantes absorbent-elles pour réaliser la photosynthèse ?",
+    "answers": ["L'oxygène", "L'azote", "L'hydrogène", "Le dioxyde de carbone"],
+    "correctIndex": 3,
+    "explanation": "Grâce à la lumière du Soleil, elles transforment le CO2 en sucres et libèrent de l'oxygène.",
+    "source": "CNRS Le Journal",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-026",
+    "category": "sciences",
+    "question": "Quel savant a mis au point le vaccin contre la rage, administré pour la première fois à un être humain en 1885 ?",
+    "answers": ["Louis Pasteur", "Robert Koch", "Edward Jenner", "Claude Bernard"],
+    "correctIndex": 0,
+    "explanation": "Le patient, Joseph Meister, un garçon alsacien de 9 ans mordu par un chien enragé, a survécu ; Pasteur, qui n'était pas médecin, avait confié les injections au Dr Grancher.",
+    "source": "Institut Pasteur",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-027",
+    "category": "sciences",
+    "question": "Quelle scientifique est la seule personne à avoir reçu un prix Nobel dans deux sciences différentes ?",
+    "answers": ["Rosalind Franklin", "Lise Meitner", "Marie Curie", "Ada Lovelace"],
+    "correctIndex": 2,
+    "explanation": "Marie Curie a reçu le Nobel de physique en 1903, partagé avec Pierre Curie et Henri Becquerel, puis celui de chimie en 1911.",
+    "source": "Fondation Nobel",
+    "difficulty": 1
+  },
+  {
+    "id": "sci-028",
+    "category": "sciences",
+    "question": "Combien de dents compte la dentition définitive complète d'un adulte, dents de sagesse comprises ?",
+    "answers": ["28", "30", "32", "36"],
+    "correctIndex": 2,
+    "explanation": "Elle compte 8 incisives, 4 canines, 8 prémolaires et 12 molaires, dont les 4 dents de sagesse.",
+    "source": "MSD Manuals",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-029",
+    "category": "sciences",
+    "question": "Quel est le symbole chimique du sodium ?",
+    "answers": ["So", "Na", "Sd", "Sn"],
+    "correctIndex": 1,
+    "explanation": "Na vient de natrium, ancien nom de l'élément tiré du natron, un sel naturel.",
+    "source": "Larousse",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-030",
+    "category": "sciences",
+    "question": "Quelle unité sert à mesurer une fréquence ?",
+    "answers": ["Le hertz", "Le watt", "Le pascal", "Le newton"],
+    "correctIndex": 0,
+    "explanation": "Un hertz correspond à un phénomène qui se répète une fois par seconde ; l'unité honore le physicien allemand Heinrich Hertz.",
+    "source": "Office québécois de la langue française",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-031",
+    "category": "sciences",
+    "question": "Quel groupe sanguin est surnommé « donneur universel » pour les globules rouges ?",
+    "answers": ["AB positif", "A négatif", "B positif", "O négatif"],
+    "correctIndex": 3,
+    "explanation": "Ses globules rouges ne portent ni antigène A, ni antigène B, ni facteur Rhésus : ils peuvent être transfusés en urgence à tout patient.",
+    "source": "Établissement français du sang",
+    "difficulty": 2
+  },
+  {
+    "id": "sci-032",
+    "category": "sciences",
+    "question": "Sur quelle planète un tour sur elle-même dure-t-il plus longtemps qu'un tour autour du Soleil ?",
+    "answers": ["Vénus", "Mercure", "Mars", "Neptune"],
+    "correctIndex": 0,
+    "explanation": "Vénus met environ 243 jours terrestres à tourner sur elle-même, mais seulement 225 jours à faire le tour du Soleil.",
+    "source": "NASA",
+    "difficulty": 3
+  },
+  {
+    "id": "sci-033",
+    "category": "sciences",
+    "question": "Quelle est l'unité du Système international pour la quantité de matière ?",
+    "answers": ["La mole", "Le kelvin", "La candela", "Le kilogramme"],
+    "correctIndex": 0,
+    "explanation": "Une mole contient exactement 6,022 140 76 × 10²³ entités élémentaires, valeur fixée lors de la redéfinition de 2019.",
+    "source": "BIPM",
+    "difficulty": 3
+  },
+  {
+    "id": "art-024",
+    "category": "arts",
+    "question": "Quel chanteur a créé la chanson « Ne me quitte pas » en 1959 ?",
+    "answers": ["Salvatore Adamo", "Jacques Brel", "Georges Brassens", "Charles Aznavour"],
+    "correctIndex": 1,
+    "explanation": "Le chanteur belge Jacques Brel l'a créée en 1959 ; elle reste l'une de ses chansons les plus célèbres.",
+    "source": "Larousse",
+    "difficulty": 1
+  },
+  {
+    "id": "art-025",
+    "category": "arts",
+    "question": "Qui a écrit Don Quichotte ?",
+    "answers": ["Miguel de Cervantès", "Lope de Vega", "Federico García Lorca", "Gabriel García Márquez"],
+    "correctIndex": 0,
+    "explanation": "Le roman de l'Espagnol Cervantès est paru en deux parties, en 1605 puis en 1615.",
+    "source": "Larousse",
+    "difficulty": 1
+  },
+  {
+    "id": "art-026",
+    "category": "arts",
+    "question": "Qui a peint Le Cri ?",
+    "answers": ["Egon Schiele", "Edvard Munch", "Gustav Klimt", "Paul Gauguin"],
+    "correctIndex": 1,
+    "explanation": "Le Norvégien Edvard Munch a réalisé plusieurs versions de ce motif, dont une peinture de 1893 conservée au Musée national d'Oslo.",
+    "source": "Musée national d'Oslo",
+    "difficulty": 2
+  },
+  {
+    "id": "art-027",
+    "category": "arts",
+    "question": "Quelle autrice a créé le personnage de Harry Potter ?",
+    "answers": ["Suzanne Collins", "Stephenie Meyer", "Enid Blyton", "J. K. Rowling"],
+    "correctIndex": 3,
+    "explanation": "Le premier tome de la saga, Harry Potter à l'école des sorciers, est paru en 1997 au Royaume-Uni.",
+    "source": "Encyclopædia Britannica",
+    "difficulty": 1
+  },
+  {
+    "id": "art-028",
+    "category": "arts",
+    "question": "Quel peintre a écrit « Ceci n'est pas une pipe » sous l'image d'une pipe ?",
+    "answers": ["René Magritte", "Paul Delvaux", "James Ensor", "Salvador Dalí"],
+    "correctIndex": 0,
+    "explanation": "Le Belge René Magritte a peint La Trahison des images en 1929 : l'image d'une pipe n'est pas une vraie pipe.",
+    "source": "LACMA",
+    "difficulty": 2
+  },
+  {
+    "id": "art-029",
+    "category": "arts",
+    "question": "Quel compositeur a écrit la musique du ballet Le Lac des cygnes ?",
+    "answers": ["Sergueï Prokofiev", "Igor Stravinsky", "Piotr Ilitch Tchaïkovski", "Nikolaï Rimski-Korsakov"],
+    "correctIndex": 2,
+    "explanation": "Premier ballet de Tchaïkovski, il a été créé au Théâtre Bolchoï de Moscou en 1877, avec un accueil d'abord mitigé.",
+    "source": "Tchaikovsky Research",
+    "difficulty": 2
+  },
+  {
+    "id": "art-030",
+    "category": "arts",
+    "question": "Quelle chanteuse a écrit les paroles de « La Vie en rose » et l'a rendue célèbre ?",
+    "answers": ["Dalida", "Barbara", "Édith Piaf", "Juliette Gréco"],
+    "correctIndex": 2,
+    "explanation": "Édith Piaf en a écrit les paroles en 1945 ; sortie en disque en 1947, la chanson a fait le tour du monde.",
+    "source": "Encyclopædia Universalis",
+    "difficulty": 1
+  },
+  {
+    "id": "art-031",
+    "category": "arts",
+    "question": "Quel poète de la négritude est devenu en 1960 le premier président du Sénégal ?",
+    "answers": ["Aimé Césaire", "Léon-Gontran Damas", "Léopold Sédar Senghor", "Birago Diop"],
+    "correctIndex": 2,
+    "explanation": "Président jusqu'en 1980, Senghor a aussi été le premier Africain élu à l'Académie française, en 1983.",
+    "source": "Larousse",
+    "difficulty": 3
+  },
+  {
+    "id": "art-032",
+    "category": "arts",
+    "question": "Qui a écrit le roman 1984, où apparaît Big Brother ?",
+    "answers": ["Aldous Huxley", "Ray Bradbury", "George Orwell", "H. G. Wells"],
+    "correctIndex": 2,
+    "explanation": "Publié en 1949, ce roman de l'Anglais George Orwell met en garde contre le totalitarisme.",
+    "source": "Encyclopædia Britannica",
+    "difficulty": 2
+  },
+  {
+    "id": "art-033",
+    "category": "arts",
+    "question": "Quel peintre néerlandais a réalisé La Ronde de nuit en 1642 ?",
+    "answers": ["Johannes Vermeer", "Frans Hals", "Rembrandt", "Jan Steen"],
+    "correctIndex": 2,
+    "explanation": "Ce grand portrait de groupe d'une compagnie de milice d'Amsterdam est conservé au Rijksmuseum.",
+    "source": "Rijksmuseum",
+    "difficulty": 3
+  },
+  {
+    "id": "spo-024",
+    "category": "sport",
+    "question": "Dans quelle ville suisse se trouve le siège du Comité international olympique ?",
+    "answers": ["Genève", "Lausanne", "Zurich", "Bâle"],
+    "correctIndex": 1,
+    "explanation": "Le CIO s'y est installé en 1915, la Suisse étant restée neutre pendant la Première Guerre mondiale.",
+    "source": "CIO",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-025",
+    "category": "sport",
+    "question": "Quel Français est à l'origine de la renaissance des Jeux olympiques ?",
+    "answers": ["Jules Rimet", "Pierre de Coubertin", "Henri Desgrange", "Jean Bouin"],
+    "correctIndex": 1,
+    "explanation": "En juin 1894, lors d'un congrès qu'il organise à la Sorbonne, les délégués approuvent à l'unanimité le rétablissement des Jeux olympiques.",
+    "source": "CIO",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-026",
+    "category": "sport",
+    "question": "Quelle est la longueur d'un bassin de natation olympique ?",
+    "answers": ["25 m", "33 m", "100 m", "50 m"],
+    "correctIndex": 3,
+    "explanation": "Le règlement de World Aquatics impose exactement 50 m pour les Jeux olympiques et les championnats du monde.",
+    "source": "World Aquatics",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-027",
+    "category": "sport",
+    "question": "Quel sport se joue lors du Tournoi des Six Nations ?",
+    "answers": ["Le rugby", "Le football", "Le handball", "Le cricket"],
+    "correctIndex": 0,
+    "explanation": "L'Angleterre, l'Écosse, la France, l'Irlande, l'Italie et le pays de Galles s'y affrontent ; l'Italie a rejoint le Tournoi en 2000.",
+    "source": "Six Nations Rugby",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-028",
+    "category": "sport",
+    "question": "Au football, à quelle distance du but se trouve le point de penalty ?",
+    "answers": ["9,15 m", "11 m", "16,5 m", "7 m"],
+    "correctIndex": 1,
+    "explanation": "Le point est placé à 11 m du milieu de la ligne de but ; les autres joueurs doivent se tenir à au moins 9,15 m.",
+    "source": "IFAB",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-029",
+    "category": "sport",
+    "question": "Dans quelle ville la gymnaste Nadia Comăneci a-t-elle obtenu le premier 10 parfait de l'histoire de la gymnastique olympique, en 1976 ?",
+    "answers": ["Munich", "Moscou", "Mexico", "Montréal"],
+    "correctIndex": 3,
+    "explanation": "La Roumaine de 14 ans l'a obtenu aux barres asymétriques ; le tableau, incapable d'afficher 10,00, a indiqué 1.00.",
+    "source": "CIO",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-030",
+    "category": "sport",
+    "question": "Combien de joueurs par équipe sont sur le terrain au handball, gardien compris ?",
+    "answers": ["6", "7", "8", "5"],
+    "correctIndex": 1,
+    "explanation": "Une équipe aligne 7 joueurs, dont un gardien, qu'elle peut aussi remplacer par un joueur de champ supplémentaire.",
+    "source": "IHF",
+    "difficulty": 2
+  },
+  {
+    "id": "spo-031",
+    "category": "sport",
+    "question": "Quel footballeur a remporté trois Coupes du monde avec le Brésil ?",
+    "answers": ["Ronaldo", "Pelé", "Garrincha", "Romário"],
+    "correctIndex": 1,
+    "explanation": "Pelé a été sacré en 1958, 1962 et 1970 ; lors du premier titre, il n'avait que 17 ans.",
+    "source": "Guinness World Records",
+    "difficulty": 1
+  },
+  {
+    "id": "spo-032",
+    "category": "sport",
+    "question": "Au baseball, combien de joueurs de l'équipe en défense sont sur le terrain ?",
+    "answers": ["11", "10", "8", "9"],
+    "correctIndex": 3,
+    "explanation": "Le lanceur, le receveur, quatre joueurs de champ intérieur et trois de champ extérieur occupent les neuf postes.",
+    "source": "MLB",
+    "difficulty": 3
+  },
+  {
+    "id": "spo-033",
+    "category": "sport",
+    "question": "Combien de minutes dure un match de NBA, hors prolongations ?",
+    "answers": ["40", "60", "48", "44"],
+    "correctIndex": 2,
+    "explanation": "Un match de NBA compte quatre quart-temps de 12 minutes, contre 10 minutes dans les compétitions FIBA.",
+    "source": "NBA",
+    "difficulty": 3
+  },
+  {
+    "id": "act-024",
+    "category": "actu",
+    "question": "Quel pays a remporté l'Eurovision 2025, organisé à Bâle ?",
+    "answers": ["La Suisse", "Israël", "La Suède", "L'Autriche"],
+    "correctIndex": 3,
+    "explanation": "Le chanteur JJ a gagné avec « Wasted Love », offrant à l'Autriche sa première victoire depuis 2014.",
+    "source": "Eurovision (UER)",
+    "difficulty": 2
+  },
+  {
+    "id": "act-025",
+    "category": "actu",
+    "question": "Quel joueur a remporté le Ballon d'or 2025 ?",
+    "answers": ["Ousmane Dembélé", "Lamine Yamal", "Kylian Mbappé", "Vitinha"],
+    "correctIndex": 0,
+    "explanation": "L'attaquant français du PSG a devancé Lamine Yamal et Vitinha lors de la cérémonie du 22 septembre 2025, à Paris.",
+    "source": "UEFA",
+    "difficulty": 1
+  },
+  {
+    "id": "act-026",
+    "category": "actu",
+    "question": "Quel réalisateur a remporté la Palme d'or au Festival de Cannes 2025 ?",
+    "answers": ["Joachim Trier", "Asghar Farhadi", "Wes Anderson", "Jafar Panahi"],
+    "correctIndex": 3,
+    "explanation": "Le cinéaste iranien a été récompensé pour « Un simple accident », tourné clandestinement, par un jury présidé par Juliette Binoche.",
+    "source": "Festival de Cannes",
+    "difficulty": 2
+  },
+  {
+    "id": "act-027",
+    "category": "actu",
+    "question": "Quelle ville a accueilli la COP30 sur le climat, en novembre 2025 ?",
+    "answers": ["Rio de Janeiro", "São Paulo", "Belém", "Manaus"],
+    "correctIndex": 2,
+    "explanation": "La conférence de l'ONU sur le climat s'est tenue en novembre 2025 dans cette ville de l'Amazonie brésilienne.",
+    "source": "ONU",
+    "difficulty": 3
+  },
+  {
+    "id": "act-028",
+    "category": "actu",
+    "question": "Qui a été élu chancelier fédéral d'Allemagne en mai 2025 ?",
+    "answers": ["Friedrich Merz", "Olaf Scholz", "Markus Söder", "Boris Pistorius"],
+    "correctIndex": 0,
+    "explanation": "Élu le 6 mai 2025, il avait d'abord échoué au premier tour, une première pour un candidat chancelier depuis la guerre.",
+    "source": "Le Temps",
+    "difficulty": 2
+  },
+  {
+    "id": "act-029",
+    "category": "actu",
+    "question": "Quel club a battu le PSG en finale de la Coupe du monde des clubs de la FIFA, en juillet 2025 ?",
+    "answers": ["Le Real Madrid", "Chelsea", "Manchester City", "Le Bayern Munich"],
+    "correctIndex": 1,
+    "explanation": "Chelsea s'est imposé 3-0 dans le New Jersey, avec un doublé de Cole Palmer, lors de la première édition élargie du tournoi.",
+    "source": "Associated Press",
+    "difficulty": 2
+  },
+  {
+    "id": "act-030",
+    "category": "actu",
+    "question": "Dans quel musée parisien des bijoux de la Couronne ont été volés en octobre 2025 ?",
+    "answers": ["Le musée d'Orsay", "Le Petit Palais", "Le musée Carnavalet", "Le Louvre"],
+    "correctIndex": 3,
+    "explanation": "Le 19 octobre 2025, des voleurs ont dérobé en quelques minutes huit pièces dans la galerie d'Apollon, en pleine journée.",
+    "source": "The Art Newspaper",
+    "difficulty": 1
+  },
+  {
+    "id": "act-031",
+    "category": "actu",
+    "question": "Quel artiste portoricain a assuré le spectacle de la mi-temps du Super Bowl en février 2026 ?",
+    "answers": ["Bad Bunny", "Daddy Yankee", "Ozuna", "Luis Fonsi"],
+    "correctIndex": 0,
+    "explanation": "Il a chanté surtout en espagnol au Levi's Stadium de Santa Clara, avec Lady Gaga et Ricky Martin en invités surprises.",
+    "source": "CBS News",
+    "difficulty": 1
+  },
+  {
+    "id": "act-032",
+    "category": "actu",
+    "question": "Avec le Portugal, quel pays a été presque entièrement privé d'électricité lors de la panne géante du 28 avril 2025 ?",
+    "answers": ["La France", "L'Espagne", "L'Italie", "Le Maroc"],
+    "correctIndex": 1,
+    "explanation": "La coupure, survenue vers 12 h 30, a paralysé trains et aéroports de la péninsule Ibérique pendant une dizaine d'heures.",
+    "source": "Le Temps",
+    "difficulty": 1
+  },
+  {
+    "id": "act-033",
+    "category": "actu",
+    "question": "Qui est devenue en octobre 2025 la première femme Première ministre du Japon ?",
+    "answers": ["Sanae Takaichi", "Yuriko Koike", "Seiko Noda", "Yoko Kamikawa"],
+    "correctIndex": 0,
+    "explanation": "Présidente du Parti libéral-démocrate, elle a été élue par la Chambre basse le 21 octobre 2025.",
+    "source": "Le Temps",
+    "difficulty": 3
+  },
+  {
+    "id": "div-024",
+    "category": "divers",
+    "question": "Combien de secondes compte une heure ?",
+    "answers": ["360", "6 000", "36 000", "3 600"],
+    "correctIndex": 3,
+    "explanation": "Une heure compte 60 minutes de 60 secondes chacune, soit 60 × 60 = 3 600 secondes.",
+    "source": "BIPM",
+    "difficulty": 1
+  },
+  {
+    "id": "div-025",
+    "category": "divers",
+    "question": "Dans quelle province canadienne la poutine est-elle née ?",
+    "answers": ["L'Ontario", "Le Nouveau-Brunswick", "Le Manitoba", "Le Québec"],
+    "correctIndex": 3,
+    "explanation": "Ce plat de frites, de fromage en grains et de sauce est apparu dans les casse-croûte du Québec rural à la fin des années 1950.",
+    "source": "L'Encyclopédie canadienne",
+    "difficulty": 1
+  },
+  {
+    "id": "div-026",
+    "category": "divers",
+    "question": "En Belgique et en Suisse, quel nombre désigne le mot « septante » ?",
+    "answers": ["60", "70", "80", "90"],
+    "correctIndex": 1,
+    "explanation": "Septante (70) et nonante (90) y remplacent soixante-dix et quatre-vingt-dix  ; le Dictionnaire de l'Académie française les signale comme usités en Belgique et en Suisse romande.",
+    "source": "Académie française",
+    "difficulty": 1
+  },
+  {
+    "id": "div-027",
+    "category": "divers",
+    "question": "Quelle langue compte le plus de locuteurs natifs au monde ?",
+    "answers": ["L'anglais", "L'espagnol", "Le chinois mandarin", "L'hindi"],
+    "correctIndex": 2,
+    "explanation": "Le mandarin arrive en tête pour la langue maternelle, mais l'anglais le dépasse si l'on compte aussi ceux qui l'ont appris.",
+    "source": "Ethnologue",
+    "difficulty": 1
+  },
+  {
+    "id": "div-028",
+    "category": "divers",
+    "question": "En Belgique, en Suisse et au Québec, comment appelle-t-on couramment le repas de midi ?",
+    "answers": ["Le dîner", "Le déjeuner", "Le souper", "Le goûter"],
+    "correctIndex": 0,
+    "explanation": "Dans ces pays, le dîner désigne le repas de midi, alors qu'en France on parle plutôt de déjeuner.",
+    "source": "Office québécois de la langue française",
+    "difficulty": 2
+  },
+  {
+    "id": "div-029",
+    "category": "divers",
+    "question": "Combien de pièces compte un jeu d'échecs en début de partie, pour les deux joueurs réunis ?",
+    "answers": ["32", "24", "36", "40"],
+    "correctIndex": 0,
+    "explanation": "Chaque joueur dispose de 16 pièces : un roi, une dame, deux tours, deux fous, deux cavaliers et huit pions.",
+    "source": "FIDE",
+    "difficulty": 2
+  },
+  {
+    "id": "div-030",
+    "category": "divers",
+    "question": "En quelle année les pièces et billets en euros ont-ils été mis en circulation ?",
+    "answers": ["1999", "2000", "2002", "2004"],
+    "correctIndex": 2,
+    "explanation": "Le 1er janvier 2002, ils sont entrés en usage dans douze pays, dont la France, la Belgique et le Luxembourg.",
+    "source": "BCE",
+    "difficulty": 2
+  },
+  {
+    "id": "div-031",
+    "category": "divers",
+    "question": "Quelle pierre précieuse est une variété verte de béryl ?",
+    "answers": ["L'émeraude", "Le rubis", "Le saphir", "La topaze"],
+    "correctIndex": 0,
+    "explanation": "Sa couleur vient de traces de chrome et de vanadium ; l'aigue-marine est une autre variété de béryl, de couleur bleue.",
+    "source": "Encyclopædia Universalis",
+    "difficulty": 2
+  },
+  {
+    "id": "div-032",
+    "category": "divers",
+    "question": "Combien de pièces compte un jeu de dominos classique « double-six » ?",
+    "answers": ["24", "32", "28", "36"],
+    "correctIndex": 2,
+    "explanation": "Chaque moitié de domino porte de 0 à 6 points : toutes les combinaisons possibles donnent 28 pièces différentes.",
+    "source": "Wikipédia",
+    "difficulty": 3
+  },
+  {
+    "id": "div-033",
+    "category": "divers",
+    "question": "Comment appelle-t-on le nombre 1 suivi de 100 zéros ?",
+    "answers": ["Un milliard", "Un trillion", "Un googolplex", "Un googol"],
+    "correctIndex": 3,
+    "explanation": "Le mot a été inventé par Milton Sirotta, le neveu de 9 ans du mathématicien américain Edward Kasner.",
+    "source": "MacTutor (université de St Andrews)",
+    "difficulty": 3
   }
 ]
