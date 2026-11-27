@@ -10,6 +10,7 @@ import '../backend/supabase_progress_source.dart';
 import '../backend/supabase_provider.dart';
 import '../data/pending_offline_day_repository.dart';
 import '../data/pending_quiz_repository.dart';
+import '../models/freeze_grant.dart';
 import '../models/offline_day.dart';
 import '../models/player_progress.dart';
 import '../models/quiz_submission.dart';
@@ -162,6 +163,25 @@ class ProgressSync {
     } catch (e) {
       _log('journée hors ligne non envoyée, réessai au prochain sync', e);
     }
+  }
+
+  /// Gel après une pub récompensée (`grant_rewarded_freeze`). Le profil
+  /// renvoyé remplace la progression locale (règle de fusion) ; si elle ne
+  /// peut pas s'appliquer (aucun quiz encore validé par le serveur, ou quiz
+  /// en attente d'envoi qui rendraient le profil en retard), le gel accordé
+  /// est ajouté localement : le profil serveur le contiendra au prochain
+  /// sync. Lève une erreur sans session ou en cas d'échec réseau / serveur.
+  Future<FreezeGrantResult> grantRewardedFreeze() async {
+    if (_ref.read(authUserIdProvider) == null) {
+      throw StateError('aucune session');
+    }
+    final result = await _source.grantRewardedFreeze();
+    if (result.profile.lastQuizAt != null && _queue.isEmpty && _days.isEmpty) {
+      _apply(result.profile);
+    } else if (result.granted) {
+      _ref.read(progressControllerProvider.notifier).addStreakFreeze();
+    }
+    return result;
   }
 
   /// Un seul envoi des files à la fois (quiz terminé pendant un sync).

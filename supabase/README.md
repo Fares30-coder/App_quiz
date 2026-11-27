@@ -30,7 +30,8 @@ anonymous sign-ins » activé ; limites de débit dans Authentication > Rate Lim
 Une ligne par utilisateur, créée par trigger à l'inscription (migration
 `*_profiles.sql`). Le client la **lit** seulement (RLS + GRANT select) ;
 XP, série, gels et compteur de quiz sont écrits uniquement par
-`submit_quiz()` (et, pour la série seulement, `validate_offline_day()`).
+`submit_quiz()` (et, pour la série seulement, `validate_offline_day()` ;
+pour les gels, `grant_rewarded_freeze()`).
 Autre écriture client : `set_daily_goal(goal)` (1 à 3).
 
 Sync (`lib/engagement/progress_sync.dart`) : en arrière-plan après connexion,
@@ -455,13 +456,45 @@ classement chargé avec un bandeau, sinon message et « Réessayer ».
   collectées à lister, dont : signalements de questions (motif, question,
   90 jours rattachés au compte).
 
+## Gel par pub récompensée (`grant_rewarded_freeze`)
+
+Migration `*_gel_pub.sql` (T22). L'app appelle `grant_rewarded_freeze()`
+(authenticated seulement, `security definer`, sans paramètre) seulement
+quand le SDK AdMob signale la récompense (`onUserEarnedReward`, vidéo
+regardée jusqu'au bout) ; la logique est dans
+`private.grant_rewarded_freeze(uid, as_of)` (heure fixée par les tests).
+
+- Jours manqués appliqués d'abord, jusqu'à la veille (même règle que
+  `settleStreak`) : les gels sont « paresseux » côté serveur (consommés au
+  quiz suivant), alors que l'appareil les consomme dès l'ouverture. Assez de
+  gels : consommés, `last_played_day` passe à la veille ; sinon série à 0,
+  gels gardés.
+- Puis +1 gel, sauf refus « propre » : `daily_limit` (gel déjà obtenu
+  aujourd'hui, Europe/Paris) ou `full` (2 en réserve). Un refus `full`
+  n'utilise pas le gel du jour.
+- Retour : `{ granted, reason, profile }` (mêmes champs que `submit_quiz`).
+- Table `freeze_grants (user_id, day)` : 1 ligne par gel obtenu, RLS sans
+  policy, aucun GRANT client ; lignes de plus de 30 jours purgées.
+
+App (`lib/ads/rewarded_ads.dart`, `ProgressSync.grantRewardedFreeze`) : le
+profil renvoyé est appliqué comme après un quiz ; si le serveur n'a encore
+aucun quiz (`last_quiz_at` null) ou si des quiz attendent d'être envoyés, le
+gel est ajouté localement. Sans session, la vidéo n'est pas proposée.
+
+Abus : le serveur ne voit pas la pub, un joueur peut donc appeler la RPC
+sans la regarder. Bornes : 1 gel par jour, 2 en réserve, ni XP ni place au
+classement (un gel ne fait que protéger un jour sans jeu). Piste plus
+stricte : vérification côté serveur AdMob (SSV : callback signé vers une
+Edge Function, `custom_data` = identifiant d'octroi), qui demande de vrais
+blocs d'annonces.
+
 ## Suppression de compte (`delete_account`)
 
 Migration `*_delete_account.sql` (T13). `delete_account()` (authenticated
 seulement, `42501` sans session) supprime l'utilisateur connecté de
 `auth.users` ; les données suivent par clé étrangère : `profiles`,
 `quiz_results` (donc le classement), `quiz_sessions` et leurs questions,
-`offline_days`, sessions Auth (`on delete cascade`) ; `question_reports`
+`offline_days`, `freeze_grants`, sessions Auth (`on delete cascade`) ; `question_reports`
 gardés sans `user_id` (`on delete set null`).
 
 App : Profil > « Supprimer mon compte », avec confirmation
@@ -531,7 +564,8 @@ Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
 `tests/start_quiz_test.sql`, `tests/submit_quiz_test.sql`,
 `tests/temps_serveur_test.sql`, `tests/questions_serveur_test.sql`,
 `tests/weekly_leaderboard_test.sql`, `tests/serie_hors_ligne_test.sql`,
-`tests/question_reports_test.sql`, `tests/source_explication_test.sql`).
+`tests/question_reports_test.sql`, `tests/source_explication_test.sql`,
+`tests/gel_pub_test.sql`).
 
 ## Commandes à lancer soi-même
 

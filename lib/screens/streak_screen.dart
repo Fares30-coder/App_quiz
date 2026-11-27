@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../ads/banner_ads.dart';
 import '../ads/interstitial_ads.dart';
+import '../ads/rewarded_ads.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../models/player_progress.dart';
@@ -70,6 +72,16 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
       });
     } else {
       _celebration.complete();
+    }
+    if (widget.mode == StreakScreenMode.danger) {
+      // Pub récompensée chargée dès l'ouverture de l'offre de gel (après la
+      // première image : pas de modification de provider pendant le build).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ref.read(progressControllerProvider).streak.freezes == 0) {
+          ref.read(rewardedFreezeControllerProvider.notifier).prepare();
+        }
+      });
     }
   }
 
@@ -332,21 +344,10 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
                 ),
               ],
             ),
-            if (freezes == 0) ...[
+            if (freezes == 0 && !ref.watch(adsRemovedProvider)) ...[
               const SizedBox(height: AppSpacing.m),
-              // TODO(etape-3): RewardedAd AdMob (préchargée) ; créditer le gel
-              // uniquement dans onUserEarnedReward via addStreakFreeze().
-              // Joueurs « sans pub » : 1 gel offert par semaine.
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  backgroundColor: context.colors.surfaceContainerLowest,
-                  side: BorderSide(color: e.gel, width: 2),
-                ),
-                onPressed: null,
-                icon: const Icon(Icons.smart_display_outlined),
-                label: const Text('Pas de pub disponible pour le moment'),
-              ),
+              // Joueurs « sans pub » : 1 gel offert par semaine (T23).
+              const _FreezeOfferButton(),
               const SizedBox(height: AppSpacing.s),
               Text(
                 'Facultatif. Le gel est ajouté à la fin de la vidéo.',
@@ -359,6 +360,64 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
         ),
       ),
     ];
+  }
+}
+
+/// « Regarder une pub pour un gel » : actif seulement si une pub est prête
+/// (maquette serie.html), sinon désactivé.
+class _FreezeOfferButton extends ConsumerWidget {
+  const _FreezeOfferButton();
+
+  static String _message(RewardedFreezeOutcome outcome) => switch (outcome) {
+        RewardedFreezeOutcome.granted => 'Gel ajouté ! Ta série est protégée.',
+        RewardedFreezeOutcome.dailyLimit =>
+          'Tu as déjà obtenu un gel aujourd\'hui. Reviens demain.',
+        RewardedFreezeOutcome.full =>
+          'Ta réserve est pleine : 2 gels au maximum.',
+        RewardedFreezeOutcome.notEarned =>
+          'Vidéo interrompue : aucun gel ajouté.',
+        RewardedFreezeOutcome.unavailable =>
+          'Pas de pub disponible pour le moment.',
+        RewardedFreezeOutcome.failed =>
+          'Gel non enregistré. Vérifie ta connexion et réessaie.',
+      };
+
+  Future<void> _watch(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final outcome = await ref
+        .read(rewardedFreezeControllerProvider.notifier)
+        .watchForFreeze();
+    if (outcome == RewardedFreezeOutcome.granted) {
+      unawaited(HapticFeedback.mediumImpact());
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(_message(outcome))));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(rewardedFreezeControllerProvider);
+    final e = context.engagement;
+    final (label, enabled) = switch (status) {
+      RewardedStatus.ready => ('Regarder une pub pour un gel', true),
+      RewardedStatus.loading => ('Chargement de la pub…', false),
+      RewardedStatus.busy => ('Gel en cours d\'ajout…', false),
+      RewardedStatus.unavailable => (
+          'Pas de pub disponible pour le moment',
+          false
+        ),
+    };
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        backgroundColor: context.colors.surfaceContainerLowest,
+        side: BorderSide(color: e.gel, width: 2),
+      ),
+      onPressed: enabled ? () => _watch(context, ref) : null,
+      icon: const Icon(Icons.smart_display_outlined),
+      label: Text(label),
+    );
   }
 }
 
