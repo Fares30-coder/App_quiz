@@ -223,7 +223,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                       ],
                     ),
                   ),
-                  const AdSlot(),
+                  // Marge fixe hors défilement : au moins 24 dp entre tout
+                  // bouton et la bannière (clics accidentels).
+                  const AdSlot(padding: EdgeInsets.only(top: AppSpacing.xxl)),
                   SizedBox(height: MediaQuery.paddingOf(context).bottom),
                 ],
               ),

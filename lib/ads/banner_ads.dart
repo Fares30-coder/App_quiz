@@ -40,8 +40,10 @@ String bannerAdUnitId({
         '(REQUIRE_REAL_AD_UNITS=true) : --dart-define=$define absent, '
         'mal formé ou ID de test.');
   }
-  debugPrint('AdMob : ID de bannière réel absent ou invalide en release, '
-      'ID de test utilisé (--dart-define=$define).');
+  if (kDebugMode) {
+    debugPrint('AdMob : ID de bannière réel absent ou invalide en release, '
+        'ID de test utilisé (--dart-define=$define).');
+  }
   return testId;
 }
 
@@ -81,21 +83,49 @@ class GoogleBannerLoader implements BannerLoader {
   @override
   Future<LoadedBanner?> load(AdSize size) {
     final done = Completer<LoadedBanner?>();
-    BannerAd(
+    final ad = BannerAd(
       adUnitId: bannerAdUnitId(),
       size: size,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (ad) => done.complete(_GoogleBanner(ad as BannerAd)),
+        // Arrivée après le délai : la pub a déjà été libérée, on l'ignore.
+        onAdLoaded: (ad) {
+          if (!done.isCompleted) done.complete(_GoogleBanner(ad as BannerAd));
+        },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
           if (kDebugMode) debugPrint('Bannière non chargée : $error');
-          done.complete(null);
+          if (!done.isCompleted) done.complete(null);
         },
       ),
-    ).load();
-    return done.future;
+    );
+    return awaitAdLoad(done, ad.load, ad.dispose);
   }
+}
+
+/// Au-delà, un chargement de pub est abandonné (SDK sans réponse).
+const adLoadTimeout = Duration(seconds: 30);
+
+/// Lance [load] et attend [done], complété par les callbacks du SDK.
+/// `null` si [load] lève ou si rien n'arrive avant [timeout] : la pub est
+/// alors libérée par [dispose]. Les callbacks doivent ignorer une réponse
+/// tardive (`done.isCompleted`). Même règle pour les pubs de T22.
+Future<T?> awaitAdLoad<T>(
+  Completer<T?> done,
+  Future<void> Function() load,
+  void Function() dispose, {
+  Duration timeout = adLoadTimeout,
+}) {
+  void giveUp(String reason) {
+    if (done.isCompleted) return;
+    if (kDebugMode) debugPrint('Pub non chargée : $reason');
+    dispose();
+    done.complete(null);
+  }
+
+  final timer = Timer(timeout, () => giveUp('délai dépassé'));
+  Future<void>.sync(load).catchError((Object e) => giveUp('$e'));
+  return done.future.whenComplete(timer.cancel);
 }
 
 class _GoogleBanner implements LoadedBanner {

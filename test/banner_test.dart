@@ -27,6 +27,10 @@ class FakeBannerLoader implements BannerLoader {
 
   bool fail;
   Completer<void>? pending;
+
+  /// Si non nuls, `anchoredSize` ou `load` lèvent cette erreur.
+  Object? sizeError;
+  Object? loadError;
   final banners = <FakeBanner>[];
   int loads = 0;
   final widths = <int>[];
@@ -34,6 +38,7 @@ class FakeBannerLoader implements BannerLoader {
   @override
   Future<AdSize?> anchoredSize(int width) async {
     widths.add(width);
+    if (sizeError != null) throw sizeError!;
     return AdSize(width: width, height: 62);
   }
 
@@ -41,6 +46,7 @@ class FakeBannerLoader implements BannerLoader {
   Future<LoadedBanner?> load(AdSize size) async {
     loads++;
     await pending?.future;
+    if (loadError != null) throw loadError!;
     if (fail) return null;
     final banner = FakeBanner();
     banners.add(banner);
@@ -50,17 +56,20 @@ class FakeBannerLoader implements BannerLoader {
 
 final _ready = StateProvider<bool>((ref) => false);
 final _removed = StateProvider<bool>((ref) => false);
+final _choices = StateProvider<int>((ref) => 0);
 
 Future<ProviderContainer> pumpSlot(
   WidgetTester tester,
   FakeBannerLoader loader, {
   bool ready = false,
   bool tickerEnabled = true,
+  EdgeInsets padding = EdgeInsets.zero,
 }) async {
   final container = ProviderContainer(overrides: [
     adsReadyProvider.overrideWith((ref) => ref.watch(_ready)),
     adsRemovedProvider.overrideWith((ref) => ref.watch(_removed)),
     bannerLoaderProvider.overrideWithValue(loader),
+    consentChoicesVersionProvider.overrideWith((ref) => ref.watch(_choices)),
   ]);
   addTearDown(container.dispose);
   container.read(_ready.notifier).state = ready;
@@ -69,7 +78,8 @@ Future<ProviderContainer> pumpSlot(
     child: MaterialApp(
       theme: AppTheme.light,
       home: Scaffold(
-        body: TickerMode(enabled: tickerEnabled, child: const AdSlot()),
+        body:
+            TickerMode(enabled: tickerEnabled, child: AdSlot(padding: padding)),
       ),
     ),
   ));
@@ -258,11 +268,142 @@ void main() {
       expect(tester.getSize(_banner).width, 844);
     });
 
+    testWidgets('largeur disponible (pas celle de l\'écran)', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final loader = FakeBannerLoader();
+      final container = ProviderContainer(overrides: [
+        adsReadyProvider.overrideWithValue(true),
+        bannerLoaderProvider.overrideWithValue(loader),
+      ]);
+      addTearDown(container.dispose);
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30),
+              child: AdSlot(),
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      expect(loader.widths, [330]);
+    });
+
+    testWidgets('marge (padding) seulement quand la bannière est là',
+        (tester) async {
+      final loader = FakeBannerLoader();
+      final container = await pumpSlot(tester, loader,
+          ready: true, padding: const EdgeInsets.only(top: 24));
+      expect(tester.getSize(find.byType(AdSlot)).height, 63 + 24);
+      container.read(_ready.notifier).state = false;
+      await tester.pump();
+      expect(tester.getSize(find.byType(AdSlot)).height, 0);
+    });
+
+    testWidgets('anchoredSize lève : rien affiché, nouvel essai possible',
+        (tester) async {
+      final loader = FakeBannerLoader()..sizeError = Exception('SDK');
+      final container = await pumpSlot(tester, loader, ready: true);
+      expect(_slot, findsNothing);
+      expect(tester.takeException(), isNull);
+
+      loader.sizeError = null;
+      container.read(_ready.notifier).state = false;
+      await tester.pump();
+      container.read(_ready.notifier).state = true;
+      await tester.pump();
+      await tester.pump();
+      expect(_banner, findsOneWidget);
+    });
+
+    testWidgets('load lève : espace retiré, pas de blocage', (tester) async {
+      final loader = FakeBannerLoader()..loadError = Exception('SDK');
+      final container = await pumpSlot(tester, loader, ready: true);
+      expect(_slot, findsNothing);
+      expect(loader.loads, 1);
+
+      loader.loadError = null;
+      container.read(_choices.notifier).state++;
+      await tester.pump();
+      await tester.pump();
+      expect(loader.loads, 2);
+      expect(_banner, findsOneWidget);
+    });
+
+    testWidgets('chargement sans réponse puis retrait : rechargement possible',
+        (tester) async {
+      final loader = FakeBannerLoader()..pending = Completer<void>();
+      final container = await pumpSlot(tester, loader, ready: true);
+      container.read(_ready.notifier).state = false;
+      await tester.pump();
+      loader.pending = null;
+      container.read(_ready.notifier).state = true;
+      await tester.pump();
+      await tester.pump();
+      expect(loader.loads, 2);
+      expect(_banner, findsOneWidget);
+    });
+
+    testWidgets('choix de confidentialité modifiés : bannière rechargée',
+        (tester) async {
+      final loader = FakeBannerLoader();
+      final container = await pumpSlot(tester, loader, ready: true);
+      container.read(_choices.notifier).state++;
+      await tester.pump();
+      await tester.pump();
+      expect(loader.banners.first.disposed, isTrue);
+      expect(loader.loads, 2);
+      expect(loader.banners.last.disposed, isFalse);
+      expect(_banner, findsOneWidget);
+    });
+
     testWidgets('démontage : bannière libérée', (tester) async {
       final loader = FakeBannerLoader();
       await pumpSlot(tester, loader, ready: true);
       await tester.pumpWidget(const SizedBox());
       expect(loader.banners.single.disposed, isTrue);
+    });
+  });
+
+  group('awaitAdLoad', () {
+    testWidgets('chargé : pub rendue, pas de libération', (tester) async {
+      final done = Completer<String?>();
+      var disposed = false;
+      final result = awaitAdLoad(
+          done, () async => done.complete('pub'), () => disposed = true);
+      expect(await result, 'pub');
+      await tester.pump(const Duration(seconds: 31));
+      expect(disposed, isFalse);
+    });
+
+    testWidgets('load lève : null et pub libérée', (tester) async {
+      final done = Completer<String?>();
+      var disposed = 0;
+      final result = awaitAdLoad<String>(
+          done, () => throw Exception('SDK'), () => disposed++);
+      expect(await result, isNull);
+      expect(disposed, 1);
+    });
+
+    testWidgets('aucune réponse : null après 30 s et pub libérée',
+        (tester) async {
+      final done = Completer<String?>();
+      var disposed = 0;
+      String? value = 'en attente';
+      unawaited(awaitAdLoad<String>(done, () async {}, () => disposed++)
+          .then((v) => value = v));
+      await tester.pump(const Duration(seconds: 29));
+      expect(value, 'en attente');
+      await tester.pump(const Duration(seconds: 2));
+      expect(value, isNull);
+      expect(disposed, 1);
+      expect(done.isCompleted, isTrue, reason: 'réponse tardive ignorée');
     });
   });
 
@@ -279,6 +420,12 @@ void main() {
     );
     await tester.pump();
     expect(_banner, findsOneWidget, reason: 'accueil');
+    expect(
+      tester.getTopLeft(find.byType(NavigationBar)).dy -
+          tester.getBottomLeft(_slot).dy,
+      greaterThanOrEqualTo(12),
+      reason: 'écart bannière / barre de navigation',
+    );
     final home = loader.banners.single;
 
     await tester.ensureVisible(find.text('Jouer le défi'));
@@ -311,5 +458,11 @@ void main() {
     expect(find.text('XP gagnés'), findsOneWidget);
     expect(_banner, findsOneWidget);
     expect(loader.loads, 2, reason: 'accueil puis résultats');
+    // Zone défilante (boutons) : au moins 24 dp au-dessus de la bannière.
+    expect(
+      tester.getTopLeft(_slot).dy -
+          tester.getBottomLeft(find.byType(ListView).last).dy,
+      greaterThanOrEqualTo(24),
+    );
   });
 }

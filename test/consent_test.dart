@@ -242,6 +242,23 @@ void main() {
     });
   });
 
+  test(
+      'choix de confidentialité : version incrémentée, même si les pubs '
+      'restent autorisées', () async {
+    final platform = FakeAdsPlatform(optionsRequired: true);
+    final container = containerWith(platform);
+    final notifier = container.read(consentControllerProvider.notifier);
+    await notifier.gather();
+    expect(container.read(consentChoicesVersionProvider), 0);
+    await notifier.showPrivacyOptions();
+    expect(container.read(adsReadyProvider), isTrue);
+    expect(container.read(consentChoicesVersionProvider), 1);
+  });
+
+  test('requêtes pub classées au plus T (13+)', () {
+    expect(adRequestConfiguration().maxAdContentRating, MaxAdContentRating.t);
+  });
+
   group('debug EEE', () {
     test('jamais actif en release', () {
       expect(

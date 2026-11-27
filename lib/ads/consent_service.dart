@@ -20,6 +20,11 @@ ConsentDebugSettings? consentDebugSettings({
   );
 }
 
+/// Réglages appliqués à toutes les requêtes pub, avant `initialize` :
+/// annonces classées au plus « T » (ados, public 13+).
+RequestConfiguration adRequestConfiguration() =>
+    RequestConfiguration(maxAdContentRating: MaxAdContentRating.t);
+
 /// Échec UMP (hors ligne, formulaire non configuré…). Jamais bloquant.
 class ConsentFailure implements Exception {
   const ConsentFailure(this.code, this.message);
@@ -49,7 +54,8 @@ abstract class AdsPlatform {
 
   Future<void> showPrivacyOptionsForm();
 
-  /// Initialise le SDK pub. À n'appeler qu'après [canRequestAds] == `true`.
+  /// Initialise le SDK pub ([adRequestConfiguration] d'abord). À n'appeler
+  /// qu'après [canRequestAds] == `true`.
   Future<void> initializeMobileAds();
 }
 
@@ -123,7 +129,11 @@ class GoogleAdsPlatform implements AdsPlatform {
   }
 
   @override
-  Future<void> initializeMobileAds() => MobileAds.instance.initialize();
+  Future<void> initializeMobileAds() async {
+    await MobileAds.instance
+        .updateRequestConfiguration(adRequestConfiguration());
+    await MobileAds.instance.initialize();
+  }
 }
 
 final adsPlatformProvider =
@@ -133,6 +143,7 @@ class ConsentState {
   const ConsentState({
     this.adsReady = false,
     this.privacyOptionsRequired = false,
+    this.choicesVersion = 0,
   });
 
   /// Consentement traité, `canRequestAds()` vrai et MobileAds initialisé :
@@ -141,6 +152,11 @@ class ConsentState {
 
   /// Afficher « Gérer mes choix de confidentialité » dans Profil.
   final bool privacyOptionsRequired;
+
+  /// Incrémenté quand le joueur a pu modifier ses choix (« Gérer mes choix de
+  /// confidentialité ») : les pubs chargées avant sont libérées et rechargées,
+  /// même si `adsReady` reste vrai.
+  final int choicesVersion;
 }
 
 /// Consentement UMP puis initialisation des pubs. Aucune requête pub avant.
@@ -187,15 +203,17 @@ class ConsentController extends Notifier<ConsentState> {
       _privacy ??= _showPrivacyOptions().whenComplete(() => _privacy = null);
 
   Future<void> _showPrivacyOptions() async {
+    var shown = false;
     try {
       await _platform.showPrivacyOptionsForm();
+      shown = true;
     } catch (e) {
       _log('Options de confidentialité indisponibles : $e');
     }
-    await _refresh();
+    await _refresh(choicesChanged: shown);
   }
 
-  Future<void> _refresh() async {
+  Future<void> _refresh({bool choicesChanged = false}) async {
     var canRequest = false;
     var options = false;
     try {
@@ -205,7 +223,11 @@ class ConsentController extends Notifier<ConsentState> {
       _log('Statut du consentement illisible : $e');
     }
     final ready = canRequest && await _initializeAds();
-    state = ConsentState(adsReady: ready, privacyOptionsRequired: options);
+    state = ConsentState(
+      adsReady: ready,
+      privacyOptionsRequired: options,
+      choicesVersion: state.choicesVersion + (choicesChanged ? 1 : 0),
+    );
   }
 
   /// MobileAds initialisé une seule fois ; nouvel essai après une erreur.
@@ -231,6 +253,11 @@ final consentControllerProvider =
 /// À lire avant tout chargement de pub (bannière, interstitiel, récompensée).
 final adsReadyProvider = Provider<bool>(
   (ref) => ref.watch(consentControllerProvider.select((s) => s.adsReady)),
+);
+
+/// Change après « Gérer mes choix de confidentialité » : pubs à recharger.
+final consentChoicesVersionProvider = Provider<int>(
+  (ref) => ref.watch(consentControllerProvider.select((s) => s.choicesVersion)),
 );
 
 final privacyOptionsRequiredProvider = Provider<bool>(
