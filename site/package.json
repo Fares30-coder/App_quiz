@@ -1,0 +1,5 @@
+{
+  "name": "legal",
+  "private": true,
+  "description": "Pages légales de Quizzéo (site statique). Déploiement : cd site && cf deploy public"
+}

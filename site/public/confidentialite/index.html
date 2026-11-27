@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Politique de confidentialité — Quizzéo</title>
+<meta name="description" content="Les données utilisées par l'app Quizzéo, pourquoi, combien de temps, et tes droits (RGPD).">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a class="brand" href="/">Quizz<span>é</span>o</a>
+  <nav class="site" aria-label="Pages">
+    <a href="/confidentialite/" aria-current="page">Confidentialité</a>
+    <a href="/suppression/">Supprimer mes données</a>
+    <a href="/mentions-legales/">Mentions légales</a>
+  </nav>
+</header>
+<main>
+<h1>Politique de confidentialité</h1>
+<p class="meta">Dernière mise à jour : 27 novembre 2026</p>
+
+<div class="card">
+  <p><strong>En bref</strong></p>
+  <ul>
+    <li>Pas d'e-mail, pas de nom, pas de mot de passe : ton compte est anonyme et créé automatiquement.</li>
+    <li>Ta progression (XP, série, scores) est hébergée en France, à Paris.</li>
+    <li>Les autres joueurs ne voient que ton pseudo et ton XP de la semaine, dans le classement.</li>
+    <li>La pub personnalisée n'est utilisée que si tu l'acceptes. Tu peux changer d'avis à tout moment.</li>
+    <li>Pas de localisation, pas de contacts, pas de mesure d'audience.</li>
+  </ul>
+</div>
+
+<h2>1. Qui est responsable de tes données</h2>
+<p>Quizzéo est éditée par Fares Haouari EI (entrepreneur individuel, SIREN 131 698 656), responsable du traitement de tes données.<br>
+Contact : <a href="mailto:fares.haouari@epitech.eu">fares.haouari@epitech.eu</a><br>
+Adresse postale : 136 rue du Général Leclerc, 62740 Fouquières-lès-Lens, France</p>
+
+<h2>2. Ton compte</h2>
+<p>Au premier lancement, l'app crée un compte <strong>anonyme</strong> chez notre hébergeur Supabase. Il est identifié par un numéro technique tiré au hasard. On ne te demande ni e-mail, ni nom, ni numéro de téléphone, ni mot de passe.</p>
+<p>La clé de connexion à ce compte est rangée dans le coffre sécurisé de ton téléphone (Trousseau sur iPhone, Keystore sur Android). Elle n'est copiée ni dans les sauvegardes Android ni dans le trousseau iCloud. Si tu changes de téléphone, ou si tu désinstalles l'app sur Android, tu perds l'accès à ce compte. Sur iPhone, la clé peut rester sur le téléphone après une désinstallation : réinstaller l'app peut retrouver ton compte.</p>
+<p>Sans connexion, l'app reste jouable : ta progression est alors gardée sur ton téléphone et envoyée au retour du réseau.</p>
+<p>Ces données sont nécessaires pour jouer en ligne (série, classement) ; sans elles, l'app fonctionne seulement hors ligne. Aucune décision produisant des effets juridiques n'est prise automatiquement.</p>
+
+<h2>3. Les données traitées et pourquoi</h2>
+<div class="table">
+<table>
+  <thead><tr><th>Données</th><th>À quoi ça sert</th><th>Base légale</th><th>Durée</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Compte</strong> : identifiant technique aléatoire, date de création, dates de connexion ; pour chaque session : adresse IP, type d'appareil et d'app (user agent), jeton de connexion</td>
+      <td>Garder ta progression d'un lancement à l'autre</td>
+      <td>Exécution du service que tu utilises (art. 6.1.b RGPD)</td>
+      <td>Tant que le compte existe</td>
+    </tr>
+    <tr>
+      <td><strong>Profil</strong> : pseudo, XP totale, série de jours, gels de série, dernier jour joué, objectif du jour, nombre de quiz du jour, heure du dernier quiz</td>
+      <td>Calculer ton niveau, ta série, ton objectif et ta place au classement</td>
+      <td>Exécution du service</td>
+      <td>Tant que le compte existe</td>
+    </tr>
+    <tr>
+      <td><strong>Résultats de quiz</strong> : jour, heure, score, XP gagnée</td>
+      <td>Série, XP, classement de la semaine</td>
+      <td>Exécution du service</td>
+      <td>Tant que le compte existe</td>
+    </tr>
+    <tr>
+      <td><strong>Détail des parties</strong> : mode et catégorie, questions servies, réponse choisie, temps de réponse, heures</td>
+      <td>Corriger tes réponses sur le serveur, calculer le bonus rapidité, empêcher la triche</td>
+      <td>Exécution du service et intérêt légitime (un classement honnête)</td>
+      <td>2 jours, puis effacé automatiquement</td>
+    </tr>
+    <tr>
+      <td><strong>Journées jouées hors ligne</strong> : jour et heure du quiz</td>
+      <td>Ne pas casser ta série quand tu joues sans réseau</td>
+      <td>Exécution du service</td>
+      <td>Effacés lors d'une validation hors ligne suivante, une fois qu'ils ont plus de 14 jours, et dans tous les cas avec ton compte</td>
+    </tr>
+    <tr>
+      <td><strong>Signalements de questions</strong> : question concernée, motif (réponse fausse, question ambiguë, faute, autre), date</td>
+      <td>Corriger les questions. Il n'y a pas de texte libre.</td>
+      <td>Intérêt légitime (des questions fiables)</td>
+      <td>Rattaché à ton compte 90 jours, puis détaché de ton compte (le signalement anonyme est gardé)</td>
+    </tr>
+    <tr>
+      <td><strong>Journaux techniques</strong> de l'hébergeur : adresse IP, date et type de requête, type de client (bibliothèque Supabase, système)</td>
+      <td>Sécurité, lutte contre les abus, résolution des pannes</td>
+      <td>Intérêt légitime (sécurité du service)</td>
+      <td>7 jours (offre Pro de Supabase ; 1 jour en offre gratuite), puis effacés automatiquement</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<p>Les bonnes réponses et le temps de réponse sont vérifiés sur le serveur : l'app n'envoie jamais elle-même son score.</p>
+
+<h2>4. Le classement</h2>
+<p>Le classement de la semaine (du lundi au dimanche, heure de Paris) est visible par les autres joueurs <strong>dans l'app</strong>. Il montre seulement :</p>
+<ul>
+  <li>ton rang ;</li>
+  <li>ton pseudo ;</li>
+  <li>ton XP de la semaine.</li>
+</ul>
+<p>Jamais ton identifiant, ta série ni tes dates de jeu. Ton pseudo est créé automatiquement (« Joueur » suivi de chiffres au hasard), sans lien avec ton identité. Le classement n'est pas publié sur le web.</p>
+
+<h2>5. La publicité</h2>
+<p>Quizzéo est gratuite grâce à la pub, fournie par <strong>Google AdMob</strong> (Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irlande). Il n'y a jamais de pub pendant une question. La pub récompensée (pour gagner un gel de série) est toujours facultative : c'est toi qui choisis de la regarder.</p>
+<h3>Ton consentement, avant toute pub</h3>
+<p>À chaque lancement, l'app interroge d'abord la plateforme de consentement de Google (UMP). <strong>Aucune pub n'est demandée</strong> tant que Google n'indique pas que c'est permis compte tenu de tes choix ; avant cela, seule la vérification du consentement contacte les serveurs de Google.</p>
+<ul>
+  <li><strong>Union européenne, Espace économique européen, Royaume-Uni et Suisse</strong> : au premier lancement, Google affiche son formulaire de consentement. Tu acceptes ou refuses la pub personnalisée ; le jeu reste exactement le même dans les deux cas.</li>
+  <li><strong>Certains États des États-Unis</strong> : un message te permet de refuser la vente ou le partage de tes données à des fins publicitaires. <span class="todo">[À VALIDER : message « États américains » à créer dans la console AdMob]</span></li>
+  <li><strong>iPhone</strong> : Google affiche un court message d'explication, puis iOS te demande si tu autorises le suivi (App Tracking Transparency). Si tu refuses, l'identifiant publicitaire de ton iPhone (IDFA) n'est pas transmis.</li>
+</ul>
+<h3>Les données utilisées par Google</h3>
+<p>Selon tes choix : l'identifiant publicitaire de ton téléphone (IDFA sur iPhone ; sur Android, l'identifiant publicitaire et les API de confidentialité publicitaire d'Android, auxquels le SDK de Google accède), ton adresse IP (qui donne une localisation approximative), des informations sur ton appareil et tes interactions avec les pubs. Si tu refuses la pub personnalisée, Google affiche des pubs non personnalisées ou limitées, et peut encore utiliser certaines données pour limiter la répétition des pubs, mesurer leur affichage et lutter contre la fraude.</p>
+<p>Google est responsable de ses propres traitements. Pour en savoir plus : <a href="https://policies.google.com/technologies/partner-sites?hl=fr">Comment Google utilise les données des sites ou applis partenaires</a>.</p>
+<p>Les partenaires publicitaires de Google qui peuvent recevoir ces données sont listés dans le formulaire de consentement (« Gérer les options », puis « Partenaires »).</p>
+<h3>Bases légales</h3>
+<p>Pub personnalisée, accès à l'identifiant publicitaire et lecture ou stockage d'informations sur ton téléphone : ton consentement (art. 6.1.a RGPD et art. 82 de la loi Informatique et Libertés). Certaines finalités (mesure des pubs, sécurité, lutte contre la fraude) peuvent reposer sur l'intérêt légitime de Google ou de ses partenaires : tu peux t'y opposer dans le formulaire (« Gérer les options »). Sans ton consentement, Google n'affiche que des pubs limitées.</p>
+<h3>Changer d'avis</h3>
+<p>Si ton choix t'a été demandé (EEE, Royaume-Uni, Suisse…), tu peux le modifier à tout moment dans l'app : <strong>Profil → Gérer mes choix de confidentialité</strong>. Sur iPhone, tu peux aussi retirer l'autorisation de suivi dans <strong>Réglages → Confidentialité et sécurité → Suivi</strong>. Sur Android comme sur iPhone, tu peux réinitialiser ou supprimer l'identifiant publicitaire dans les réglages du téléphone. Retirer ton consentement ne remet pas en cause ce qui a été fait avant.</p>
+
+<h2>6. Ce qui reste sur ton téléphone</h2>
+<ul>
+  <li><strong>Préférences et progression locale</strong> : objectif du jour, heure du rappel, sons activés ou non, XP, série, résultat du défi du jour, et les quiz pas encore envoyés au serveur. Tout cela est effacé si tu désinstalles l'app, sauf si la sauvegarde de ton téléphone (iCloud, Google) l'a copié : il est alors restauré à la réinstallation.</li>
+  <li><strong>Rappel quotidien</strong> : une notification <strong>locale</strong>, programmée par ton téléphone à l'heure que tu choisis. Aucun serveur de notifications n'est utilisé. Tu peux la couper dans Profil ou dans les réglages du téléphone.</li>
+  <li><strong>Sons</strong> : joués depuis l'app, muets quand ton téléphone est en silencieux.</li>
+  <li><strong>Partage du score</strong> : l'image est créée sur ton téléphone, sans ton pseudo, puis passée à l'app que tu choisis dans le menu de partage du système (TikTok, Instagram, Messages…). Quizzéo ne reçoit rien et n'envoie rien. Sur iPhone, l'accès aux Photos n'est demandé que si tu choisis « Enregistrer l'image », et seulement pour ajouter cette image.</li>
+</ul>
+
+<h2>7. Ce que Quizzéo ne fait pas</h2>
+<ul>
+  <li>Pas de localisation, pas d'accès à tes contacts, ton micro ou ta caméra.</li>
+  <li>Pas de mesure d'audience ni d'outil de suivi d'utilisation pour l'instant.</li>
+  <li>Pas d'achat dans l'app pour l'instant.</li>
+  <li>Pas de vente de tes données.</li>
+</ul>
+<p>Si l'un de ces points change (par exemple l'arrivée d'une option payante « sans pub »), cette politique sera mise à jour avant.</p>
+
+<h2>8. Qui traite tes données et où</h2>
+<ul>
+  <li><strong>Supabase</strong> (Supabase Pte. Ltd., Singapour, du groupe américain Supabase, Inc.) : hébergement du compte, de la progression et du classement. Les données sont stockées dans la région Paris (<code>eu-west-3</code>, sur l'infrastructure Amazon Web Services). Supabase agit comme sous-traitant, dans le cadre de son accord de traitement des données (DPA), qui prévoit les clauses contractuelles types de la Commission européenne (décision 2021/914) pour tout accès depuis l'extérieur de l'Union européenne.</li>
+  <li><strong>Google Ireland Limited</strong> : publicité (voir section 5). Google peut transférer des données vers les États-Unis et d'autres pays, sur la base du cadre UE–États-Unis de protection des données (Data Privacy Framework, auquel Google LLC est certifiée) et des clauses contractuelles types de la Commission européenne.</li>
+  <li><strong>Cloudflare, Inc.</strong> : hébergement de ce site web uniquement (pas de l'app) ; Cloudflare traite ton adresse IP pour afficher ce site et le protéger des attaques.</li>
+</ul>
+<p><strong>CLOUD Act</strong> : Supabase fait partie d'un groupe américain. La loi américaine (CLOUD Act) peut obliger une telle société à remettre des données aux autorités américaines, même si elles sont stockées en Europe. Pour limiter ce risque, Quizzéo collecte le moins de données possible : ni e-mail, ni nom, ni contact.</p>
+
+<h2>9. Sécurité</h2>
+<p>Tous les échanges avec le serveur sont chiffrés (HTTPS). Chaque joueur ne peut lire que ses propres données ; les scores et l'XP ne peuvent être modifiés que par le serveur.</p>
+
+<h2>10. Tes droits</h2>
+<p>Tu peux à tout moment demander :</p>
+<ul>
+  <li><strong>l'accès</strong> à tes données et une copie ;</li>
+  <li><strong>la rectification</strong> de données inexactes ;</li>
+  <li><strong>l'effacement</strong> de ton compte et de tes données, directement dans l'app (<strong>Profil → Supprimer mon compte</strong>) ou par e-mail (voir <a href="/suppression/">Supprimer tes données</a>) ;</li>
+  <li><strong>l'opposition</strong> à un traitement fondé sur l'intérêt légitime ;</li>
+  <li><strong>la limitation</strong> d'un traitement ;</li>
+  <li><strong>la portabilité</strong> : recevoir tes données dans un format lisible par une machine ;</li>
+  <li>le <strong>retrait de ton consentement</strong> à la pub personnalisée (Profil → Gérer mes choix de confidentialité) ;</li>
+  <li>et définir des <strong>directives sur le sort de tes données après ton décès</strong>.</li>
+</ul>
+<p>Écris à <a href="mailto:fares.haouari@epitech.eu">fares.haouari@epitech.eu</a>. Comme ton compte est anonyme, indique ton <strong>pseudo</strong> (visible dans l'onglet Classement) pour qu'on retrouve ton compte. Réponse sous un mois au plus.</p>
+<p>Si tu estimes que tes droits ne sont pas respectés, tu peux adresser une réclamation à la <strong>CNIL</strong> : <a href="https://www.cnil.fr/fr/plaintes">www.cnil.fr/fr/plaintes</a>, 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.</p>
+
+<h2>11. Âge minimum</h2>
+<p>Quizzéo s'adresse aux personnes de <strong>13 ans et plus</strong>. En France, si tu as moins de 15 ans, le consentement à la pub personnalisée doit être donné à la fois par toi et par un parent ou tuteur : sans cet accord, refuse la pub personnalisée dans le formulaire. Si un parent pense que son enfant de moins de 13 ans utilise l'app, il peut nous écrire pour faire supprimer son compte.</p>
+
+<h2>12. Modifications</h2>
+<p>Cette politique peut évoluer avec l'app. La date en haut de page indique la dernière mise à jour. En cas de changement important, tu en seras informé dans l'app.</p>
+
+<h2>13. Contact</h2>
+<p><a href="mailto:fares.haouari@epitech.eu">fares.haouari@epitech.eu</a></p>
+</main>
+<footer class="site">
+  <p>© 2026 Quizzéo · <a href="/suppression/">Supprimer mes données</a> · <a href="/mentions-legales/">Mentions légales</a></p>
+</footer>
+</div>
+</body>
+</html>
