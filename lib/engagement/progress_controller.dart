@@ -178,6 +178,10 @@ class ProgressController extends Notifier<PlayerProgress> {
 
   void markDangerShown() => _set(state.copyWith(dangerShownDay: dayOf(_now())));
 
+  /// Suppression du compte : progression effacée, retour au premier
+  /// lancement (`AccountDeletion`).
+  void reset() => _set(const PlayerProgress());
+
   /// Gel obtenu (pub récompensée à l'étape 3, ou offert aux joueurs « sans pub »).
   void addStreakFreeze() =>
       _set(state.copyWith(streak: addFreeze(state.streak)));

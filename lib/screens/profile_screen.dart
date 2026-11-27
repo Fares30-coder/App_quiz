@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../backend/account_deletion.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../engagement/xp.dart';
@@ -134,9 +137,74 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.l),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              minTileHeight: 56,
+              iconColor: context.colors.error,
+              textColor: context.colors.error,
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Supprimer mon compte'),
+              subtitle: const Text('Progression, résultats et classement'),
+              onTap: () => _deleteAccount(context, ref),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.l),
         ],
       ),
     );
+  }
+
+  /// Confirmation, puis suppression (serveur d'abord). Succès : l'app repart
+  /// au premier lancement. Échec : rien n'est effacé, message d'erreur.
+  Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer ton compte ?'),
+        content: const Text(
+            'Ton XP, ton niveau, ta série, tes résultats et ta place au classement seront effacés définitivement, sur ce téléphone et sur nos serveurs.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: context.colors.error),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final deletion = ref.read(accountDeletionProvider);
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    ));
+    Object? error;
+    try {
+      await deletion.deleteAccount();
+    } catch (e) {
+      error = e;
+    }
+    navigator.pop();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(error == null
+            ? 'Ton compte a été supprimé.'
+            : 'Suppression impossible. Vérifie ta connexion et réessaie.'),
+      ));
   }
 
   /// Enregistre le rappel (replanifié automatiquement) et, s'il est actif,
