@@ -450,8 +450,17 @@ class _FeedbackSheet extends StatelessWidget {
                           Icon(Icons.lightbulb_outline, color: c.secondary),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(q.explanation,
-                                style: context.text.bodyLarge),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(q.explanation,
+                                    style: context.text.bodyLarge),
+                                if (q.source case final source?) ...[
+                                  const SizedBox(height: 6),
+                                  SourceLabel(source),
+                                ],
+                              ],
+                            ),
                           ),
                         ],
                       ),

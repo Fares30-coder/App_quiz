@@ -293,8 +293,9 @@ class QuizController extends Notifier<QuizState> {
       return _reveal(
         timedOut ? null : choice,
         timedOut ? const Duration(seconds: questionSeconds) : elapsed,
-        state.current
-            .withCorrection(correction.correctChoice, correction.explanation),
+        state.current.withCorrection(
+            correction.correctChoice, correction.explanation,
+            source: correction.source),
       );
     } catch (_) {
       if (stillCurrent()) state = state.copyWith(answerFailed: true);

@@ -7,7 +7,8 @@ import '../models/quiz_session.dart';
 
 /// Accès Supabase aux quiz servis : `start_quiz` (première question, sans
 /// réponse), `next_question` (questions suivantes, une à une) et
-/// `answer_question` (correction après chaque réponse, temps mesuré par le
+/// `answer_question` (correction après chaque réponse : bonne réponse,
+/// explication et source, jamais envoyées avant ; temps mesuré par le
 /// serveur). Lève une erreur en cas de problème réseau ou de refus du
 /// serveur.
 class SupabaseQuizSource {

@@ -52,7 +52,8 @@ class ServedQuiz {
           answered.length == questions.length) {
         final a = ServedAnswer.fromJson(answer);
         answered.add(a);
-        question = question.withCorrection(a.correctChoice, a.explanation);
+        question = question.withCorrection(a.correctChoice, a.explanation,
+            source: a.source);
       }
       questions.add(question);
     }
@@ -98,6 +99,7 @@ class ServedAnswer {
     required this.correctChoice,
     required this.explanation,
     required this.timeMs,
+    this.source,
   });
 
   /// Position affichée choisie, `null` si le temps était écoulé.
@@ -107,12 +109,16 @@ class ServedAnswer {
   final String explanation;
   final int timeMs;
 
+  /// Source courte de l'explication, `null` si absente.
+  final String? source;
+
   factory ServedAnswer.fromJson(Map<String, dynamic> json) => ServedAnswer(
         choice: (json['choice'] as num?)?.toInt(),
         correct: json['correct'] as bool? ?? false,
         correctChoice: (json['correct_choice'] as num).toInt(),
         explanation: json['explanation'] as String? ?? '',
         timeMs: (json['time_ms'] as num).toInt(),
+        source: _source(json['source']),
       );
 }
 
@@ -136,6 +142,7 @@ class AnswerCorrection {
     required this.correctChoice,
     required this.explanation,
     this.timedOut = false,
+    this.source,
   });
 
   final bool correct;
@@ -143,6 +150,9 @@ class AnswerCorrection {
   /// Position affichée de la bonne réponse (0 à 3).
   final int correctChoice;
   final String explanation;
+
+  /// Source courte de l'explication, `null` si absente.
+  final String? source;
 
   /// Temps écoulé selon le serveur (plus de 30 s depuis l'envoi de la
   /// question, tolérance comprise) : réponse comptée fausse.
@@ -154,8 +164,13 @@ class AnswerCorrection {
         correctChoice: (json['correct_choice'] as num).toInt(),
         explanation: json['explanation'] as String? ?? '',
         timedOut: json['timed_out'] as bool? ?? false,
+        source: _source(json['source']),
       );
 }
+
+/// Source de la correction : `null` si absente ou vide.
+String? _source(Object? value) =>
+    value is String && value.trim().isNotEmpty ? value.trim() : null;
 
 /// Pourquoi un quiz est joué en local alors que le serveur est configuré.
 enum UnrankedReason {
