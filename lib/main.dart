@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'ads/banner_ads.dart';
 import 'ads/consent_service.dart';
 import 'backend/auth_service.dart';
 import 'backend/backend_config.dart';
@@ -20,6 +21,9 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Build store (REQUIRE_REAL_AD_UNITS=true) : échoue tout de suite sans vrai
+  // ID de bloc, plutôt qu'au premier affichage de bannière.
+  bannerAdUnitId();
   // Supabase : lecture locale seulement (pas d'attente réseau) ; `null` sans
   // config/dev.json → mode 100 % local. Session dans le stockage sécurisé.
   const backend = BackendConfig.fromEnvironment();
@@ -39,6 +43,8 @@ Future<void> main() async {
         sessionStorageProvider.overrideWithValue(sessionStorage),
         // Pubs : rien n'est appelé avant le consentement (ConsentController).
         adsPlatformProvider.overrideWithValue(GoogleAdsPlatform()),
+        // Bannières : chargées seulement si `bannerAllowedProvider` (AdSlot).
+        bannerLoaderProvider.overrideWithValue(const GoogleBannerLoader()),
       ],
       child: const QuizzeoApp(),
     ),
