@@ -5,45 +5,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'ad_unit_id.dart';
 import 'consent_service.dart';
 
 /// ID de test Google « bannière adaptative ancrée » (doc AdMob « test ads »).
 const testBannerIdAndroid = 'ca-app-pub-3940256099942544/9214589741';
 const testBannerIdIos = 'ca-app-pub-3940256099942544/2435281174';
 
-final _adUnitIdFormat = RegExp(r'^ca-app-pub-\d{16}/\d{10}$');
-
 /// ID de bloc bannière. Les vrais ID viennent de `--dart-define`
 /// (`ADMOB_BANNER_ANDROID`, `ADMOB_BANNER_IOS`, voir README § AdMob) et ne
 /// servent qu'en release : en debug et profile, toujours l'ID de test.
 /// En release, ID absent, mal formé ou de test : repli sur l'ID de test avec un
 /// log, ou [StateError] si `--dart-define=REQUIRE_REAL_AD_UNITS=true` (builds
-/// stores, vérifié dès le démarrage dans `main()`).
+/// stores, vérifié dès le démarrage dans `main()`). Voir [resolveAdUnitId].
 String bannerAdUnitId({
   TargetPlatform? platform,
   bool releaseMode = kReleaseMode,
   bool requireReal = const bool.fromEnvironment('REQUIRE_REAL_AD_UNITS'),
   String androidId = const String.fromEnvironment('ADMOB_BANNER_ANDROID'),
   String iosId = const String.fromEnvironment('ADMOB_BANNER_IOS'),
-}) {
-  final ios = (platform ?? defaultTargetPlatform) == TargetPlatform.iOS;
-  final testId = ios ? testBannerIdIos : testBannerIdAndroid;
-  final realId = ios ? iosId : androidId;
-  if (!releaseMode) return testId;
-  if (_adUnitIdFormat.hasMatch(realId) &&
-      !realId.contains('3940256099942544')) {
-    return realId;
-  }
-  final define = ios ? 'ADMOB_BANNER_IOS' : 'ADMOB_BANNER_ANDROID';
-  if (requireReal) {
-    throw StateError('AdMob : vrai ID de bannière requis en release '
-        '(REQUIRE_REAL_AD_UNITS=true) : --dart-define=$define absent, '
-        'mal formé ou ID de test.');
-  }
-  debugPrint('AdMob : ID de bannière réel absent ou invalide en release, '
-      'ID de test utilisé (--dart-define=$define).');
-  return testId;
-}
+}) =>
+    resolveAdUnitId(
+      label: 'de bannière',
+      androidDefine: 'ADMOB_BANNER_ANDROID',
+      iosDefine: 'ADMOB_BANNER_IOS',
+      testAndroidId: testBannerIdAndroid,
+      testIosId: testBannerIdIos,
+      androidId: androidId,
+      iosId: iosId,
+      releaseMode: releaseMode,
+      requireReal: requireReal,
+      platform: platform,
+    );
 
 /// Bannière chargée, prête à afficher. [dispose] la libère côté SDK.
 abstract class LoadedBanner {

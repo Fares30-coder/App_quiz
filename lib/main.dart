@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ads/banner_ads.dart';
 import 'ads/consent_service.dart';
+import 'ads/interstitial_ads.dart';
 import 'backend/auth_service.dart';
 import 'backend/backend_config.dart';
 import 'backend/secure_session_storage.dart';
@@ -22,8 +23,9 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Build store (REQUIRE_REAL_AD_UNITS=true) : échoue tout de suite sans vrai
-  // ID de bloc, plutôt qu'au premier affichage de bannière.
+  // ID de bloc, plutôt qu'au premier affichage de pub.
   bannerAdUnitId();
+  interstitialAdUnitId();
   // Supabase : lecture locale seulement (pas d'attente réseau) ; `null` sans
   // config/dev.json → mode 100 % local. Session dans le stockage sécurisé.
   const backend = BackendConfig.fromEnvironment();
@@ -45,6 +47,9 @@ Future<void> main() async {
         adsPlatformProvider.overrideWithValue(GoogleAdsPlatform()),
         // Bannières : chargées seulement si `bannerAllowedProvider` (AdSlot).
         bannerLoaderProvider.overrideWithValue(const GoogleBannerLoader()),
+        // Interstitiel : préchargé seulement si `interstitialAllowedProvider`.
+        interstitialLoaderProvider
+            .overrideWithValue(const GoogleInterstitialLoader()),
       ],
       child: const QuizzeoApp(),
     ),
@@ -88,6 +93,8 @@ class RootGate extends ConsumerWidget {
     // Consentement UMP à chaque lancement ; au premier, il est demandé par
     // l'écran de consentement (après l'explication).
     if (onboardingDone) ref.watch(consentStartupProvider);
+    // Interstitiel préchargé dès que les pubs sont autorisées (entre deux quiz).
+    ref.watch(interstitialControllerProvider);
     return onboardingDone ? const ShellScreen() : const ConsentScreen();
   }
 }

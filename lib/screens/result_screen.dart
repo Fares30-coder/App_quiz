@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../ads/interstitial_ads.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../quiz/quiz_controller.dart';
@@ -39,16 +40,20 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     });
   }
 
-  /// Après le premier quiz du jour : écran « Série validée », sinon accueil.
-  void _leave() {
+  /// Après le premier quiz du jour : écran « Série validée » (l'interstitiel
+  /// attend sa fermeture). Sinon interstitiel s'il est dû, affiché AVANT de
+  /// quitter l'écran (la pub sert de transition), puis accueil.
+  Future<void> _leave() async {
     final outcome = ref.read(quizControllerProvider).outcome;
     if (outcome != null && outcome.streakValidatedNow) {
       Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
         builder: (_) => const StreakScreen(mode: StreakScreenMode.celebrate),
       ));
-    } else {
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
     }
+    await ref.read(interstitialControllerProvider.notifier).showIfDue();
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   String _title(QuizState s) => switch (s.mode) {
