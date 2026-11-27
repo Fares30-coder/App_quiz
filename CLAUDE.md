@@ -45,7 +45,8 @@ Après publication : ligues hebdo (groupes de 30, montée/descente), badges (voi
 
 ## Contenu
 - 500+ questions au lancement, générées puis relues à la main (faits vérifiés)
-- Champs : question, 4 réponses, bonne réponse, explication, catégorie, difficulté
+- Champs : question, 4 réponses, bonne réponse, explication, source (courte, sans URL, vérifiée), catégorie, difficulté
+- Environ 30 % de questions à ancrage francophone (voir `design/charte.md` § 4)
 - Questions servies par le serveur : `supabase/questions/questions.json` uniquement, jamais dans `assets/` ; `assets/questions.json` = lot hors ligne, jamais servi (anti-triche)
 
 ## Hors MVP
@@ -65,6 +66,11 @@ Multijoueur temps réel, notifications avancées, contenus par niveau scolaire.
 - État : Riverpod (`flutter_riverpod`)
 - Nom Quizzéo gardé malgré des noms proches (Quizeo.ai, Qizeo) : risque de marque à garder en tête
 - Back-end : Supabase (Paris, `eu-west-3`), plan Free en dev puis Pro (25 $/mois) dès le test fermé ; Firebase et Scaleway écartés (ADR 0001)
+- Différenciation (2026-11-26, voir `marketing/strategie-produit.md`) : défi du jour partageable en grille sans spoiler, questions fiables (source + signalement), ancrage francophone
+  - Signalement : 4 motifs fixes, pas de texte libre
+  - `source` : libellé court sans URL, révélé seulement après la réponse
+  - Défi n° 1 = jour de publication (`challengeStartDay`, à ajuster avant la sortie)
+  - Non-répétition des questions : étape 2, après 500+ questions
 
 ## Questions ouvertes
 - "Sans pub" : achat unique ou abonnement, et prix
