@@ -292,6 +292,85 @@ Limites :
 - tant que la migration n'est pas poussée, l'appel échoue (erreur
   passagère) : l'entrée est gardée jusqu'à 6 h, puis abandonnée.
 
+## Signalements de questions (`report_question`)
+
+Migration `*_question_reports.sql`. Après sa réponse à une question d'un
+quiz **servi**, le joueur peut la signaler (lien « Signaler » sous
+l'explication ; jamais en quiz local). 4 motifs fixes, pas de texte libre :
+`fausse` (Réponse fausse), `ambigue` (Question ambiguë), `faute` (Faute ou
+coquille), `autre`.
+
+`report_question(p_quiz_id, p_position, p_reason)` : `security definer`,
+EXECUTE pour `authenticated` seulement. L'app n'envoie que la session et la
+position (1 à 10) ; le serveur retrouve la question (servie à ce joueur et
+**déjà répondue**) et ne renvoie jamais son identifiant. Retour
+`{ "reported": true }`, identique pour un doublon (aucune nouvelle ligne,
+motif d'origine gardé). Erreurs : `22023` motif invalide ou « question
+introuvable » (même erreur pour un quiz d'un autre joueur, purgé, une
+position non servie ou sans réponse), `PT429` au-delà de **20 signalements
+par joueur et par jour** (Europe/Paris), `42501` non authentifié.
+Signalable tant que la session existe (purge après 2 jours).
+
+Table `question_reports` (RLS sans policy, aucun GRANT client, aucun droit
+client sur la séquence `question_reports_id_seq`) : `question_id` (clé
+étrangère vers `questions`, pas vers la session : le signalement survit à la
+purge), `user_id` (`on delete set null` : gardé après suppression du
+compte), `reason`, `created_at`, unique `(user_id, question_id)` (les lignes
+à `user_id` null ne se gênent pas).
+
+**Conservation (RGPD) : 90 jours rattachés au compte.** Au-delà,
+`purge_question_reports()` (fonction interne) met `user_id` à null : motif
+et question gardés, joueur oublié. Lancée chaque jour à 03:35 UTC par
+`pg_cron` (job `purge-question-reports`, même mécanisme que
+`purge-quiz-sessions`). Sans effet sur le plafond (jour en cours) ; un
+joueur peut de nouveau signaler une question 90 jours après.
+
+**Aucune question n'est jamais désactivée automatiquement à partir des
+signalements** : le tri est manuel (requêtes ci-dessous), la correction
+passe par `questions.json`. Un faux compte anonyme ne peut donc rien retirer
+du jeu ; si des abus apparaissent, activer le CAPTCHA sur la connexion
+anonyme (voir « À faire avant la publication »).
+
+Trier les signalements (SQL Editor du Dashboard, ou `supabase db query`),
+d'abord par nombre de joueurs distincts :
+
+```sql
+select r.question_id,
+       count(distinct r.user_id) as joueurs,
+       count(*) as signalements,
+       count(*) filter (where r.reason = 'fausse')  as fausse,
+       count(*) filter (where r.reason = 'ambigue') as ambigue,
+       count(*) filter (where r.reason = 'faute')   as faute,
+       count(*) filter (where r.reason = 'autre')   as autre,
+       max(r.created_at) as dernier,
+       q.active,
+       q.question,
+       q.answers[q.correct_index + 1] as bonne_reponse,
+       q.explanation
+  from public.question_reports r
+  join public.questions q on q.id = r.question_id
+ group by r.question_id, q.active, q.question, q.answers, q.correct_index,
+          q.explanation
+ order by joueurs desc, signalements desc, dernier desc;
+```
+
+`joueurs` ignore les signalements détachés (plus de 90 jours ou compte
+supprimé), comptés seulement dans `signalements`. Variante plus fiable :
+ne garder que les comptes ayant soumis au moins un quiz (écarte les comptes
+anonymes créés pour signaler en masse), en ajoutant avant le `group by` :
+
+```sql
+ where exists (select 1 from public.quiz_results qr
+                where qr.user_id = r.user_id)
+```
+
+Correction : modifier la question dans `supabase/questions/questions.json`
+(ou l'en retirer pour la désactiver), régénérer le seed
+(`dart run tool/generate_seed.dart`) puis l'exécuter en distant :
+`supabase db query --remote -f supabase/seed.sql` (`--include-seed` ne
+relance pas un seed modifié). Les signalements traités peuvent ensuite
+être supprimés (`delete from public.question_reports where question_id = …`).
+
 ## Classement hebdo (`weekly_leaderboard`)
 
 Migration `*_weekly_leaderboard.sql`. Classement **global** de la semaine en
@@ -344,11 +423,15 @@ classement chargé avec un bandeau, sinon message et « Réessayer ».
 ### À faire avant la publication
 
 - Comptes anonymes en prod : captcha (Dashboard > Authentication > Attack
-  Protection) et limite de créations par IP.
+  Protection) et limite de créations par IP. Aussi le recours si des
+  signalements de questions abusifs apparaissent (plafond actuel : 20 par
+  compte et par jour).
 - Classement en cache (table remplie par `pg_cron`, par exemple chaque
   minute) quand le volume de `quiz_results` grossit.
 - Politique de confidentialité : indiquer que le classement révèle
-  l'activité (pseudo et XP de la semaine) des joueurs du top.
+  l'activité (pseudo et XP de la semaine) des joueurs du top. Données
+  collectées à lister, dont : signalements de questions (motif, question,
+  90 jours rattachés au compte).
 
 ## Questions (`seed.sql`)
 
@@ -373,22 +456,26 @@ dart run tool/generate_seed.dart   # après chaque modification des questions
 Ajouter une question serveur : l'ajouter à `supabase/questions/questions.json`
 (nouvel `id` stable, ex. `his-014`, champs `category`, `question`, 4
 `answers`, `correctIndex`, `explanation`, `difficulty`), régénérer le seed,
-puis `supabase db push --include-seed`. Retirer une question : l'enlever du
-fichier puis régénérer (le seed la désactive). Ne jamais copier une question
+puis l'exécuter en distant : `supabase db query --remote -f supabase/seed.sql`.
+Retirer une question : l'enlever du
+fichier puis régénérer et exécuter le seed (il la désactive). Ne jamais copier une question
 du serveur dans `assets/`.
 
 Tests Flutter : `test/submit_quiz_test.dart` échoue si `seed.sql` n'est plus
 à jour ; `test/questions_test.dart` échoue si un identifiant ou un énoncé est
 dans les deux lots, si une question du serveur apparaît dans `assets/`, ou
 s'il y a moins de 10 questions serveur par catégorie. Seed appliqué
-automatiquement par `supabase db reset` en local ; en distant avec
-`supabase db push --include-seed`. Sans seed en distant, tout est joué en
+automatiquement par `supabase db reset` en local ; en distant,
+`supabase db push --include-seed` ne l'exécute qu'une fois et ne relance pas
+un seed modifié : après chaque `dart run tool/generate_seed.dart`, lancer
+`supabase db query --remote -f supabase/seed.sql`. Sans seed en distant, tout est joué en
 local (hors classement).
 
 Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
 `tests/start_quiz_test.sql`, `tests/submit_quiz_test.sql`,
 `tests/temps_serveur_test.sql`, `tests/questions_serveur_test.sql`,
-`tests/weekly_leaderboard_test.sql`, `tests/serie_hors_ligne_test.sql`).
+`tests/weekly_leaderboard_test.sql`, `tests/serie_hors_ligne_test.sql`,
+`tests/question_reports_test.sql`).
 
 ## Commandes à lancer soi-même
 
@@ -399,7 +486,7 @@ supabase login                              # ouvre le navigateur
 supabase link --project-ref <ref-projet>    # ref = sous-domaine de SUPABASE_URL
 supabase db push --dry-run                  # vérifier ce qui sera appliqué
 supabase db push                            # appliquer les migrations au projet distant
-supabase db push --include-seed             # idem + questions (seed.sql)
+supabase db query --remote -f supabase/seed.sql   # questions (seed.sql), à relancer après chaque génération
 ```
 
 En local (Docker requis) : `supabase start`, `supabase db reset`, `supabase stop`.

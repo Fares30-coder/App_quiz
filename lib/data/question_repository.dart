@@ -11,6 +11,7 @@ import '../backend/supabase_provider.dart';
 import '../backend/supabase_quiz_source.dart';
 import '../engagement/daily_challenge.dart';
 import '../models/question.dart';
+import '../models/question_report.dart';
 import '../models/quiz_session.dart';
 
 const quizLength = 10;
@@ -148,6 +149,22 @@ class QuestionRepository {
           choice: choice,
           timeMs: timeMs,
         )
+        .timeout(timeout);
+  }
+
+  /// Signale une question déjà répondue d'un quiz servi (par sa position).
+  /// Lève une erreur (réseau, refus, `PT429` au-delà de 20 par jour).
+  Future<void> reportQuestion({
+    required String quizId,
+    required int position,
+    required ReportReason reason,
+  }) {
+    final remote = _remote;
+    if (remote == null) {
+      throw StateError('quiz servi sans serveur configuré');
+    }
+    return remote
+        .reportQuestion(quizId: quizId, position: position, reason: reason)
         .timeout(timeout);
   }
 

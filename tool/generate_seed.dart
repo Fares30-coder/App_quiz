@@ -46,7 +46,8 @@ String seedSql(List<Map<String, dynamic>> questions) {
   return '''
 -- Fichier généré par tool/generate_seed.dart depuis $questionsPath.
 -- Ne pas modifier à la main : relancer `dart run tool/generate_seed.dart`.
--- Appliqué par `supabase db reset` (local) ou `supabase db push --include-seed`.
+-- Appliqué par `supabase db reset` (local) ; en distant, après chaque
+-- génération : `supabase db query --remote -f supabase/seed.sql`.
 
 insert into public.questions
   (id, category, difficulty, question, answers, correct_index, explanation)
