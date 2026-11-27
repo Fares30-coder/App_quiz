@@ -99,6 +99,7 @@ Fond teinté en clair (texte encre dessus : ≥ 13:1), icône colorée (≥ 4,5:
 - **Encourager, jamais moquer.** Erreur : « Raté ! » puis l'explication, sans « nul » ni « honte ».
 - **Défier avec le sourire** : « Tu fais mieux ? », « 7/10. Qui dit mieux ? ».
 - **Expliquer en une ou deux phrases** : un fait, pas un cours.
+- **Ancrage francophone** : environ 30 % des questions parlent du monde francophone (France, Belgique, Suisse, Québec, Afrique francophone, outre-mer), sans jamais exclure un joueur d'un autre pays. Ex. : « Quelle ville belge est surnommée la Cité ardente ? », « Quel fleuve traverse Québec ? ».
 - **Honnête sur les pubs et le paiement** : « Un seul achat, plus de pubs. Le contenu reste le même. »
 - Pas de chiffres non vérifiés dans les textes (« des milliers de joueurs », « n°1 »).
 - Majuscule seulement en début de phrase. Pas de texte tout en capitales, sauf les surtitres courts (« DÉFI DU JOUR ») en 13 px, espacement +0,08 em.
