@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:quizzeo/backend/account_deletion.dart';
 import 'package:quizzeo/backend/auth_service.dart';
 import 'package:quizzeo/backend/backend_config.dart';
 import 'package:quizzeo/backend/supabase_provider.dart';
@@ -35,6 +36,7 @@ Future<void> pumpApp(
   SoundService sounds = const SilentSoundService(),
   FakeNotificationService? notifications,
   FakeShareService? share,
+  List<Override> overrides = const [],
 }) async {
   // Format téléphone des maquettes (390×844), assez haut pour tout l'écran objectif.
   tester.view.physicalSize = Size(390, height);
@@ -51,6 +53,7 @@ Future<void> pumpApp(
       notificationServiceProvider
           .overrideWithValue(notifications ?? FakeNotificationService()),
       shareServiceProvider.overrideWithValue(share ?? FakeShareService()),
+      ...overrides,
     ],
     child: const QuizzeoApp(),
   ));
@@ -146,6 +149,67 @@ void main() {
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('progress_v1'), contains('"soundEnabled":false'));
+  });
+
+  Future<void> openAccountDeletion(WidgetTester tester) async {
+    await tester.tap(find.text('Profil'));
+    await tester.pump(const Duration(milliseconds: 500));
+    final tile = find.text('Supprimer mon compte');
+    await tester.scrollUntilVisible(tile, 100);
+    await tester.tap(tile);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Supprimer ton compte ?'), findsOneWidget);
+  }
+
+  const played = '{"onboardingDone":true,"totalXp":420,"quizzesCount":7}';
+
+  testWidgets('suppression de compte : « Annuler » ne change rien',
+      (tester) async {
+    await pumpApp(tester, {'progress_v1': played});
+    await openAccountDeletion(tester);
+    await tester.tap(find.text('Annuler'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Supprimer ton compte ?'), findsNothing);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('progress_v1'), contains('"totalXp":420'));
+  });
+
+  testWidgets('suppression de compte : progression effacée, premier lancement',
+      (tester) async {
+    await pumpApp(tester, {
+      'progress_v1': played,
+      'pending_quizzes_v2': '[]',
+    });
+    await openAccountDeletion(tester);
+    await tester.tap(find.widgetWithText(TextButton, 'Supprimer'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Avant de jouer'), findsOneWidget);
+    expect(find.text('Ton compte a été supprimé.'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('progress_v1'), isNot(contains('totalXp":420')));
+    expect(prefs.getString('progress_v1'), contains('"onboardingDone":false'));
+  });
+
+  testWidgets('suppression de compte : échec serveur, rien d\'effacé',
+      (tester) async {
+    var cleared = false;
+    await pumpApp(tester, {
+      'progress_v1': played
+    }, overrides: [
+      accountDeletionProvider.overrideWithValue(AccountDeletion(
+        deleteRemote: () async => throw Exception('hors ligne'),
+        clearLocal: () async => cleared = true,
+      )),
+    ]);
+    await openAccountDeletion(tester);
+    await tester.tap(find.widgetWithText(TextButton, 'Supprimer'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(cleared, isFalse);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.textContaining('Suppression impossible'), findsOneWidget);
+    expect(find.text('Supprimer mon compte'), findsOneWidget);
   });
 
   testWidgets('partage du score puis de la série', (tester) async {
