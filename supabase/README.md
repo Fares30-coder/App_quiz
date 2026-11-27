@@ -126,6 +126,13 @@ réponse donnée à 29 s sur un réseau lent reste valable). Un script ne voit
 plus qu'une question à la fois et ne peut plus chercher les réponses avant
 de jouer.
 
+Vérification réseau lent (T11, 2026-11-27) : simulateur iPhone 15 Pro (iOS,
+Xcode 27.2) + Network Link Conditioner sur le Mac, profil **3G** (~100 ms de
+délai, ~780 kbit/s), projet Supabase distant : réponses en moins de 10 s,
+**bonus rapidité accordé** par `submit_quiz`, aucun message de refus.
+Tolérance de 2 s conservée. Reste à refaire sur un vrai iPhone en 4G
+(TestFlight, après T8) ; le profil « Very Bad Network » n'a pas été essayé.
+
 Le serveur recalcule score, XP (barème de `CLAUDE.md`), série et gels
 (jour calendaire **Europe/Paris**), compteur du jour et `last_quiz_at`, puis
 renvoie `{ score, total, xp_gained, xp_capped, duplicate, profile }`. Le
