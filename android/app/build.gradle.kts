@@ -1,7 +1,34 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// AdMob : App ID de TEST Google par défaut. Vrai ID (jamais committé), lu
+// seulement hors dépôt : variable d'environnement ORG_GRADLE_PROJECT_admobAppId
+// ou `admob.appId=…` dans android/local.properties (ignoré par git). Pas de
+// gradle.properties (suivi). Voir README § AdMob.
+val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val admobAppId: String = System.getenv("ORG_GRADLE_PROJECT_admobAppId")
+    ?: localProperties.getProperty("admob.appId")
+    ?: admobTestAppId
+
+// Build release avec l'ID de test : avertissement, ou échec avec
+// -PrequireRealAdmobId=true (via flutter : ORG_GRADLE_PROJECT_requireRealAdmobId=true),
+// à utiliser pour les builds envoyés aux stores.
+gradle.taskGraph.whenReady {
+    val release = allTasks.any { it.project == project && it.name.contains("Release") }
+    if (release && admobAppId.contains("3940256099942544")) {
+        val message = "AdMob : build release avec l'App ID de TEST Google (voir README § AdMob)."
+        if (findProperty("requireRealAdmobId") == "true") throw GradleException(message)
+        logger.warn("ATTENTION : $message")
+    }
 }
 
 android {
@@ -30,6 +57,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["admobAppId"] = admobAppId
     }
 
     buildTypes {

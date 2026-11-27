@@ -52,6 +52,23 @@
 			</array>
 		</dict>
 	</dict>
+	<!-- AdMob : ADMOB_APP_ID vient de Flutter/AdmobDefaults.xcconfig (ID de TEST
+	     Google, suivi) ou de Flutter/Admob.xcconfig (vrai ID, local, ignoré par git).
+	     Voir README § AdMob. TODO(T26): injection du vrai ID au build release. -->
+	<key>GADApplicationIdentifier</key>
+	<string>$(ADMOB_APP_ID)</string>
+	<!-- ATT : affichée par UMP après le message « IDFA explainer » (console AdMob). -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Autorises-tu Quizzéo à utiliser ton identifiant publicitaire pour te montrer des pubs adaptées et mesurer leur efficacité, y compris dans d'autres apps et sites ? Le jeu reste le même dans tous les cas.</string>
+	<!-- SKAdNetwork : ID Google (doc AdMob iOS « Update your Info.plist »).
+	     TODO(T20): ajouter la liste des acheteurs tiers recommandée par Google. -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Pour enregistrer l'image de ton score dans tes photos, si tu choisis « Enregistrer l'image » dans le menu de partage.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
