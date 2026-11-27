@@ -91,8 +91,10 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
           ),
-          // Écart avec la barre de navigation (clics accidentels).
-          const AdSlot(padding: EdgeInsets.only(bottom: AppSpacing.m)),
+          // Écarts avec les tuiles et la barre de navigation (clics accidentels).
+          const AdSlot(
+            padding: EdgeInsets.only(top: AppSpacing.m, bottom: AppSpacing.m),
+          ),
         ],
       ),
     );
