@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'ads/consent_service.dart';
 import 'backend/auth_service.dart';
 import 'backend/backend_config.dart';
 import 'backend/secure_session_storage.dart';
@@ -36,6 +37,8 @@ Future<void> main() async {
         soundServiceProvider.overrideWithValue(sounds),
         supabaseClientProvider.overrideWithValue(supabase),
         sessionStorageProvider.overrideWithValue(sessionStorage),
+        // Pubs : rien n'est appelé avant le consentement (ConsentController).
+        adsPlatformProvider.overrideWithValue(GoogleAdsPlatform()),
       ],
       child: const QuizzeoApp(),
     ),
@@ -76,6 +79,9 @@ class RootGate extends ConsumerWidget {
     final onboardingDone = ref.watch(
       progressControllerProvider.select((p) => p.onboardingDone),
     );
+    // Consentement UMP à chaque lancement ; au premier, il est demandé par
+    // l'écran de consentement (après l'explication).
+    if (onboardingDone) ref.watch(consentStartupProvider);
     return onboardingDone ? const ShellScreen() : const ConsentScreen();
   }
 }

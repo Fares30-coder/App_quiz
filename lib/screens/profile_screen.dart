@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../ads/consent_service.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../engagement/xp.dart';
@@ -21,6 +22,8 @@ class ProfileScreen extends ConsumerWidget {
     final p = ref.watch(progressControllerProvider);
     final level = levelFor(p.totalXp);
     final reminder = p.reminderMinutes;
+    // Exigence Google : entrée affichée seulement si UMP la demande (EEE…).
+    final privacyOptions = ref.watch(privacyOptionsRequiredProvider);
 
     void open(Widget screen, {bool fullscreen = false}) =>
         Navigator.of(context).push(MaterialPageRoute<void>(
@@ -112,15 +115,19 @@ class ProfileScreen extends ConsumerWidget {
                   onTap: () => open(const NoAdsScreen(), fullscreen: true),
                 ),
                 const Divider(height: 1),
-                // TODO(etape-3): ConsentForm.showPrivacyOptionsForm (UMP).
-                const ListTile(
-                  minTileHeight: 56,
-                  enabled: false,
-                  leading: Icon(Icons.privacy_tip_outlined),
-                  title: Text('Gérer mes choix pub'),
-                  subtitle: Text('Disponible avec l\'arrivée des pubs'),
-                ),
-                const Divider(height: 1),
+                if (privacyOptions) ...[
+                  ListTile(
+                    minTileHeight: 56,
+                    leading: const Icon(Icons.privacy_tip_outlined),
+                    title: const Text('Gérer mes choix de confidentialité'),
+                    subtitle: const Text('Pubs personnalisées ou non'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: ref
+                        .read(consentControllerProvider.notifier)
+                        .showPrivacyOptions,
+                  ),
+                  const Divider(height: 1),
+                ],
                 SwitchListTile(
                   secondary: const Icon(Icons.volume_up_outlined),
                   title: const Text('Sons'),

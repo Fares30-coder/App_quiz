@@ -45,6 +45,12 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
+        <!-- AdMob : ${admobAppId} = ID de TEST Google par défaut (app/build.gradle.kts),
+             vrai ID seulement en local hors dépôt. Voir README § AdMob.
+             TODO(T26): injection du vrai ID au build release. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}"/>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

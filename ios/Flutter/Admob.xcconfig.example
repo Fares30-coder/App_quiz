@@ -1,0 +1,3 @@
+// Copier en Admob.xcconfig (ignoré par git) et remplacer par le vrai App ID iOS.
+// Ne jamais committer Admob.xcconfig.
+ADMOB_APP_ID = ca-app-pub-3940256099942544~1458002511
