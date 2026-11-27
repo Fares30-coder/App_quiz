@@ -42,14 +42,8 @@ String _normalize(String text) => text.toLowerCase().trim();
 /// Questions serveur laissées sans source car un doute a été relevé lors de
 /// la vérification des faits ; en attente de correction de l'explication.
 /// Retirer l'id dès que la question est corrigée et sourcée.
-const questionsSansSourceAutorisees = {
-  // Explication : « plus de 9 millions de km² » ; Britannica donne
-  // 8,6 millions, l'encyclopédie Larousse « plus de 8 millions ».
-  'geo-006',
-  // Explication : la France obtient « une grande partie de l'Alsace » ;
-  // selon Larousse, elle reçoit les droits des Habsbourg en Alsace, qui
-  // reste terre d'Empire (sans Strasbourg ni Mulhouse).
-  'his-023',
+const questionsSansSourceAutorisees = <String>{
+  // Vide : toutes les questions serveur ont une source.
 };
 
 void main() {
