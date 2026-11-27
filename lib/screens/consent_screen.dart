@@ -1,17 +1,30 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../ads/consent_service.dart';
 import '../theme/app_theme.dart';
 import 'goal_screen.dart';
 
 /// Premier lancement : explication avant le formulaire de consentement (maquette consentement.html).
-class ConsentScreen extends StatelessWidget {
+class ConsentScreen extends ConsumerStatefulWidget {
   const ConsentScreen({super.key});
 
-  void _continue(BuildContext context) {
-    // TODO(etape-3): ConsentInformation.requestConsentInfoUpdate puis
-    // ConsentForm.loadAndShowConsentFormIfRequired (UMP), puis ATT sur iOS.
-    // Aucune initialisation de MobileAds avant canRequestAds() == true.
-    Navigator.of(context).push(
+  @override
+  ConsumerState<ConsentScreen> createState() => _ConsentScreenState();
+}
+
+class _ConsentScreenState extends ConsumerState<ConsentScreen> {
+  bool _busy = false;
+
+  /// Formulaire UMP (et ATT sur iOS) si nécessaire, puis objectif du jour.
+  /// Hors ligne ou en erreur : on continue sans pub, nouvel essai au prochain
+  /// lancement.
+  Future<void> _continue() async {
+    setState(() => _busy = true);
+    await ref.read(consentControllerProvider.notifier).gather();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
           builder: (_) => const GoalScreen(onboarding: true)),
     );
@@ -37,7 +50,7 @@ class ConsentScreen extends StatelessWidget {
                       style: context.text.headlineMedium),
                   const SizedBox(height: AppSpacing.s),
                   Text(
-                    'Quizzéo est gratuit grâce à la pub. Tu choisis comment elle utilise tes données.',
+                    'Quizzéo est gratuit grâce à la pub. Selon ton pays, tu peux choisir comment elle utilise tes données.',
                     textAlign: TextAlign.center,
                     style: context.text.bodyMedium?.copyWith(fontSize: 16),
                   ),
@@ -50,14 +63,15 @@ class ConsentScreen extends StatelessWidget {
                   ),
                   const _Point(
                     icon: Icons.lock_outline,
-                    title: 'Tu choisis',
+                    title: 'Ton choix, si on te le demande',
                     text:
                         'Pubs personnalisées ou non : le jeu reste exactement le même.',
                   ),
                   const _Point(
                     icon: Icons.tune,
                     title: 'Modifiable à tout moment',
-                    text: 'Dans Profil, puis Confidentialité.',
+                    text:
+                        'Dans Profil si ton choix est demandé ; sur iPhone, aussi dans Réglages > Confidentialité > Suivi.',
                   ),
                 ],
               ),
@@ -68,7 +82,7 @@ class ConsentScreen extends StatelessWidget {
               child: Column(
                 children: [
                   FilledButton(
-                    onPressed: () => _continue(context),
+                    onPressed: _busy ? null : _continue,
                     child: const Text('Continuer'),
                   ),
                   TextButton(
@@ -83,7 +97,7 @@ class ConsentScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                     child: Text(
-                      'L\'écran suivant est le formulaire de Google. Sur iPhone, iOS te demandera aussi l\'autorisation de suivi.',
+                      'Si la loi de ton pays l\'exige, Google te demandera ton choix. Sur iPhone, iOS peut aussi te demander l\'autorisation de suivi.',
                       textAlign: TextAlign.center,
                       style: context.text.bodySmall
                           ?.copyWith(color: c.onSurfaceVariant),

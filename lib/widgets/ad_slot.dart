@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 /// Étape 1 : aucune vraie pub. Le cadre n'est visible qu'en debug pour
 /// vérifier la mise en page ; en release il ne prend aucune place.
 // TODO(etape-3): remplacer par une BannerAd adaptative AdMob (ID de test en dev),
-// seulement après consentement UMP (canRequestAds) et si pas d'achat « sans pub ».
+// seulement si `adsReadyProvider` (lib/ads/consent_service.dart) et pas d'achat « sans pub ».
 class AdSlot extends StatelessWidget {
   const AdSlot({super.key});
 

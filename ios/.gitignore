@@ -32,3 +32,6 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# AdMob : vrai App ID local (voir README § AdMob)
+Flutter/Admob.xcconfig
