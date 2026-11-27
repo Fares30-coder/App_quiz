@@ -247,7 +247,7 @@ do $$ begin
 end $$;
 
 select is(
-  current_setting('t.a2')::jsonb - 'quiz_id' - 'question_id' - 'explanation' - 'correct_choice',
+  current_setting('t.a2')::jsonb - 'quiz_id' - 'question_id' - 'explanation' - 'source' - 'correct_choice',
   '{"position": 2, "choice": null, "correct": false, "timed_out": true, "time_ms": 30000}'::jsonb,
   'plus de 33 s côté serveur : temps écoulé, réponse fausse malgré time_ms = 500'
 );
@@ -276,7 +276,7 @@ select is(
     (current_setting('t.s')::jsonb ->> 'quiz_id')::uuid,
     (current_setting('t.n3')::jsonb ->> 'position')::int,
     tests.good(current_setting('t.n3')::jsonb -> 'question'), 1000)
-    - 'quiz_id' - 'question_id' - 'explanation' - 'correct_choice' - 'choice',
+    - 'quiz_id' - 'question_id' - 'explanation' - 'source' - 'correct_choice' - 'choice',
   '{"position": 3, "correct": true, "timed_out": false, "time_ms": 1000}'::jsonb,
   '32 s côté serveur (tolérance 3 s) : réponse valable'
 );

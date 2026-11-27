@@ -7,7 +7,8 @@
 // `updated_at` ne change que si la question a réellement changé. Aucune
 // question n'est supprimée : celles absentes du fichier (dont le lot hors
 // ligne de assets/questions.json) sont désactivées (`active = false`), donc
-// plus jamais servies. Le fichier source contient les bonnes réponses : il
+// plus jamais servies. `source` (libellé court, sans URL) est optionnelle :
+// `null` si absente. Le fichier source contient les bonnes réponses : il
 // ne doit jamais être déclaré dans pubspec.yaml ni copié dans assets/.
 import 'dart:convert';
 import 'dart:io';
@@ -41,6 +42,7 @@ String seedSql(List<Map<String, dynamic>> questions) {
         ].join(', ')}]',
         '${q['correctIndex'] as int}',
         _text(q['explanation'] as String),
+        _textOrNull(q['source'] as String?),
       ].join(', ')})',
   ];
   return '''
@@ -50,7 +52,8 @@ String seedSql(List<Map<String, dynamic>> questions) {
 -- génération : `supabase db query --remote -f supabase/seed.sql`.
 
 insert into public.questions
-  (id, category, difficulty, question, answers, correct_index, explanation)
+  (id, category, difficulty, question, answers, correct_index, explanation,
+   source)
 values
 ${rows.join(',\n')}
 on conflict (id) do update
@@ -60,15 +63,16 @@ set category = excluded.category,
     answers = excluded.answers,
     correct_index = excluded.correct_index,
     explanation = excluded.explanation,
+    source = excluded.source,
     active = true,
     updated_at = now()
 where (questions.category, questions.difficulty, questions.question,
        questions.answers, questions.correct_index, questions.explanation,
-       questions.active)
+       questions.source, questions.active)
   is distinct from
       (excluded.category, excluded.difficulty, excluded.question,
        excluded.answers, excluded.correct_index, excluded.explanation,
-       true);
+       excluded.source, true);
 
 -- Questions absentes du fichier (lot hors ligne de l'app, questions
 -- retirées) : désactivées, jamais supprimées (référencées par les sessions).
@@ -83,3 +87,6 @@ update public.questions
 
 /// Littéral SQL : apostrophes doublées.
 String _text(String value) => "'${value.replaceAll("'", "''")}'";
+
+/// Littéral SQL, `null` si [value] est absente.
+String _textOrNull(String? value) => value == null ? 'null' : _text(value);
