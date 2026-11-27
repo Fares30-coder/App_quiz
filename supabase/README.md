@@ -455,6 +455,25 @@ classement chargé avec un bandeau, sinon message et « Réessayer ».
   collectées à lister, dont : signalements de questions (motif, question,
   90 jours rattachés au compte).
 
+## Suppression de compte (`delete_account`)
+
+Migration `*_delete_account.sql` (T13). `delete_account()` (authenticated
+seulement, `42501` sans session) supprime l'utilisateur connecté de
+`auth.users` ; les données suivent par clé étrangère : `profiles`,
+`quiz_results` (donc le classement), `quiz_sessions` et leurs questions,
+`offline_days`, sessions Auth (`on delete cascade`) ; `question_reports`
+gardés sans `user_id` (`on delete set null`).
+
+App : Profil > « Supprimer mon compte », avec confirmation
+(`lib/backend/account_deletion.dart`). Le serveur d'abord : en cas d'échec
+(hors ligne), rien n'est effacé en local. Puis purge de la session, des
+files d'attente et de la progression locale ; l'app repart au premier
+lancement et un nouveau compte anonyme est créé.
+
+Reste pour T13 : révocation du jeton Apple (TN3194) quand la liaison Apple
+existera (T12, Edge Function avec la clé Apple) ; page web de demande de
+suppression exigée par Google Play (T25).
+
 ## Questions (`seed.sql`)
 
 Deux lots **disjoints** :
