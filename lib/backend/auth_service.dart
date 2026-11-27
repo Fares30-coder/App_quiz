@@ -81,7 +81,7 @@ class AuthService {
 
   /// Purge locale : déconnexion et effacement de la session du stockage
   /// sécurisé, puis des données locales du compte (quiz en attente).
-  /// Servira à la suppression de compte (pas exposé dans l'UI).
+  /// Appelée par `AccountDeletion` après la suppression côté serveur.
   Future<void> purgeLocalSession() async {
     try {
       // Efface la session en mémoire avant l'appel réseau (qui peut échouer).

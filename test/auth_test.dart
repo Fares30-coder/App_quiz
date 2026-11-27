@@ -6,11 +6,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:quizzeo/backend/account_deletion.dart';
 import 'package:quizzeo/backend/auth_service.dart';
 import 'package:quizzeo/backend/backend_config.dart';
 import 'package:quizzeo/backend/secure_session_storage.dart';
 import 'package:quizzeo/backend/supabase_provider.dart';
 import 'package:quizzeo/data/pending_quiz_repository.dart';
+import 'package:quizzeo/data/progress_repository.dart';
+import 'package:quizzeo/engagement/progress_controller.dart';
 import 'package:quizzeo/models/quiz_submission.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -51,7 +54,7 @@ class _FakeServer {
     if (request.url.path.endsWith('/signup')) {
       return http.Response(jsonEncode(_session('anonyme-1')), 200);
     }
-    return http.Response('{}', 204);
+    return http.Response('', 204, request: request);
   });
 
   int get signUps =>
@@ -267,6 +270,55 @@ void main() {
 
       expect(server.signUps, 1);
       expect(container.read(authUserIdProvider), 'anonyme-1');
+    });
+  });
+
+  group('suppression de compte', () {
+    Future<(ProviderContainer, SupabaseClient, _FakeServer)> setUp() async {
+      SharedPreferences.setMockInitialValues(
+          {'progress_v1': '{"onboardingDone":true,"totalXp":50}'});
+      final prefs = await SharedPreferences.getInstance();
+      final server = _FakeServer();
+      final client = SupabaseClient(
+        _url,
+        'sb_publishable_test',
+        httpClient: server.client,
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
+      );
+      addTearDown(client.dispose);
+      final container = ProviderContainer(overrides: [
+        supabaseClientProvider.overrideWithValue(client),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ]);
+      addTearDown(container.dispose);
+      await container.read(authServiceProvider)!.ensureSignedIn();
+      return (container, client, server);
+    }
+
+    test('delete_account appelé, puis session et progression effacées',
+        () async {
+      final (container, client, server) = await setUp();
+      await container.read(accountDeletionProvider).deleteAccount();
+
+      final paths = [for (final r in server.requests) r.url.path];
+      expect(
+          paths,
+          containsAllInOrder(
+              ['/rest/v1/rpc/delete_account', '/auth/v1/logout']));
+      expect(client.auth.currentSession, isNull);
+      final progress = container.read(progressControllerProvider);
+      expect(progress.totalXp, 0);
+      expect(progress.onboardingDone, isFalse);
+    });
+
+    test('hors ligne : erreur, rien effacé en local', () async {
+      final (container, client, server) = await setUp();
+      server.offline = true;
+      await expectLater(container.read(accountDeletionProvider).deleteAccount(),
+          throwsA(anything));
+
+      expect(client.auth.currentSession, isNotNull);
+      expect(container.read(progressControllerProvider).totalXp, 50);
     });
   });
 }
