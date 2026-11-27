@@ -1,12 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/freeze_grant.dart';
 import '../models/offline_day.dart';
 import '../models/quiz_submission.dart';
 import '../models/server_profile.dart';
 
 /// Accès Supabase à la progression : lecture de `profiles`, objectif du
-/// jour (`set_daily_goal`), quiz terminés (`submit_quiz`) et journées
-/// validées hors ligne (`validate_offline_day`). Aucune écriture
+/// jour (`set_daily_goal`), quiz terminés (`submit_quiz`), journées
+/// validées hors ligne (`validate_offline_day`) et gels obtenus par pub
+/// récompensée (`grant_rewarded_freeze`). Aucune écriture
 /// directe sur la table (refusée de toute façon par les GRANT et RLS).
 class SupabaseProgressSource {
   SupabaseProgressSource(this._client);
@@ -48,6 +50,14 @@ class SupabaseProgressSource {
       params: day.toRpcParams(),
     );
     return OfflineDayResult.fromJson(json);
+  }
+
+  /// Gel après une pub récompensée regardée jusqu'au bout (1 par jour,
+  /// 2 en réserve). Lève une erreur en cas d'échec.
+  Future<FreezeGrantResult> grantRewardedFreeze() async {
+    final json =
+        await _client.rpc<Map<String, dynamic>>('grant_rewarded_freeze');
+    return FreezeGrantResult.fromJson(json);
   }
 }
 

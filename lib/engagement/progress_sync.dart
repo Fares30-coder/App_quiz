@@ -10,6 +10,7 @@ import '../backend/supabase_progress_source.dart';
 import '../backend/supabase_provider.dart';
 import '../data/pending_offline_day_repository.dart';
 import '../data/pending_quiz_repository.dart';
+import '../models/freeze_grant.dart';
 import '../models/offline_day.dart';
 import '../models/player_progress.dart';
 import '../models/quiz_submission.dart';
@@ -162,6 +163,39 @@ class ProgressSync {
     } catch (e) {
       _log('journée hors ligne non envoyée, réessai au prochain sync', e);
     }
+  }
+
+  /// Avant une pub récompensée : session ouverte et files vidées (quiz et
+  /// journées hors ligne envoyés). Sinon, la RPC appliquerait les jours
+  /// manqués avant un quiz d'hier encore en attente et casserait la série.
+  /// Ne lève jamais : `false` si un gel ne peut pas être enregistré.
+  Future<bool> readyForFreezeGrant() async {
+    if (_ref.read(authUserIdProvider) == null) return false;
+    try {
+      await _flush();
+    } catch (e) {
+      _log('files non envoyées avant le gel', e);
+    }
+    return _queue.isEmpty && _days.isEmpty;
+  }
+
+  /// Gel après une pub récompensée (`grant_rewarded_freeze`), files vidées
+  /// d'abord (voir [readyForFreezeGrant]). Le profil renvoyé remplace la
+  /// progression locale (règle de fusion) ; si le serveur n'a encore aucun
+  /// quiz (`last_quiz_at` null, local conservé), le gel accordé est ajouté
+  /// localement. Lève une erreur sans session, si des envois restent en
+  /// attente, ou en cas d'échec réseau / serveur.
+  Future<FreezeGrantResult> grantRewardedFreeze() async {
+    if (!await readyForFreezeGrant()) {
+      throw StateError('aucune session ou progression en attente d\'envoi');
+    }
+    final result = await _source.grantRewardedFreeze();
+    if (result.profile.lastQuizAt != null) {
+      _apply(result.profile);
+    } else if (result.granted) {
+      _ref.read(progressControllerProvider.notifier).addStreakFreeze();
+    }
+    return result;
   }
 
   /// Un seul envoi des files à la fois (quiz terminé pendant un sync).

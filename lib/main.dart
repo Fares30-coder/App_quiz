@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'ads/banner_ads.dart';
 import 'ads/consent_service.dart';
 import 'ads/interstitial_ads.dart';
+import 'ads/rewarded_ads.dart';
 import 'backend/auth_service.dart';
 import 'backend/backend_config.dart';
 import 'backend/secure_session_storage.dart';
@@ -26,6 +27,7 @@ Future<void> main() async {
   // ID de bloc, plutôt qu'au premier affichage de pub.
   bannerAdUnitId();
   interstitialAdUnitId();
+  rewardedAdUnitId();
   // Supabase : lecture locale seulement (pas d'attente réseau) ; `null` sans
   // config/dev.json → mode 100 % local. Session dans le stockage sécurisé.
   const backend = BackendConfig.fromEnvironment();
@@ -50,6 +52,8 @@ Future<void> main() async {
         // Interstitiel : préchargé seulement si `interstitialAllowedProvider`.
         interstitialLoaderProvider
             .overrideWithValue(const GoogleInterstitialLoader()),
+        // Pub récompensée (gel) : chargée seulement à l'ouverture de l'offre.
+        rewardedLoaderProvider.overrideWithValue(const GoogleRewardedLoader()),
       ],
       child: const QuizzeoApp(),
     ),

@@ -145,8 +145,25 @@ class _FakeServer {
           headers: {'content-type': 'application/json'},
           request: request);
     }
+    if (path == '/rest/v1/rpc/grant_rewarded_freeze' &&
+        request.method == 'POST') {
+      if (rpcOffline) throw const SocketException('hors ligne');
+      final p = profile!;
+      final reason =
+          grantRefusal ?? ((p['freezes'] as int) >= 2 ? 'full' : null);
+      if (reason == null) p['freezes'] = (p['freezes'] as int) + 1;
+      return http.Response(
+          jsonEncode(
+              {'granted': reason == null, 'reason': reason, 'profile': p}),
+          200,
+          headers: {'content-type': 'application/json'},
+          request: request);
+    }
     return http.Response('{"message":"interdit"}', 403, request: request);
   });
+
+  /// Refus « propre » forcé de `grant_rewarded_freeze` (ex. `daily_limit`).
+  String? grantRefusal;
 
   List<Map<String, dynamic>> get offlineDaysSent => [
         for (final r in requests)
@@ -973,6 +990,87 @@ void main() {
           reason: 'les plus anciennes abandonnées');
       await days.clear();
       expect(days.isEmpty, isTrue);
+    });
+  });
+
+  group('grantRewardedFreeze', () {
+    test('serveur avec quiz : profil renvoyé appliqué', () async {
+      server.profile = _profile(lastQuizAt: '2026-11-25T18:00:00+00:00')
+        ..['freezes'] = 0;
+      final c = await container();
+      final result = await c.read(progressSyncProvider)!.grantRewardedFreeze();
+
+      expect(result.granted, isTrue);
+      final p = c.read(progressControllerProvider);
+      expect(p.streak.freezes, 1);
+      expect(p.totalXp, 900, reason: 'profil serveur appliqué');
+    });
+
+    test('serveur sans quiz : gel ajouté localement', () async {
+      server.profile = _profile()..['freezes'] = 0;
+      final c = await container(
+          local: _local.copyWith(streak: _local.streak.copyWith(freezes: 0)));
+      await c.read(progressSyncProvider)!.grantRewardedFreeze();
+
+      final p = c.read(progressControllerProvider);
+      expect(p.streak.freezes, 1);
+      expect(p.totalXp, 150, reason: 'progression locale conservée');
+    });
+
+    test('refus (plafond du jour) : rien d\'ajouté', () async {
+      server.profile = _profile()..['freezes'] = 0;
+      server.grantRefusal = 'daily_limit';
+      final c = await container(
+          local: _local.copyWith(streak: _local.streak.copyWith(freezes: 0)));
+      final result = await c.read(progressSyncProvider)!.grantRewardedFreeze();
+
+      expect(result.granted, isFalse);
+      expect(result.reason, 'daily_limit');
+      expect(c.read(progressControllerProvider).streak.freezes, 0);
+    });
+
+    test('sans session : erreur, aucun appel', () async {
+      final c = await container(userId: null);
+      await expectLater(c.read(progressSyncProvider)!.grantRewardedFreeze(),
+          throwsStateError);
+      expect(
+          server.paths, isNot(contains('/rest/v1/rpc/grant_rewarded_freeze')));
+    });
+
+    test('journée hors ligne en attente : envoyée avant le gel', () async {
+      server.profile = _profile(lastQuizAt: '2026-11-25T18:00:00+00:00')
+        ..['freezes'] = 0;
+      final c = await container();
+      final sync = c.read(progressSyncProvider)!;
+      server.rpcOffline = true;
+      await sync.recordOfflineDay(_now.subtract(const Duration(minutes: 5)));
+      server.rpcOffline = false;
+
+      await sync.grantRewardedFreeze();
+      final rpcs = server.paths.where((p) => p.contains('/rpc/')).toList();
+      expect(rpcs.lastIndexOf('/rest/v1/rpc/validate_offline_day'),
+          lessThan(rpcs.indexOf('/rest/v1/rpc/grant_rewarded_freeze')));
+    });
+
+    test('envoi en attente impossible : pas de gel demandé', () async {
+      final c = await container();
+      final sync = c.read(progressSyncProvider)!;
+      server.validateError = 'PT429';
+      await sync.recordOfflineDay(_now.subtract(const Duration(minutes: 5)));
+
+      await expectLater(sync.grantRewardedFreeze(), throwsStateError);
+      expect(await sync.readyForFreezeGrant(), isFalse);
+      expect(
+          server.paths, isNot(contains('/rest/v1/rpc/grant_rewarded_freeze')));
+    });
+
+    test('hors ligne : erreur, gels inchangés', () async {
+      server.rpcOffline = true;
+      final c = await container(
+          local: _local.copyWith(streak: _local.streak.copyWith(freezes: 0)));
+      await expectLater(c.read(progressSyncProvider)!.grantRewardedFreeze(),
+          throwsA(anything));
+      expect(c.read(progressControllerProvider).streak.freezes, 0);
     });
   });
 }
