@@ -74,7 +74,7 @@ un quiz se joue ainsi :
    appel le même jour **reprend** cette session (`resumed: true`) : même
    `quiz_id`, mêmes questions, même ordre des réponses, et pour chaque
    question déjà répondue `answer: { choice, correct, correct_choice,
-   explanation, time_ms }`, suivie de la question en cours (`answer: null`,
+   explanation, source, time_ms }`, suivie de la question en cours (`answer: null`,
    `position` = son numéro) ; les questions suivantes ne sont pas renvoyées.
    L'app reprend à la question en cours. Si elle avait déjà été servie, elle
    garde son `served_at` d'origine : plus de 33 s après, elle compte en
@@ -108,7 +108,7 @@ un quiz se joue ainsi :
    moins de 500 ms un temps serveur très court). Temps serveur > 30 s + 3 s
    de tolérance : réponse enregistrée en **temps écoulé** (choix ignoré,
    fausse, 30 000 ms). Renvoie `{ …, correct, timed_out, time_ms,
-   correct_choice, explanation }`, affichés après chaque réponse.
+   correct_choice, explanation, source }`, affichés après chaque réponse.
 4. `submit_quiz(quiz_id)` : exige un quiz servi à ce joueur avec ses 10
    réponses enregistrées, une durée totale plausible (somme des temps
    officiels ≤ durée serveur + 1 s + 10 × 500 ms : un joueur très rapide
@@ -292,6 +292,25 @@ Limites :
 - tant que la migration n'est pas poussée, l'appel échoue (erreur
   passagère) : l'entrée est gardée jusqu'à 6 h, puis abandonnée.
 
+## Source de l'explication (`questions.source`)
+
+Migration `*_source_explication.sql` (décision D2). Colonne `source` :
+libellé **court** de la source du fait (« Larousse », « Insee »,
+« Britannica », « NASA »), 1 à 60 caractères (contrainte
+`questions_source_length`), **sans URL** au MVP, jamais ajouté au texte de
+l'explication. Nullable : sans source, l'app n'affiche rien ; sinon
+« Source : Larousse » en petit sous l'explication (quiz et récap des
+réponses).
+
+**Jamais envoyée avant la réponse** (elle peut trahir la bonne réponse) :
+comme l'explication, elle n'est renvoyée que dans la correction, `source`
+de `answer_question` (réponse ou temps écoulé) et de l'objet `answer` des
+questions déjà répondues (`served_question_json`, reprise du défi par
+`start_quiz`). `start_quiz` (question en cours) et `next_question` ne
+l'envoient jamais ; `submit_quiz` ne renvoie aucun contenu de question.
+Colonne illisible par l'API (aucun GRANT sur `questions`). Test :
+`tests/source_explication_test.sql`.
+
 ## Signalements de questions (`report_question`)
 
 Migration `*_question_reports.sql`. Après sa réponse à une question d'un
@@ -455,8 +474,22 @@ dart run tool/generate_seed.dart   # après chaque modification des questions
 
 Ajouter une question serveur : l'ajouter à `supabase/questions/questions.json`
 (nouvel `id` stable, ex. `his-014`, champs `category`, `question`, 4
-`answers`, `correctIndex`, `explanation`, `difficulty`), régénérer le seed,
+`answers`, `correctIndex`, `explanation`, `difficulty`, et `source`
+facultatif), régénérer le seed,
 puis l'exécuter en distant : `supabase db query --remote -f supabase/seed.sql`.
+Format de `source` (facultatif, aussi accepté dans le lot hors ligne
+`assets/questions.json`) : texte court sans URL, 1 à 60 caractères, sans
+espace au bord, par exemple :
+
+```json
+{ "id": "his-014", "category": "histoire", "question": "…",
+  "answers": ["…", "…", "…", "…"], "correctIndex": 1,
+  "explanation": "…", "difficulty": 2, "source": "Larousse" }
+```
+
+Absent : `null` en base (le seed remet `source` à `null` si on l'enlève du
+fichier). Changer la source met à jour `updated_at`.
+
 Retirer une question : l'enlever du
 fichier puis régénérer et exécuter le seed (il la désactive). Ne jamais copier une question
 du serveur dans `assets/`.
@@ -464,7 +497,8 @@ du serveur dans `assets/`.
 Tests Flutter : `test/submit_quiz_test.dart` échoue si `seed.sql` n'est plus
 à jour ; `test/questions_test.dart` échoue si un identifiant ou un énoncé est
 dans les deux lots, si une question du serveur apparaît dans `assets/`, ou
-s'il y a moins de 10 questions serveur par catégorie. Seed appliqué
+s'il y a moins de 10 questions serveur par catégorie, ou si une `source`
+est vide, trop longue (plus de 60 caractères) ou contient une URL. Seed appliqué
 automatiquement par `supabase db reset` en local ; en distant,
 `supabase db push --include-seed` ne l'exécute qu'une fois et ne relance pas
 un seed modifié : après chaque `dart run tool/generate_seed.dart`, lancer
@@ -475,7 +509,7 @@ Tests SQL : `supabase test db` (pgTAP, `tests/profiles_test.sql`,
 `tests/start_quiz_test.sql`, `tests/submit_quiz_test.sql`,
 `tests/temps_serveur_test.sql`, `tests/questions_serveur_test.sql`,
 `tests/weekly_leaderboard_test.sql`, `tests/serie_hors_ligne_test.sql`,
-`tests/question_reports_test.sql`).
+`tests/question_reports_test.sql`, `tests/source_explication_test.sql`).
 
 ## Commandes à lancer soi-même
 

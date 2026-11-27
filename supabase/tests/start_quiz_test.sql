@@ -443,7 +443,7 @@ do $$ begin
 end $$;
 
 select is(
-  current_setting('t.a1')::jsonb - 'quiz_id' - 'question_id' - 'explanation' - 'choice',
+  current_setting('t.a1')::jsonb - 'quiz_id' - 'question_id' - 'explanation' - 'source' - 'choice',
   jsonb_build_object('position', 1, 'correct', true, 'timed_out', false,
                      'time_ms', 500,
                      'correct_choice', tests.good(current_setting('t.p1')::jsonb, 0)),
@@ -475,7 +475,7 @@ select is(
   public.answer_question(
     (current_setting('t.p1')::jsonb ->> 'quiz_id')::uuid,
     2,
-    null, 1000) - 'quiz_id' - 'question_id' - 'explanation' - 'correct_choice',
+    null, 1000) - 'quiz_id' - 'question_id' - 'explanation' - 'source' - 'correct_choice',
   '{"position": 2, "choice": null, "correct": false, "timed_out": true, "time_ms": 500}'::jsonb,
   'temps écoulé (choix null) : réponse fausse'
 );
@@ -504,7 +504,7 @@ select is(
 );
 
 select is(
-  (current_setting('t.r1')::jsonb -> 'questions' -> 0 -> 'answer') - 'explanation',
+  (current_setting('t.r1')::jsonb -> 'questions' -> 0 -> 'answer') - 'explanation' - 'source',
   jsonb_build_object('choice', tests.good(current_setting('t.p1')::jsonb, 0),
                      'correct', true,
                      'correct_choice', tests.good(current_setting('t.p1')::jsonb, 0),
@@ -514,7 +514,7 @@ select is(
 
 select is(
   (current_setting('t.r1')::jsonb -> 'questions' -> 1 -> 'answer')
-    - 'explanation' - 'correct_choice',
+    - 'explanation' - 'source' - 'correct_choice',
   '{"choice": null, "correct": false, "time_ms": 500}'::jsonb,
   'reprise : 2e réponse (temps écoulé)'
 );

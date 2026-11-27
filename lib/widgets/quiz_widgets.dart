@@ -265,3 +265,16 @@ class QuizSegments extends StatelessWidget {
     );
   }
 }
+
+/// Source de l'explication, discrète (charte : petit texte, encre douce) :
+/// « Source : Larousse ». Affichée seulement si la question en a une.
+class SourceLabel extends StatelessWidget {
+  const SourceLabel(this.source, {super.key});
+
+  final String source;
+
+  @override
+  Widget build(BuildContext context) => Text('Source : $source',
+      style: context.text.bodySmall
+          ?.copyWith(color: context.colors.onSurfaceVariant));
+}

@@ -98,6 +98,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                       Text('Réponse : ${q.answers[q.correctIndex]}',
                           style: context.text.bodyLarge),
                       Text(q.explanation, style: context.text.bodyMedium),
+                      if (q.source case final source?) SourceLabel(source),
                     ],
                   ),
                 ),

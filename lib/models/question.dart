@@ -20,6 +20,7 @@ class Question {
     required this.correctIndex,
     required this.explanation,
     required this.difficulty,
+    this.source,
   });
 
   /// [correctIndex] d'une question servie par le serveur tant que le joueur
@@ -42,6 +43,11 @@ class Question {
   /// 1 = facile, 2 = moyen, 3 = difficile.
   final int difficulty;
 
+  /// Source courte de l'explication (ex. « Larousse »), sans URL. `null`
+  /// si absente, et tant que la correction n'est pas connue (jamais envoyée
+  /// par le serveur avant la réponse).
+  final String? source;
+
   /// Bonne réponse connue (question locale, ou corrigée par le serveur).
   bool get isRevealed => correctIndex >= 0;
 
@@ -54,6 +60,7 @@ class Question {
         correctIndex: json['correctIndex'] as int,
         explanation: json['explanation'] as String,
         difficulty: json['difficulty'] as int,
+        source: json['source'] as String?,
       );
 
   /// Question servie par `start_quiz` : sans bonne réponse ni explication,
@@ -72,7 +79,9 @@ class Question {
       );
 
   /// Copie avec la correction reçue du serveur.
-  Question withCorrection(int correctIndex, String explanation) => Question(
+  Question withCorrection(int correctIndex, String explanation,
+          {String? source}) =>
+      Question(
         id: id,
         category: category,
         question: question,
@@ -80,6 +89,7 @@ class Question {
         correctIndex: correctIndex,
         explanation: explanation,
         difficulty: difficulty,
+        source: source,
       );
 
   /// Copie avec les réponses mélangées (la bonne réponse suit).
@@ -93,6 +103,7 @@ class Question {
       correctIndex: order.indexOf(correctIndex),
       explanation: explanation,
       difficulty: difficulty,
+      source: source,
     );
   }
 }

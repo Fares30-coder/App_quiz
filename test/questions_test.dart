@@ -24,6 +24,16 @@ void _expectValid(List<Question> questions) {
     expect(categories.keys, contains(q.category), reason: q.id);
     expect(q.difficulty, inInclusiveRange(1, 3), reason: q.id);
     expect(q.explanation.trim(), isNotEmpty, reason: q.id);
+    // Source facultative : libellé court (ex. « Larousse »), sans URL.
+    final source = q.source;
+    if (source != null) {
+      expect(source.trim(), isNotEmpty, reason: '${q.id} : source vide');
+      expect(source.trim(), source, reason: '${q.id} : espaces autour');
+      expect(source.length, lessThanOrEqualTo(60),
+          reason: '${q.id} : source de plus de 60 caractères');
+      expect(source.toLowerCase().contains('http'), isFalse,
+          reason: '${q.id} : pas d\'URL dans la source');
+    }
   }
 }
 
