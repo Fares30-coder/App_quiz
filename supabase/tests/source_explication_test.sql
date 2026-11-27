@@ -1,12 +1,13 @@
 -- Tests pgTAP de la source de l'explication (*_source_explication.sql) :
 -- jamais envoyée avant la réponse (start_quiz, next_question, reprise du
 -- défi), renvoyée avec la correction (réponse, temps écoulé, reprise),
--- contrainte de longueur, aucun accès client à la colonne.
+-- jamais pour le quiz d'un autre joueur ni une question non servie,
+-- contrainte questions_source_check, aucun accès client à la colonne.
 -- Lancer en local : `supabase start` puis `supabase test db`.
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(21);
+select plan(28);
 
 -- Données de test (propriétaire) -------------------------------------------
 
@@ -26,7 +27,8 @@ select 'qs-' || lpad(i::text, 2, '0'), 'divers', 1, 'Question ' || i,
 from generate_series(1, 10) i;
 
 insert into auth.users (id, aud, role)
-values ('00000000-0000-0000-0000-0000000005a1', 'authenticated', 'authenticated');
+values ('00000000-0000-0000-0000-0000000005a1', 'authenticated', 'authenticated'),
+       ('00000000-0000-0000-0000-0000000005a2', 'authenticated', 'authenticated');
 
 -- Source attendue pour la question `p` du quiz `t.d` (propriétaire).
 create function pg_temp.expected_source(p integer) returns text
@@ -69,6 +71,30 @@ select lives_ok(
   'source de 60 caractères ou nulle acceptée'
 );
 
+select throws_ok(
+  $$update public.questions set source = ' Larousse' where id = 'qs-01'$$,
+  '23514', null,
+  'source avec espace au bord refusée'
+);
+
+select throws_ok(
+  $$update public.questions set source = 'https://fr.wikipedia.org' where id = 'qs-01'$$,
+  '23514', null,
+  'source avec URL refusée'
+);
+
+select throws_ok(
+  $$update public.questions set source = E'Larousse\nInsee' where id = 'qs-01'$$,
+  '23514', null,
+  'source avec saut de ligne refusée'
+);
+
+select lives_ok(
+  $$update public.questions set source = 'L''Équipe – Larousse' where id = 'qs-01';
+    update public.questions set source = 'SRC-01' where id = 'qs-01'$$,
+  'libellé valide accepté'
+);
+
 -- Avant la réponse : aucune source ------------------------------------------------
 
 set local role authenticated;
@@ -106,6 +132,26 @@ select ok(
   'next_question rappelée : toujours aucune source'
 );
 
+-- Position pas encore servie (question 2 en cours, 5 jamais servie).
+select throws_ok(
+  format('select public.answer_question(%L::uuid, 5, 0, 500)',
+         current_setting('t.d')::jsonb ->> 'quiz_id'),
+  '22023', 'question non servie',
+  'answer_question sur une position non servie : erreur, aucune source'
+);
+
+-- Quiz d'un autre joueur.
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000005a2","role":"authenticated"}';
+
+select throws_ok(
+  format('select public.answer_question(%L::uuid, 2, 0, 500)',
+         current_setting('t.d')::jsonb ->> 'quiz_id'),
+  '22023', 'quiz inconnu',
+  'answer_question sur le quiz d''un autre joueur : erreur, aucune source'
+);
+
+set local "request.jwt.claims" to '{"sub":"00000000-0000-0000-0000-0000000005a1","role":"authenticated"}';
+
 -- Reprise du défi avant la réponse à la question 2.
 do $$ begin
   perform set_config('t.r', public.start_quiz('daily')::text, true);
@@ -120,6 +166,14 @@ select ok(
 );
 
 reset role;
+
+select ok(
+  not exists (
+    select 1 from public.quiz_session_questions
+     where quiz_id = (current_setting('t.d')::jsonb ->> 'quiz_id')::uuid
+       and position in (2, 5) and answered_at is not null),
+  'tentatives refusées : aucune réponse enregistrée'
+);
 
 -- Après la réponse : source dans la correction ---------------------------------------
 

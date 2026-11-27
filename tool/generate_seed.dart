@@ -8,7 +8,8 @@
 // question n'est supprimée : celles absentes du fichier (dont le lot hors
 // ligne de assets/questions.json) sont désactivées (`active = false`), donc
 // plus jamais servies. `source` (libellé court, sans URL) est optionnelle :
-// `null` si absente. Le fichier source contient les bonnes réponses : il
+// `null` si absente ; une source invalide fait échouer la génération (voir
+// [validateSource], mêmes règles que la contrainte SQL). Le fichier source contient les bonnes réponses : il
 // ne doit jamais être déclaré dans pubspec.yaml ni copié dans assets/.
 import 'dart:convert';
 import 'dart:io';
@@ -42,7 +43,7 @@ String seedSql(List<Map<String, dynamic>> questions) {
         ].join(', ')}]',
         '${q['correctIndex'] as int}',
         _text(q['explanation'] as String),
-        _textOrNull(q['source'] as String?),
+        _textOrNull(validateSource(q['id'] as String, q['source'])),
       ].join(', ')})',
   ];
   return '''
@@ -83,6 +84,36 @@ update public.questions
     for (final q in questions) _text(q['id'] as String)
   ].join(', ')}]);
 ''';
+}
+
+/// Longueur maximale de `source` (contrainte `questions_source_check`).
+const maxSourceLength = 60;
+
+/// Vérifie la `source` de la question [id] et la renvoie (`null` si
+/// absente). Lève une [FormatException] (id + valeur) si ce n'est pas une
+/// chaîne, si elle est vide, a un espace au bord, dépasse
+/// [maxSourceLength] caractères, contient `://` ou un caractère de contrôle.
+String? validateSource(String id, Object? source) {
+  if (source == null) return null;
+  String? problem;
+  if (source is! String) {
+    problem = 'doit être une chaîne';
+  } else if (source.isEmpty) {
+    problem = 'vide';
+  } else if (source != source.trim()) {
+    problem = 'espace au début ou à la fin';
+  } else if (source.runes.length > maxSourceLength) {
+    problem = 'plus de $maxSourceLength caractères';
+  } else if (source.contains('://')) {
+    problem = 'URL interdite';
+  } else if (RegExp(r'[\x00-\x1F\x7F]').hasMatch(source)) {
+    problem = 'caractère de contrôle';
+  }
+  if (problem != null) {
+    throw FormatException('Source invalide pour la question $id ($problem) : '
+        '${jsonEncode(source)}');
+  }
+  return source as String;
 }
 
 /// Littéral SQL : apostrophes doublées.

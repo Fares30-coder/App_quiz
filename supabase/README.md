@@ -296,9 +296,12 @@ Limites :
 
 Migration `*_source_explication.sql` (décision D2). Colonne `source` :
 libellé **court** de la source du fait (« Larousse », « Insee »,
-« Britannica », « NASA »), 1 à 60 caractères (contrainte
-`questions_source_length`), **sans URL** au MVP, jamais ajouté au texte de
-l'explication. Nullable : sans source, l'app n'affiche rien ; sinon
+« Britannica », « NASA »), **sans URL** au MVP, jamais ajouté au texte de
+l'explication. Double contrôle : `tool/generate_seed.dart`
+(`validateSource`) fait échouer la génération du seed avec l'id et la valeur
+fautive, et la contrainte `questions_source_check` refuse en base la même
+chose : vide, plus de 60 caractères, espace au début ou à la fin, `://`,
+caractère de contrôle (saut de ligne, tabulation…). Nullable : sans source, l'app n'affiche rien ; sinon
 « Source : Larousse » en petit sous l'explication (quiz et récap des
 réponses).
 
