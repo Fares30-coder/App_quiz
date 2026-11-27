@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../ads/interstitial_ads.dart';
 import '../data/question_repository.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
@@ -14,9 +15,9 @@ import 'quiz_screen.dart';
 final quizLaunchingProvider = StateProvider<bool>((ref) => false);
 
 /// Charge les questions (serveur si possible, sinon locales) puis ouvre
-/// l'écran Question.
+/// l'écran Question. Avant : interstitiel s'il est dû (entre deux quiz), le
+/// quiz ne démarre qu'après sa fermeture (minuteur jamais lancé sous la pub).
 /// [category] : identifiant de catégorie, [mixCategory] ou null pour le défi du jour.
-// TODO(etape-3): interstitiel plafonné ici, AVANT le quiz suivant (jamais pendant).
 Future<void> launchQuiz(
   BuildContext context,
   WidgetRef ref, {
@@ -27,6 +28,8 @@ Future<void> launchQuiz(
   if (launching.state) return;
   launching.state = true;
   try {
+    await ref.read(interstitialControllerProvider.notifier).showIfDue();
+    if (!context.mounted) return;
     final mode = category == null
         ? QuizMode.dailyChallenge
         : category == mixCategory

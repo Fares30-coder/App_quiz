@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../ads/interstitial_ads.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../models/player_progress.dart';
@@ -38,6 +41,10 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
   /// Nombre affiché : part de N − 1 puis passe à N (célébration).
   late int _shown;
 
+  /// Terminée à la fin de l'animation de validation (tout de suite hors
+  /// célébration) : l'interstitiel n'apparaît jamais avant.
+  final _celebration = Completer<void>();
+
   @override
   void initState() {
     super.initState();
@@ -55,11 +62,29 @@ class _StreakScreenState extends ConsumerState<StreakScreen> {
         setState(() => _shown = count);
         HapticFeedback.mediumImpact();
         ref.read(soundEffectsProvider).play(Sfx.streak);
+        // Fin du changement de chiffre (AnimatedSwitcher de 300 ms).
+        if (!reduce) {
+          await Future<void>.delayed(const Duration(milliseconds: 300));
+        }
+        if (!_celebration.isCompleted) _celebration.complete();
       });
+    } else {
+      _celebration.complete();
     }
   }
 
-  void _close() => Navigator.of(context).popUntil((route) => route.isFirst);
+  /// Retour à l'accueil. Après un quiz (mode célébration) : une fois
+  /// l'animation terminée, interstitiel s'il est dû, affiché AVANT de quitter
+  /// l'écran (la pub sert de transition).
+  Future<void> _close() async {
+    if (widget.mode == StreakScreenMode.celebrate) {
+      await _celebration.future;
+      if (!mounted) return;
+      await ref.read(interstitialControllerProvider.notifier).showIfDue();
+      if (!mounted) return;
+    }
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
 
   @override
   Widget build(BuildContext context) {
