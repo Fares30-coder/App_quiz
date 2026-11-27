@@ -4,8 +4,9 @@
 
 ## Statut global
 
-- **Date** : 2026-11-26 — `main` à jour, PR #1 à #17 mergées.
-- **Étape en cours** : **2 (back-end + comptes + classement)**, tâches T1 à T7 faites ; reste comptes (liaison, suppression), anti-abus, contenu.
+- **Date** : 2026-11-27 — `main` à jour, PR #1 à #29 mergées.
+- **Étape en cours** : **2 (back-end + comptes + classement)**, T1 à T7 et T10 faites, plus le top 3 de différenciation (partage sans spoiler, signalement, source, ancrage francophone). Migrations `question_reports` et `source_explication` appliquées en distant, seed exécuté.
+- **Reste en étape 2** : T11 (4G), comptes (T12 liaison, T13 suppression), anti-abus (T14, T15), contenu (T16 : 140/500, T17), petits correctifs (T9, T39, T40), non-répétition (T38, après T16), tri des signalements (T41, continu).
 - **Étape 1** : terminée (quiz local, série, XP, niveaux, objectif, sons, rappel, partage, app en français).
 - **Étape 5 (TikTok)** : pas commencée, à lancer maintenant en parallèle.
 
@@ -21,6 +22,14 @@ Fait :
 - [x] T5 `submit_quiz` serveur
 - [x] T6 Classement hebdo global
 - [x] T7 Quiz servis par le serveur : `start_quiz` / `next_question` / `answer_question` / `submit_quiz(quiz_id)`, temps serveur, défi du jour serveur, limite d'abandons, purge pg_cron, questions serveur hors de l'app (PR #15, #16, #17)
+- [x] T10 Série hors ligne préservée : `validate_offline_day` (PR #22)
+
+Fait hors plan initial (top 3 de différenciation, `marketing/strategie-produit.md`) :
+- [x] Agent `strategie-produit` (PR #18) ; analyse concurrentielle `marketing/concurrence.md` + `marketing/strategie-produit.md` (PR #20)
+- [x] Partage : grille sans spoiler + numéro du défi (PR #21) ; numéro/jour du défi pris sur le jour serveur (Paris), figé au début du quiz (PR #24)
+- [x] « Signaler une question » : RPC `report_question`, table `question_reports`, 4 motifs fixes, plafond 20/jour, purge 90 j (PR #25)
+- [x] Champ `source` affiché dans la correction (PR #26) ; sources remplies (PR #27) ; corrections factuelles, 140/140 sourcées (PR #29)
+- [x] Ancrage francophone (~30 %) dans `design/charte.md`, agent `redacteur-questions` à jour : questions serveur, `source` obligatoire (PR #28)
 
 À faire :
 
@@ -28,14 +37,18 @@ Fait :
 |---|---|---|---|---|---|---|---|---|
 | T8 | à faire | Comptes développeur **[MH]** | Ouvrir Apple Developer (99 $/an) et Google Play Console (25 $) | Comptes validés (identité vérifiée), bundle ID / applicationId réservés, contrat « apps payantes » Apple + profil marchand Google signés | Décision D5 | Fares (admin) | non | S (mais délais de validation de plusieurs jours) |
 | T9 | à faire | Bandeau « Mode local » | Rendre visible en debug que l'app tourne sans Supabase ; noter les pièges CLI | Bandeau affiché en debug seulement si config absente ; test widget ; `supabase/README.md` : `db query --remote -f supabase/seed.sql` pour un seed modifié, toujours `--remote` | — | dev-flutter, relecteur-code | non | S |
-| T10 | à faire | Série hors ligne préservée **[MH]** | Un quiz hors ligne qui valide la journée ne doit plus être écrasé par le profil serveur | RPC qui valide uniquement le jour (pas d'XP, pas de classement), appelée à la reconnexion ; test pgTAP + test Dart du scénario « hors ligne puis synchro » ; série intacte | — | dev-flutter | **oui** | M |
+| T10 | fait (PR #22) | Série hors ligne préservée **[MH]** | Un quiz hors ligne qui valide la journée ne doit plus être écrasé par le profil serveur | RPC qui valide uniquement le jour (pas d'XP, pas de classement), appelée à la reconnexion ; test pgTAP + test Dart du scénario « hors ligne puis synchro » ; série intacte | — | dev-flutter | **oui** | M |
 | T11 | à faire | Bonus rapidité en 4G lente **[MH]** | Vérifier la tolérance de 2 s de `submit_quiz` sur réseau dégradé | Essai sur appareil réel avec Network Link Conditioner (iOS) / profil réseau lent (Android) ; résultat noté dans `supabase/README.md` ; tolérance ajustée si besoin | — | dev-flutter | oui si tolérance modifiée | S |
 | T12 | à faire | Liaison compte anonyme → Apple / Google | Ne pas perdre la progression (changement de téléphone, réinstallation) | `linkIdentityWithIdToken` : Sign in with Apple (iOS), Google (iOS + Android) ; écran Profil « Sauvegarder ma progression » ; cas « identité déjà liée à un autre compte » géré ; tests | T8 (capability Sign in with Apple), D3 | dev-flutter | **oui** | L |
 | T13 | à faire | Suppression de compte **[MH]** | Satisfaire App Store 5.1.1(v) et la règle Google Play de suppression | Edge Function `delete_account` : supprime données puis utilisateur, révoque le jeton Apple (TN3194) ; bouton dans Profil avec confirmation ; page web de demande de suppression (exigée par Google Play) ; testée avec compte anonyme et compte Apple | T12 | dev-flutter, securite, conformite-stores | **oui** | L |
 | T14 | à faire | Anti-abus comptes **[MH]** | Limiter la création massive d'anonymes et les MAU fantômes | Limites de débit Auth réglées dans le Dashboard (noté dans README) ; purge pg_cron des anonymes inactifs (ex. 90 j sans activité, sans liaison) ; CAPTCHA selon D4 | — | dev-flutter | **oui** | M |
 | T15 | à faire | Repérage des comptes suspects **[MH]** | Masquer les tricheurs du classement | Requête (100 % juste + temps médian < 2 s sur N quiz) ; colonne `hidden_from_leaderboard` lue par `weekly_leaderboard` ; procédure manuelle dans README ; test pgTAP | — | dev-flutter | **oui** | M |
-| T16 | à faire | Contenu : 500+ questions serveur **[MH]** | Parade principale contre la récolte des réponses, et promesse du MVP | Lots de ~70 (10/catégorie) dans `supabase/questions/questions.json`, chacun relu par `verificateur-faits`, seed régénéré, 1 PR par lot, lots C1 à C6 (fait : 0/6 ; ≥ 500 au total, ≥ 70/catégorie) | — | redacteur-questions, verificateur-faits | non | L (continu) |
-| T17 | à faire | Lot hors ligne dédié | Avoir 10 questions/catégorie jouables hors ligne | `assets/questions.json` à 70 questions, disjointes du serveur (`test/questions_test.dart` vert) | — | redacteur-questions, verificateur-faits | non | M |
+| T16 | en cours (C1 = PR #23) | Contenu : 500+ questions serveur **[MH]** | Parade principale contre la récolte des réponses, et promesse du MVP | Lots de ~70 (10/catégorie) dans `supabase/questions/questions.json`, ~30 % d'ancrage francophone, `source` remplie, chacun relu par `verificateur-faits`, seed régénéré et exécuté en distant, 1 PR par lot. Fait : C1 (lot 2, PR #23) → **140 questions, 20/catégorie, 140/140 sourcées**. Reste ≥ 360 questions : C2 à C7 (≥ 500 au total, ≥ 72/catégorie) | — | redacteur-questions, verificateur-faits | non | L (continu) |
+| T17 | à faire | Lot hors ligne dédié | Avoir 10 questions/catégorie jouables hors ligne | `assets/questions.json` à 70 questions (21 aujourd'hui), disjointes du serveur (`test/questions_test.dart` vert) | — | redacteur-questions, verificateur-faits | non | M |
+| T38 | à faire | Non-répétition sur 30 jours | Ne pas resservir une question vue il y a moins de 30 jours (décision top 3 n° 4) | Table `question_history` (user_id, question_id, date de vue) remplie côté serveur au service des questions ; tirage prioritaire des questions non vues, repli sur les plus anciennes si le stock est épuisé ; défi du jour inchangé (même quiz pour tous) ; purge pg_cron > 30 j ; RLS sans accès client ; tests pgTAP | T16 (≥ 500 questions) | dev-flutter, securite | **oui** | M |
+| T39 | à faire | Accueil : jour du défi serveur | Supprimer l'incohérence de date accueil / résultats pour un joueur hors fuseau de Paris (mineur) | L'accueil (carte défi, « joué aujourd'hui ») utilise le jour serveur (Europe/Paris) quand il est connu, sinon le jour local ; test Dart avec une horloge décalée | — | dev-flutter, relecteur-code | non | S |
+| T40 | à faire | Test widget Résultats (mineur) | Verrouiller que date et partage de l'écran Résultats viennent de `s.day` | Test widget : session dont `day` ≠ jour local → date affichée et texte partagé sur `s.day` (peut aller dans la PR de T39) | — | dev-flutter | non | S |
+| T41 | en continu | Tri des signalements | Corriger vite les questions signalées (notes store) | Chaque semaine : requête de tri de `supabase/README.md` (§ Signalements) ; question fautive corrigée ou désactivée dans `questions.json` via une PR `content/…` relue par `verificateur-faits`, seed exécuté en distant ; rythme noté dans le README | PR #25 | Fares, verificateur-faits, redacteur-questions | non | S (récurrent) |
 
 ## Étape 3 — Pubs, consentement, achat « sans pub »
 
@@ -58,7 +71,8 @@ Fait :
 | T27 | à faire | Audit pré-soumission **[MH]** | Rien qui fasse rejeter | Rapport `conformite-stores` : App Privacy (Apple), Data safety (Google), classification d'âge (nouveau questionnaire Apple), privacy manifest, login 4.8, 5.1.1(v), restauration d'achat, pubs/enfants ; points bloquants corrigés | T13, T19, T23, T25 | conformite-stores, securite | **oui** | M |
 | T28 | à faire | Fiches stores **[MH]** | Icône, captures, textes, mots-clés | Icônes finales, captures iPhone/Android, textes FR, mots-clés ASO ; vérification d'antériorité de la marque « Quizzéo » faite | — (peut démarrer tôt) | marketing-design, conformite-stores | non | M |
 | T29 | à faire | TestFlight + test fermé Google **[MH]** | Satisfaire la règle Google (compte personnel) et corriger les retours | Build sur TestFlight ; test fermé Google avec **≥ 12 testeurs inscrits sans interruption pendant 14 jours** ; retours triés en tâches | T26, T27 (recrutement des testeurs dès maintenant) | dev-flutter, conformite-stores | non | L (≥ 14 jours calendaires) |
-| T30 | à faire | Publication | Sortie simultanée iOS + Android | Demande d'accès production Google acceptée ; revue Apple passée ; sortie programmée le même jour | T29 | conformite-stores | non | M |
+| T42 | à faire | Défi n° 1 = jour de publication **[MH]** | Le défi n° 1 tombe le jour de sortie (décision top 3 n° 3) | `challengeStartDay` (`lib/share/share_content.dart`, provisoire au 2026-12-01) fixé à la date de sortie (D10), TODO retiré, `test/share_test.dart` à jour ; inclus dans le build soumis en revue | D10, T29 | dev-flutter | non | S |
+| T30 | à faire | Publication | Sortie simultanée iOS + Android | Demande d'accès production Google acceptée ; revue Apple passée ; sortie programmée le même jour (celui de T42) | T29, T42 | conformite-stores | non | M |
 
 ## Étape 5 — TikTok (en parallèle, dès maintenant)
 
@@ -75,19 +89,27 @@ Fait :
 - [ ] T36 Badges — dev-flutter, marketing-design, M
 - [ ] T37 App Attest / Play Integrity si la triche devient réelle — dev-flutter, **Sécu**, L
 
+Priorité juste après la sortie (avant, l'agrégat n'a pas de sens : ~15 testeurs en test fermé) :
+
+| # | Statut | Tâche | Objectif | Livrable / critère de fin | Dépend de | Agent(s) | Sécu | Taille |
+|---|---|---|---|---|---|---|---|---|
+| T43 | à faire | « Tu fais mieux que X % des joueurs » | Comparaison sociale sur le défi du jour (top 3 n° 1, 2e temps) | RPC agrégée sur `quiz_results` du jour (Europe/Paris), défi du jour seulement ; rien affiché sous le seuil (D9) ; une ligne sur l'écran Résultats, jamais de donnée individuelle ; tests pgTAP + widget | T30, D9 | dev-flutter, securite | **oui** | M |
+| T44 | à faire | % de joueurs par réponse (défi du jour) | Montrer la répartition des réponses après chaque question | Répartition renvoyée seulement après la réponse du joueur, même seuil que T43 ; tests | T43 | dev-flutter, securite | **oui** | M |
+
 ## Ordre recommandé et parallélisme
 
 Piste **dev** (séquentielle, une PR à la fois) :
-1. T9 → T10 → T11 (petits correctifs, sans dépendance externe)
+1. T11 → T9 → T39 + T40 (petits correctifs, sans dépendance externe ; T10 fait)
 2. T19 → T20 → T21 → T22 (pubs avec ID de test : ne demandent pas encore les comptes store, utile si T8 traîne)
 3. T12 → T13 (dès que le compte Apple est actif)
-4. T14 → T15
+4. T14 → T15 → T38 (T38 dès que T16 atteint 500)
 5. T18 → T23 (achat, comptes store requis)
-6. T24 → T26 → T27 → T29 → T30
+6. T24 → T26 → T27 → T29 → T42 → T30
+7. Après la sortie : T43 → T44
 
 Pistes **en parallèle** dès maintenant :
 - **Admin (Fares)** : T8 tout de suite ; recruter 15-20 testeurs Android (marge au-dessus de 12) pendant les étapes 2-3.
-- **Contenu** : T16 en continu (1 lot par semaine environ), puis T17. Le classement ne s'ouvre pas au public avant 500+ questions.
+- **Contenu** : T16 en continu (1 lot par semaine environ), puis T17 ; prochain lot : C2. Le classement ne s'ouvre pas au public avant 500+ questions. T41 (tri des signalements) chaque semaine.
 - **Marketing** : T28 (icône, captures provisoires, marque) et T31 TikTok.
 - **Légal** : T25 dès que T13 et T19 sont définis.
 
@@ -102,12 +124,13 @@ Compter au moins **3 semaines** entre le début de T29 et la sortie (14 jours de
 - Politique de confidentialité en ligne, App Privacy, Data safety, classification d'âge (T25, T27).
 - Supabase en Pro, build release signé, aucune clé dans le dépôt (T26).
 - Test fermé Google : 12 testeurs × 14 jours (T29).
-- Pas de perte de série (T10), bonus rapidité juste en 4G (T11), anti-abus minimal (T14), masquage des tricheurs (T15), 500+ questions serveur ou classement masqué (T16).
+- Défi n° 1 calé sur le jour de sortie (T42).
+- Pas de perte de série (T10, fait), bonus rapidité juste en 4G (T11), anti-abus minimal (T14), masquage des tricheurs (T15), 500+ questions serveur ou classement masqué (T16).
 - Fiches stores complètes (T28).
 
 Fortement recommandé mais non bloquant côté stores : liaison Apple/Google (T12), analytics + plantages (T24), lot hors ligne dédié (T17).
 
-Nice to have : T9, T32 à T37.
+Nice to have : T9, T39, T40, T32 à T37, T43, T44.
 
 ## Décisions ouvertes
 
@@ -121,6 +144,10 @@ Nice to have : T9, T32 à T37.
 | D6 | Classement public au lancement | T30 | Ouvert **seulement si 500+ questions serveur** et T15 fait ; sinon onglet masqué ou « bientôt ». |
 | D7 | Marque « Quizzéo » | T28 | Recherche d'antériorité INPI/EUIPO (classes 9 et 41) avant de payer les visuels définitifs ; dépôt si la voie est libre. |
 | D8 | Ligues et badges | après publication | Repoussés après la sortie (T35, T36) ; CLAUDE.md mis à jour. |
+| D9 | Seuil et forme de la comparaison sociale (« mieux que X % ») | T43 | **Défi du jour seulement**, affiché à partir de **50 joueurs** ce jour-là, arrondi à 5 % ; jamais sur les quiz libres. |
+| D10 | Date de sortie (= défi n° 1) | T42 | Fixer la date une fois T29 lancé (≥ 3 semaines avant), plutôt un lundi ou mardi pour profiter de la semaine TikTok. |
+
+Décisions prises par Fares le 2026-11-26 (top 3 de différenciation, numérotées D1–D4 dans les échanges, distinctes des D ci-dessus) : signalement par **4 motifs fixes sans texte libre** ; champ **`source` court, sans URL** ; **défi n° 1 = jour de publication** (`challengeStartDay` provisoire, voir T42) ; **non-répétition en étape 2 après 500+ questions** (T38). À reporter dans « Décisions prises » de `CLAUDE.md`.
 
 ## Comment tenir ce plan à jour
 
