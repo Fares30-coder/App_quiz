@@ -67,7 +67,7 @@ class FakeGranter implements FreezeGranter {
   final void Function()? onGrant;
 
   @override
-  bool get ready => isReady;
+  Future<bool> ready() async => isReady;
 
   @override
   Future<RewardedFreezeOutcome> grant() async {
@@ -230,6 +230,8 @@ void main() {
 
       expect(await h.ads.watchForFreeze(), RewardedFreezeOutcome.failed);
       expect(h.loader.ads.single.shows, 0);
+      expect(h.granter.grants, 0);
+      await settle();
       expect(h.status, RewardedStatus.ready, reason: 'pub gardée');
     });
 

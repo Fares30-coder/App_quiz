@@ -7,7 +7,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(26);
+select plan(28);
 
 insert into auth.users (id, aud, role)
 values
@@ -18,7 +18,8 @@ values
   ('00000000-0000-0000-0000-0000000022e1', 'authenticated', 'authenticated'),
   ('00000000-0000-0000-0000-0000000022f1', 'authenticated', 'authenticated'),
   ('00000000-0000-0000-0000-000000002211', 'authenticated', 'authenticated'),
-  ('00000000-0000-0000-0000-000000002221', 'authenticated', 'authenticated');
+  ('00000000-0000-0000-0000-000000002221', 'authenticated', 'authenticated'),
+  ('00000000-0000-0000-0000-000000002231', 'authenticated', 'authenticated');
 
 -- A : série à jour (joué la veille), aucun gel.
 update public.profiles
@@ -250,6 +251,30 @@ select is(
   (select freezes from public.profiles where id = '00000000-0000-0000-0000-000000002211'),
   1::smallint,
   'RPC publique : 1 gel en réserve'
+);
+
+-- I : contrainte d'ordre (documente ProgressSync.readyForFreezeGrant) --------
+--
+-- Série de 5, dernier jour le 13, quiz hors ligne le 14 à 23 h 30 encore en
+-- file. Le gel demandé le 15 à 00 h 10 compte le 14 comme manqué : série
+-- perdue, puis le jour hors ligne est refusé. D'où l'envoi des files AVANT.
+
+update public.profiles
+   set streak = 5, freezes = 0, last_played_day = '2026-06-13'
+ where id = '00000000-0000-0000-0000-000000002231';
+
+select is(
+  private.grant_rewarded_freeze('00000000-0000-0000-0000-000000002231',
+    '2026-06-15 00:10:00+02') -> 'profile' -> 'streak',
+  '0'::jsonb,
+  'gel demandé avant l''envoi du quiz d''hier : série perdue'
+);
+
+select is(
+  private.validate_offline_day('00000000-0000-0000-0000-000000002231',
+    '2026-06-14 23:30:00+02', '2026-06-15 00:20:00+02') -> 'profile' -> 'streak',
+  '1'::jsonb,
+  'jour hors ligne envoyé après : la série repart de 1 (d''où l''ordre imposé)'
 );
 
 -- H : suppression du compte -----------------------------------------------------

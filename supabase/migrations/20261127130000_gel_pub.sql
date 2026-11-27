@@ -20,6 +20,11 @@
 -- - assez de gels : ils sont consommés et `last_played_day` passe à la
 --   veille (jours gelés = jours couverts, la série ne monte pas) ;
 -- - pas assez : série perdue (0), gels conservés.
+--
+-- Ordre imposé à l'app : envoyer les quiz et journées hors ligne en attente
+-- AVANT cet appel (ProgressSync.readyForFreezeGrant). Sinon un quiz d'hier
+-- encore en file serait compté comme jour manqué (série perdue ou gel
+-- consommé), puis refusé ou sans effet sur la série.
 
 -- Gels accordés ------------------------------------------------------------
 
@@ -113,7 +118,12 @@ begin
     insert into public.freeze_grants (user_id, day, granted_at)
     values (uid, v_today, as_of)
     on conflict (user_id, day) do nothing;
-    v_freezes := v_freezes + 1;
+    -- Course impossible (verrou sur le profil), gardé par prudence.
+    if found then
+      v_freezes := v_freezes + 1;
+    else
+      v_reason := 'daily_limit';
+    end if;
 
     delete from public.freeze_grants fg
      where fg.user_id = uid and fg.day < v_today - history_days;

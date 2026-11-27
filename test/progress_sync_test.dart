@@ -1037,6 +1037,33 @@ void main() {
           server.paths, isNot(contains('/rest/v1/rpc/grant_rewarded_freeze')));
     });
 
+    test('journée hors ligne en attente : envoyée avant le gel', () async {
+      server.profile = _profile(lastQuizAt: '2026-11-25T18:00:00+00:00')
+        ..['freezes'] = 0;
+      final c = await container();
+      final sync = c.read(progressSyncProvider)!;
+      server.rpcOffline = true;
+      await sync.recordOfflineDay(_now.subtract(const Duration(minutes: 5)));
+      server.rpcOffline = false;
+
+      await sync.grantRewardedFreeze();
+      final rpcs = server.paths.where((p) => p.contains('/rpc/')).toList();
+      expect(rpcs.lastIndexOf('/rest/v1/rpc/validate_offline_day'),
+          lessThan(rpcs.indexOf('/rest/v1/rpc/grant_rewarded_freeze')));
+    });
+
+    test('envoi en attente impossible : pas de gel demandé', () async {
+      final c = await container();
+      final sync = c.read(progressSyncProvider)!;
+      server.validateError = 'PT429';
+      await sync.recordOfflineDay(_now.subtract(const Duration(minutes: 5)));
+
+      await expectLater(sync.grantRewardedFreeze(), throwsStateError);
+      expect(await sync.readyForFreezeGrant(), isFalse);
+      expect(
+          server.paths, isNot(contains('/rest/v1/rpc/grant_rewarded_freeze')));
+    });
+
     test('hors ligne : erreur, gels inchangés', () async {
       server.rpcOffline = true;
       final c = await container(

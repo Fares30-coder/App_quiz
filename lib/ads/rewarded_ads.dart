@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import '../backend/auth_service.dart';
 import '../engagement/progress_controller.dart';
 import '../engagement/progress_sync.dart';
 import '../quiz/quiz_controller.dart';
@@ -161,8 +160,9 @@ enum RewardedFreezeOutcome {
 /// les tests.
 abstract class FreezeGranter {
   /// Un gel peut-il être enregistré maintenant ? Sinon, inutile de montrer
-  /// la vidéo (mode Supabase sans session).
-  bool get ready;
+  /// la vidéo (mode Supabase sans session, ou progression en attente
+  /// d'envoi). Envoie d'abord les quiz en attente. Ne lève jamais.
+  Future<bool> ready();
 
   Future<RewardedFreezeOutcome> grant();
 }
@@ -179,9 +179,10 @@ class ProgressFreezeGranter implements FreezeGranter {
   final Ref _ref;
 
   @override
-  bool get ready =>
-      _ref.read(progressSyncProvider) == null ||
-      _ref.read(authUserIdProvider) != null;
+  Future<bool> ready() async {
+    final sync = _ref.read(progressSyncProvider);
+    return sync == null || await sync.readyForFreezeGrant();
+  }
 
   @override
   Future<RewardedFreezeOutcome> grant() async {
@@ -308,18 +309,27 @@ class RewardedFreezeController extends Notifier<RewardedStatus> {
     if (quiz.questions.isNotEmpty && !quiz.isFinished) {
       return RewardedFreezeOutcome.unavailable;
     }
-    final granter = ref.read(freezeGranterProvider);
-    if (!granter.ready) return RewardedFreezeOutcome.failed;
     if (_now().difference(_loadedAt!) >= maxAdAge) {
       _release();
       prepare();
       return RewardedFreezeOutcome.unavailable;
     }
-    _ad = null;
+    final granter = ref.read(freezeGranterProvider);
     _busy = true;
     _emit();
     var outcome = RewardedFreezeOutcome.notEarned;
     try {
+      // Quiz en attente envoyés avant la vidéo (voir FreezeGranter.ready).
+      if (!await granter.ready()) {
+        outcome = RewardedFreezeOutcome.failed;
+        return outcome;
+      }
+      // Pub libérée entre-temps (consentement retiré) : rien à montrer.
+      if (!identical(_ad, ad) || _disposed) {
+        outcome = RewardedFreezeOutcome.unavailable;
+        return outcome;
+      }
+      _ad = null;
       final earned = await ad.show();
       if (earned) outcome = await granter.grant();
     } catch (e) {
@@ -328,8 +338,10 @@ class RewardedFreezeController extends Notifier<RewardedStatus> {
       _busy = false;
       _emit();
     }
-    // Vidéo interrompue : le joueur peut réessayer.
-    if (outcome == RewardedFreezeOutcome.notEarned && !_disposed) {
+    // Vidéo interrompue, ou non montrée : le joueur peut réessayer.
+    if ((outcome == RewardedFreezeOutcome.notEarned ||
+            outcome == RewardedFreezeOutcome.unavailable) &&
+        !_disposed) {
       unawaited(_load());
     } else {
       _wanted = false;
