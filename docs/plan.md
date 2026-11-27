@@ -120,7 +120,7 @@ Nice to have : T9, T32 à T37.
 | D5 | Compte Google Play : personnel ou organisation | T8 (maintenant) | **Personnel** sauf structure existante avec numéro D-U-N-S ; accepter le test fermé 12 × 14 j et recruter tôt. |
 | D6 | Classement public au lancement | T30 | Ouvert **seulement si 500+ questions serveur** et T15 fait ; sinon onglet masqué ou « bientôt ». |
 | D7 | Marque « Quizzéo » | T28 | Recherche d'antériorité INPI/EUIPO (classes 9 et 41) avant de payer les visuels définitifs ; dépôt si la voie est libre. |
-| D8 | Ligues et badges | après publication | Repoussés après la sortie (T35, T36) ; CLAUDE.md les place encore en « étape 2 » : à corriger. |
+| D8 | Ligues et badges | après publication | Repoussés après la sortie (T35, T36) ; CLAUDE.md mis à jour. |
 
 ## Comment tenir ce plan à jour
 
