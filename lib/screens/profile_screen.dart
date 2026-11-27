@@ -8,6 +8,7 @@ import '../backend/account_deletion.dart';
 import '../engagement/dates.dart';
 import '../engagement/progress_controller.dart';
 import '../engagement/xp.dart';
+import '../legal/legal_links.dart';
 import '../models/player_progress.dart';
 import '../reminder/reminder_scheduler.dart';
 import '../reminder/notification_service.dart';
@@ -147,6 +148,31 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.l),
           Card(
             clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                _LegalTile(
+                  icon: Icons.policy_outlined,
+                  title: 'Politique de confidentialité',
+                  url: LegalLinks.privacy,
+                ),
+                const Divider(height: 1),
+                _LegalTile(
+                  icon: Icons.person_remove_outlined,
+                  title: 'Supprimer mes données',
+                  url: LegalLinks.dataDeletion,
+                ),
+                const Divider(height: 1),
+                _LegalTile(
+                  icon: Icons.gavel_outlined,
+                  title: 'Mentions légales',
+                  url: LegalLinks.legalNotice,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.l),
+          Card(
+            clipBehavior: Clip.antiAlias,
             child: ListTile(
               minTileHeight: 56,
               iconColor: context.colors.error,
@@ -234,4 +260,23 @@ class ProfileScreen extends ConsumerWidget {
             SnackBarAction(label: 'Réglages', onPressed: service.openSettings),
       ));
   }
+}
+
+/// Lien vers une page légale (navigateur intégré).
+class _LegalTile extends ConsumerWidget {
+  const _LegalTile(
+      {required this.icon, required this.title, required this.url});
+
+  final IconData icon;
+  final String title;
+  final Uri url;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => ListTile(
+        minTileHeight: 56,
+        leading: Icon(icon),
+        title: Text(title),
+        trailing: const Icon(Icons.open_in_new, size: 20),
+        onTap: () => openLegalLink(context, ref, url),
+      );
 }

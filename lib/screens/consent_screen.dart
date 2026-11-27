@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../ads/consent_service.dart';
+import '../legal/legal_links.dart';
 import '../theme/app_theme.dart';
 import 'goal_screen.dart';
 
@@ -86,12 +87,8 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
                     child: const Text('Continuer'),
                   ),
                   TextButton(
-                    // TODO(etape-3): ouvrir la politique de confidentialité (URL à définir).
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'Politique de confidentialité bientôt en ligne.')),
-                    ),
+                    onPressed: () =>
+                        openLegalLink(context, ref, LegalLinks.privacy),
                     child: const Text('Politique de confidentialité'),
                   ),
                   Padding(
